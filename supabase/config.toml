@@ -1,0 +1,18 @@
+[project]
+id = "stirtrek-app"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[auth]
+site_url = "http://localhost:3001"
+
+[auth.email]
+otp_length = 6
+otp_expiry = 300
