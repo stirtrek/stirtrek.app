@@ -243,13 +243,13 @@ export default function AdminSponsorsPage() {
                       {account.lead_count !== 1 ? "s" : ""}
                     </p>
                   </div>
-                  <div className="shrink-0">
+                  <div className="shrink-0 w-full sm:w-auto">
                     <Select
                       value={account.sponsor_id || "unassigned"}
                       onValueChange={(val) => handleAssign(account.id, val)}
                       disabled={updating === account.id}
                     >
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
