@@ -7,14 +7,13 @@ import { useNotifications } from "@/providers/notification-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { EmergencyMessageWithReplies } from "@/lib/types";
 
 export default function EmergencyPage() {
   const { user } = useAuth();
-  const { markRepliesRead, refreshCount, pushSupported, pushSubscribed, subscribeToPush } = useNotifications();
+  const { markRepliesRead, refreshCount } = useNotifications();
   const [messages, setMessages] = useState<EmergencyMessageWithReplies[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -148,17 +147,6 @@ export default function EmergencyPage() {
           Contact event staff with any urgent issues.
         </p>
       </div>
-
-      {/* Push notification opt-in */}
-      {pushSupported && !pushSubscribed && (
-        <button
-          onClick={subscribeToPush}
-          className="flex w-full items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/50"
-        >
-          <Bell className="h-4 w-4 shrink-0" />
-          <span>Enable notifications to get alerts when staff replies</span>
-        </button>
-      )}
 
       {/* Compose form */}
       <MessageCompose onSend={handleSend} sending={sending} />

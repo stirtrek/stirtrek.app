@@ -80,11 +80,15 @@ export function NotificationProvider({
 
   const isAdmin = profile && ["admin", "staff"].includes(profile.role);
 
-  const pushSupported =
-    typeof window !== "undefined" &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window;
+  const [pushSupported, setPushSupported] = useState(false);
+
+  useEffect(() => {
+    setPushSupported(
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window
+    );
+  }, []);
 
   const refreshCount = useCallback(async () => {
     if (!user) return;
@@ -111,14 +115,45 @@ export function NotificationProvider({
     refreshCount().then(() => setLoading(false));
   }, [user, refreshCount]);
 
-  // Check if already subscribed to push
+  // Auto-subscribe to push when user is logged in and push is supported
   useEffect(() => {
     if (!pushSupported || !user) return;
 
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
-        setPushSubscribed(!!sub);
-      });
+    navigator.serviceWorker.ready.then(async (reg) => {
+      // Check if already subscribed
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) {
+        setPushSubscribed(true);
+        return;
+      }
+
+      // Auto-request permission and subscribe
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return;
+
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) return;
+
+      try {
+        const subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
+        });
+
+        const json = subscription.toJSON();
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            endpoint: json.endpoint,
+            keys: json.keys,
+          }),
+        });
+
+        setPushSubscribed(true);
+      } catch {
+        // Silently fail — user denied or browser doesn't support
+      }
     });
   }, [pushSupported, user]);
 
