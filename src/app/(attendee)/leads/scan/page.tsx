@@ -18,8 +18,13 @@ export default function ScanPage() {
     if (processingRef.current) return;
     processingRef.current = true;
 
+    const haptic = (pattern: number | number[]) => {
+      if (navigator.vibrate) navigator.vibrate(pattern);
+    };
+
     const parsed = parseVCard(decodedText);
     if (!parsed) {
+      haptic([50, 30, 50, 30, 50]); // error buzz
       toast.error("Not a valid badge QR code");
       setTimeout(() => {
         processingRef.current = false;
@@ -38,11 +43,14 @@ export default function ScanPage() {
     });
 
     if (res.status === 409) {
+      haptic(30); // light tap for duplicate
       toast.info("Already scanned this attendee");
     } else if (!res.ok) {
+      haptic([50, 30, 50, 30, 50]); // error buzz
       const data = await res.json();
       toast.error(data.error || "Failed to save lead");
     } else {
+      haptic([50, 50, 100]); // success pattern
       const name = [parsed.firstName, parsed.lastName]
         .filter(Boolean)
         .join(" ");
