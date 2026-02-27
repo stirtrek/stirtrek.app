@@ -31,6 +31,7 @@ export interface Profile {
   last_name: string | null;
   role: UserRole;
   is_sponsor: boolean;
+  sponsor_id: string | null;
   phone: string | null;
   receives_sms_alerts: boolean;
   receives_push_alerts: boolean;

@@ -1,6 +1,5 @@
-import { SponsorCard } from "@/components/sponsors/sponsor-card";
 import { AttendeeQrCode } from "@/components/sponsors/attendee-qr-code";
-import { SPONSOR_TIER_ORDER } from "@/lib/constants";
+import { SponsorList } from "@/components/sponsors/sponsor-list";
 
 export const metadata = {
   title: "Sponsors",
@@ -45,45 +44,11 @@ export default async function SponsorsPage() {
     );
   }
 
-  const tierLabels: Record<string, string> = {
-    platinum: "Platinum Sponsors",
-    gold: "Gold Sponsors",
-    silver: "Silver Sponsors",
-    bronze: "Bronze Sponsors",
-    community: "Community Sponsors",
-  };
-
   return (
     <div className="space-y-6">
       <AttendeeQrCode />
 
-      <p className="text-sm text-muted-foreground">
-        Thank you to our {totalCount} sponsors for making Stir Trek possible!
-      </p>
-
-      {SPONSOR_TIER_ORDER.map((tier) => {
-        const tierSponsors = sponsorsByTier[tier];
-        if (!tierSponsors || tierSponsors.length === 0) return null;
-
-        return (
-          <section key={tier} className="space-y-3">
-            <h2 className="text-lg font-semibold capitalize">
-              {tierLabels[tier] ?? tier}
-            </h2>
-            <div className="flex flex-col gap-3">
-              {tierSponsors.map((sponsor) => (
-                <SponsorCard
-                  key={sponsor.name}
-                  name={sponsor.name}
-                  url={sponsor.link}
-                  imageUrl={`https://stirtrek.com${sponsor.logo}`}
-                  description={sponsor.description}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <SponsorList sponsorsByTier={sponsorsByTier} totalCount={totalCount} />
     </div>
   );
 }

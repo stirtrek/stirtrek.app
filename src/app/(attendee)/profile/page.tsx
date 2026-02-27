@@ -11,6 +11,7 @@ import { Loader2, LogOut, Shield, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { SponsorActivation } from "@/components/profile/sponsor-activation";
+import { SponsorCompanySelector } from "@/components/profile/sponsor-company-selector";
 
 export default function ProfilePage() {
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
@@ -150,21 +151,24 @@ export default function ProfilePage() {
       )}
 
       {profile.is_sponsor && (
-        <Link href="/leads">
-          <Card className="transition-colors hover:bg-accent">
-            <CardContent className="flex items-center gap-4 py-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                <ScanLine className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">My Leads</p>
-                <p className="text-sm text-muted-foreground">
-                  View and manage scanned contacts
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        <>
+          <Link href="/leads">
+            <Card className="transition-colors hover:bg-accent">
+              <CardContent className="flex items-center gap-4 py-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <ScanLine className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">My Leads</p>
+                  <p className="text-sm text-muted-foreground">
+                    View and manage scanned contacts
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <SponsorCompanySelector />
+        </>
       )}
 
       {!profile.is_sponsor && <SponsorActivation />}

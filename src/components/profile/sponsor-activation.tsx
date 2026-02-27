@@ -1,18 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import type { Sponsor } from "@/lib/types";
 
 export function SponsorActivation() {
   const { refreshProfile } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [code, setCode] = useState("");
+  const [sponsorId, setSponsorId] = useState<string | undefined>(undefined);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [loadingSponsors, setLoadingSponsors] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!expanded || sponsors.length > 0) return;
+
+    setLoadingSponsors(true);
+    fetch("/api/sponsors")
+      .then((res) => res.json())
+      .then((data) => setSponsors(data.sponsors ?? []))
+      .catch(() => toast.error("Failed to load sponsors"))
+      .finally(() => setLoadingSponsors(false));
+  }, [expanded, sponsors.length]);
 
   const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +43,7 @@ export function SponsorActivation() {
     const res = await fetch("/api/sponsor/activate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, sponsor_id: sponsorId }),
     });
 
     if (!res.ok) {
@@ -55,9 +77,29 @@ export function SponsorActivation() {
         {expanded && (
           <form onSubmit={handleActivate} className="mt-4 space-y-3">
             <p className="text-xs text-muted-foreground">
-              Enter the access code provided by the Stir Trek team to unlock
-              badge scanning.
+              Select your company and enter the access code provided by the Stir
+              Trek team to unlock badge scanning.
             </p>
+            <Select
+              value={sponsorId}
+              onValueChange={setSponsorId}
+              disabled={loading || loadingSponsors}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={
+                    loadingSponsors ? "Loading sponsors..." : "Select your company"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-60">
+                {sponsors.map((sponsor) => (
+                  <SelectItem key={sponsor.id} value={sponsor.id}>
+                    {sponsor.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input
               type="text"
               placeholder="Access code"
@@ -66,7 +108,12 @@ export function SponsorActivation() {
               required
               disabled={loading}
             />
-            <Button type="submit" disabled={loading} className="w-full" size="sm">
+            <Button
+              type="submit"
+              disabled={loading || !sponsorId || !code}
+              className="w-full"
+              size="sm"
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

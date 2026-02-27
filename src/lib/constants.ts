@@ -26,6 +26,8 @@ export const SPONSOR_TIER_ORDER = [
   "community",
 ] as const;
 
+export const BOOTH_SPONSOR_TIERS = ["platinum", "gold", "silver"] as const;
+
 export const NAV_ITEMS = [
   { href: "/schedule", label: "Schedule", icon: "Calendar" },
   { href: "/speakers", label: "Speakers", icon: "Users" },
