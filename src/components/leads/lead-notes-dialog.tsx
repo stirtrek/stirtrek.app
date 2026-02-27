@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Lead } from "@/lib/types";
 
@@ -18,6 +18,7 @@ interface LeadNotesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: (updated: Lead) => void;
+  onDeleted: (id: string) => void;
 }
 
 export function LeadNotesDialog({
@@ -25,14 +26,20 @@ export function LeadNotesDialog({
   open,
   onOpenChange,
   onSaved,
+  onDeleted,
 }: LeadNotesDialogProps) {
-  const [notes, setNotes] = useState(lead?.notes || "");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  // Sync notes when lead changes
-  if (lead && notes !== (lead.notes || "") && !saving) {
-    setNotes(lead.notes || "");
-  }
+  // Sync notes only when a different lead is opened
+  useEffect(() => {
+    if (lead && open) {
+      setNotes(lead.notes || "");
+      setConfirmingDelete(false);
+    }
+  }, [lead?.id, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     if (!lead) return;
@@ -54,6 +61,27 @@ export function LeadNotesDialog({
     onSaved(updated);
     toast.success("Notes saved");
     setSaving(false);
+    onOpenChange(false);
+  };
+
+  const handleDelete = async () => {
+    if (!lead) return;
+    setDeleting(true);
+
+    const res = await fetch(`/api/leads/${lead.id}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      toast.error("Failed to delete lead");
+      setDeleting(false);
+      return;
+    }
+
+    onDeleted(lead.id);
+    toast.success("Lead deleted");
+    setDeleting(false);
+    setConfirmingDelete(false);
     onOpenChange(false);
   };
 
@@ -80,9 +108,9 @@ export function LeadNotesDialog({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
-            disabled={saving}
+            disabled={saving || deleting}
           />
-          <Button onClick={handleSave} disabled={saving} className="w-full">
+          <Button onClick={handleSave} disabled={saving || deleting} className="w-full">
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -92,6 +120,52 @@ export function LeadNotesDialog({
               "Save Notes"
             )}
           </Button>
+
+          {!confirmingDelete ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-destructive hover:text-destructive"
+              onClick={() => setConfirmingDelete(true)}
+              disabled={saving || deleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Lead
+            </Button>
+          ) : (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-3">
+              <p className="text-sm text-center">
+                Are you sure you want to delete this lead?
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setConfirmingDelete(false)}
+                  disabled={deleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

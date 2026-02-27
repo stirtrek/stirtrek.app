@@ -78,7 +78,7 @@ export default function ScanPage() {
         <h1 className="text-lg font-bold">Scan Badge</h1>
       </div>
 
-      <QrScanner onScan={handleScan} />
+      <QrScanner onScan={handleScan} autoStart />
 
       {lastScanned && (
         <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3">

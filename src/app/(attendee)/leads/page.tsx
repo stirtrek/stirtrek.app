@@ -43,6 +43,11 @@ export default function LeadsPage() {
     setSelectedLead(updated);
   };
 
+  const handleDeleted = (id: string) => {
+    setLeads((prev) => prev.filter((l) => l.id !== id));
+    setSelectedLead(null);
+  };
+
   const handleExport = () => {
     window.location.href = "/api/leads/export";
   };
@@ -97,6 +102,7 @@ export default function LeadsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSaved={handleNoteSaved}
+        onDeleted={handleDeleted}
       />
     </div>
   );

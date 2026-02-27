@@ -8,11 +8,12 @@ import { Camera } from "lucide-react";
 interface QrScannerProps {
   onScan: (decodedText: string) => void;
   onError?: (error: string) => void;
+  autoStart?: boolean;
 }
 
 const SCANNER_ELEMENT_ID = "qr-scanner-region";
 
-export function QrScanner({ onScan, onError }: QrScannerProps) {
+export function QrScanner({ onScan, onError, autoStart = false }: QrScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const runningRef = useRef(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -54,6 +55,9 @@ export function QrScanner({ onScan, onError }: QrScannerProps) {
   }, [onScan, onError]);
 
   useEffect(() => {
+    if (autoStart) {
+      startScanner();
+    }
     return () => {
       const scanner = scannerRef.current;
       if (scanner) {
@@ -67,6 +71,7 @@ export function QrScanner({ onScan, onError }: QrScannerProps) {
         runningRef.current = false;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
