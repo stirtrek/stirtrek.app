@@ -5,6 +5,8 @@ import { DevTimeBanner } from "@/components/layout/dev-time-banner";
 import { PresenceTracker } from "@/components/presence-tracker";
 import { SimulatedTimeProvider } from "@/providers/simulated-time-provider";
 import { BookmarkProvider } from "@/providers/bookmark-provider";
+import { FeedbackProvider } from "@/providers/feedback-provider";
+import { NotificationProvider } from "@/providers/notification-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -15,16 +17,20 @@ export default function AttendeeLayout({
 }) {
   return (
     <SimulatedTimeProvider>
-      <div className="flex min-h-screen flex-col">
-        <OfflineIndicator />
-        <Header />
-        <DevTimeBanner />
-        <PresenceTracker />
-        <main className="mx-auto w-full max-w-md flex-1 px-4 pb-20 pt-4">
-          <BookmarkProvider>{children}</BookmarkProvider>
-        </main>
-        <BottomNav />
-      </div>
+      <NotificationProvider>
+        <div className="flex min-h-screen flex-col">
+          <OfflineIndicator />
+          <Header />
+          <DevTimeBanner />
+          <PresenceTracker />
+          <main className="mx-auto w-full max-w-md flex-1 px-4 pb-20 pt-4">
+            <BookmarkProvider>
+              <FeedbackProvider>{children}</FeedbackProvider>
+            </BookmarkProvider>
+          </main>
+          <BottomNav />
+        </div>
+      </NotificationProvider>
     </SimulatedTimeProvider>
   );
 }

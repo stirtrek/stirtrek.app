@@ -122,7 +122,13 @@ export default function AdminSchedulePage() {
                         {log.status}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(log.started_at).toLocaleString()}
+                        {new Date(log.started_at).toLocaleString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          timeZone: "America/New_York",
+                        })}
                       </span>
                     </div>
                     {log.status === "completed" && (

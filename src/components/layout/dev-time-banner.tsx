@@ -1,13 +1,14 @@
 "use client";
 
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
+import { parseSessionizeTime } from "@/lib/utils";
 
 export function DevTimeBanner() {
   const { simulatedTime } = useSimulatedTime();
 
   if (!simulatedTime) return null;
 
-  const formatted = new Date(simulatedTime).toLocaleString("en-US", {
+  const formatted = parseSessionizeTime(simulatedTime).toLocaleString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",

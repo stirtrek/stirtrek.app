@@ -14,7 +14,10 @@ export async function GET() {
     return NextResponse.json({ simulatedTime: null });
   }
 
-  return NextResponse.json({ simulatedTime: data.value ?? null });
+  // value is stored as a JSON string when active, or JSON false when cleared
+  const raw = data.value;
+  const simulatedTime = typeof raw === "string" ? raw : null;
+  return NextResponse.json({ simulatedTime });
 }
 
 export async function PUT(request: Request) {
@@ -40,10 +43,15 @@ export async function PUT(request: Request) {
   const body = await request.json();
   const time: string | null = body.time ?? null;
 
+  // Store the time string when active, or JSON false when clearing.
+  // We avoid storing JS null because Supabase interprets it as SQL NULL,
+  // which violates the JSONB NOT NULL constraint on app_settings.value.
+  const dbValue = time ?? false;
+
   const admin = createAdminClient();
   const { error } = await admin
     .from("app_settings")
-    .update({ value: time, updated_by: user.id })
+    .update({ value: dbValue, updated_by: user.id })
     .eq("key", "simulated_time");
 
   if (error) {

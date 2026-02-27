@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, Trash2 } from "lucide-react";
-import { formatTime } from "@/lib/utils";
+import { formatTime, parseSessionizeTime } from "@/lib/utils";
 
 export default function TimeSimulatorPage() {
   const [simulatedTime, setSimulatedTime] = useState<string | null>(null);
@@ -63,9 +63,8 @@ export default function TimeSimulatorPage() {
   }
 
   function offsetTime(baseIso: string, minutesDelta: number): string {
-    const d = new Date(baseIso);
-    d.setMinutes(d.getMinutes() + minutesDelta);
-    // Format back as YYYY-MM-DDTHH:mm:ss
+    const d = parseSessionizeTime(baseIso);
+    d.setUTCMinutes(d.getUTCMinutes() + minutesDelta);
     const pad = (n: number) => n.toString().padStart(2, "0");
     return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
   }
@@ -96,7 +95,7 @@ export default function TimeSimulatorPage() {
               <p className="text-sm">
                 Simulated time:{" "}
                 <span className="font-semibold text-amber-600">
-                  {new Date(simulatedTime).toLocaleString("en-US", {
+                  {parseSessionizeTime(simulatedTime).toLocaleString("en-US", {
                     weekday: "short",
                     month: "short",
                     day: "numeric",

@@ -14,11 +14,12 @@ export function LeadCard({ lead, onTap }: LeadCardProps) {
     .filter(Boolean)
     .join(" ");
 
-  const scannedAt = new Date(lead.scanned_at).toLocaleString(undefined, {
+  const scannedAt = new Date(lead.scanned_at).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "America/New_York",
   });
 
   return (

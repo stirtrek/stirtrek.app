@@ -1,23 +1,28 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Bookmark, BookmarkCheck } from "lucide-react";
-import { cn, formatTime } from "@/lib/utils";
+import { MapPin, Bookmark, BookmarkCheck, User } from "lucide-react";
+import { cn, formatTime, isFeedbackAvailable } from "@/lib/utils";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
+import { useSimulatedTime } from "@/providers/simulated-time-provider";
+import { InlineFeedback } from "./inline-feedback";
 import type { SessionWithDetails } from "@/lib/types";
 
 interface SessionCardProps {
   session: SessionWithDetails;
   highlightBookmark?: boolean;
+  /** "my-schedule" shows feedback auto-expanded; "full-schedule" shows toggle */
+  variant?: "full-schedule" | "my-schedule";
 }
 
-export function SessionCard({ session, highlightBookmark }: SessionCardProps) {
-  const router = useRouter();
+export function SessionCard({ session, highlightBookmark, variant = "full-schedule" }: SessionCardProps) {
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks();
+  const { getNow } = useSimulatedTime();
   const bookmarked = isBookmarked(session.id);
 
   const startTime = session.starts_at ? formatTime(session.starts_at) : "";
@@ -25,28 +30,33 @@ export function SessionCard({ session, highlightBookmark }: SessionCardProps) {
 
   const showBookmark = !session.is_service_session && !!user;
 
+  // Show inline feedback for non-service sessions that have started on event day
+  const showFeedback =
+    !!user &&
+    !session.is_service_session &&
+    isFeedbackAvailable(session.starts_at, getNow());
+
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-colors hover:bg-accent",
+        "py-0 gap-0 transition-colors",
         highlightBookmark && bookmarked && "border-[#FFD36E] bg-[#FFD36E]/10"
       )}
-      onClick={() => router.push(`/schedule/${session.id}`)}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="space-y-2">
           <div className="flex items-start gap-2">
-            <h3 className="flex-1 text-sm font-semibold leading-tight">
+            <Link
+              href={`/schedule/${session.id}`}
+              className="flex-1 text-sm font-semibold leading-tight hover:underline"
+            >
               {session.title}
-            </h3>
+            </Link>
             {showBookmark && (
               <button
                 type="button"
                 className="shrink-0 rounded-md p-1.5 -m-1.5 hover:bg-muted transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleBookmark(session.id);
-                }}
+                onClick={() => toggleBookmark(session.id)}
                 aria-label={bookmarked ? "Remove from schedule" : "Add to schedule"}
               >
                 {bookmarked ? (
@@ -59,9 +69,42 @@ export function SessionCard({ session, highlightBookmark }: SessionCardProps) {
           </div>
 
           {session.speakers.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {session.speakers.map((s) => s.full_name).join(", ")}
-            </p>
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-1.5 shrink-0">
+                {session.speakers.map((speaker) =>
+                  speaker.profile_picture ? (
+                    <Image
+                      key={speaker.id}
+                      src={speaker.profile_picture}
+                      alt={speaker.full_name}
+                      width={24}
+                      height={24}
+                      className="h-6 w-6 rounded-full object-cover ring-2 ring-background"
+                    />
+                  ) : (
+                    <div
+                      key={speaker.id}
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-muted ring-2 ring-background"
+                    >
+                      <User className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {session.speakers.map((speaker, i) => (
+                  <span key={speaker.id}>
+                    {i > 0 && ", "}
+                    <Link
+                      href={`/speakers/${speaker.id}`}
+                      className="hover:underline"
+                    >
+                      {speaker.full_name}
+                    </Link>
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -84,6 +127,13 @@ export function SessionCard({ session, highlightBookmark }: SessionCardProps) {
               </Badge>
             )}
           </div>
+
+          {showFeedback && (
+            <InlineFeedback
+              sessionId={session.id}
+              autoExpand={variant === "my-schedule"}
+            />
+          )}
         </div>
       </CardContent>
     </Card>

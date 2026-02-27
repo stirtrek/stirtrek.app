@@ -56,7 +56,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const { user } = useAuth();
   const { bookmarkedIds } = useBookmarks();
-  const { getNow } = useSimulatedTime();
+  const { getNow, loading: timeLoading } = useSimulatedTime();
 
   // Unique start times for non-service sessions
   const timeSlotTimes = useMemo(() => {
@@ -69,12 +69,13 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
     return Array.from(times).sort();
   }, [sessions]);
 
-  // Auto-select the current time slot on mount
+  // Auto-select the current time slot once simulated time is loaded
   useEffect(() => {
+    if (timeLoading) return;
     const current = findCurrentSlot(timeSlotTimes, getNow());
     if (current) setActiveSlot(current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeSlotTimes]);
+  }, [timeSlotTimes, timeLoading]);
 
   // Full schedule time slots (filtered by active chip)
   const fullTimeSlots = useMemo(() => {
@@ -133,6 +134,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
               time={slot.time}
               endTime={slot.endTime}
               sessions={slot.sessions}
+              variant="full-schedule"
             />
           ))}
         </div>
@@ -166,6 +168,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
               endTime={slot.endTime}
               sessions={slot.sessions}
               highlightBookmarks
+              variant="full-schedule"
             />
           ))}
         </div>
@@ -209,6 +212,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
                     endTime={slot.endTime}
                     sessions={slot.sessions}
                     conflictCount={conflict}
+                    variant="my-schedule"
                   />
                 );
               })}

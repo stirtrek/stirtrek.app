@@ -252,3 +252,41 @@ export interface PushSubscription {
   user_agent: string | null;
   created_at: string;
 }
+
+export interface EmergencyMessage {
+  id: string;
+  user_id: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmergencyReply {
+  id: string;
+  message_id: string;
+  sender_id: string;
+  reply: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface EmergencyReplyWithSender extends EmergencyReply {
+  reply_sender?: {
+    display_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+    role: UserRole;
+  };
+}
+
+export interface EmergencyMessageWithReplies extends EmergencyMessage {
+  replies: EmergencyReplyWithSender[];
+  sender?: {
+    display_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+  };
+}

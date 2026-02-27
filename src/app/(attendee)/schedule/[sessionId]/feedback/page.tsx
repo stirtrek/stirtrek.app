@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Loader2, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useSimulatedTime } from "@/providers/simulated-time-provider";
+import { isFeedbackAvailable } from "@/lib/utils";
 import { FEEDBACK_RATINGS } from "@/lib/constants";
 import type { FeedbackRating } from "@/lib/types";
 
@@ -18,7 +20,9 @@ export default function FeedbackPage() {
   const { user } = useAuth();
   const supabase = createClient();
 
+  const { getNow } = useSimulatedTime();
   const [sessionTitle, setSessionTitle] = useState("");
+  const [sessionStartsAt, setSessionStartsAt] = useState<string | null>(null);
   const [rating, setRating] = useState<FeedbackRating | null>(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -27,13 +31,16 @@ export default function FeedbackPage() {
 
   useEffect(() => {
     async function load() {
-      // Fetch session title
+      // Fetch session title and start time
       const { data: session } = await supabase
         .from("sessions")
-        .select("title")
+        .select("title, starts_at")
         .eq("id", sessionId)
         .single();
-      if (session) setSessionTitle(session.title);
+      if (session) {
+        setSessionTitle(session.title);
+        setSessionStartsAt(session.starts_at);
+      }
 
       // Check for existing feedback
       if (user) {
@@ -89,6 +96,17 @@ export default function FeedbackPage() {
     return (
       <div className="flex justify-center py-8">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Block feedback before event day / session start
+  if (!loading && !isFeedbackAvailable(sessionStartsAt, getNow())) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">
+          Feedback will be available once this session begins.
+        </p>
       </div>
     );
   }

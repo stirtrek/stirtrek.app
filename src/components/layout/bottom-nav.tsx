@@ -46,7 +46,7 @@ export function BottomNav() {
               className={cn(
                 "flex flex-col items-center justify-center gap-1 px-3 py-2 text-xs transition-colors",
                 item === scannerItem
-                  ? "text-white"
+                  ? "text-green-500"
                   : isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"

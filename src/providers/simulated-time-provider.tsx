@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
 } from "react";
+import { parseSessionizeTime } from "@/lib/utils";
 
 interface SimulatedTimeContextValue {
   getNow: () => Date;
@@ -58,8 +59,7 @@ export function SimulatedTimeProvider({
 
   const getNow = useCallback((): Date => {
     if (simulatedTime) {
-      // Parse as UTC to match Sessionize "fake UTC" timestamps
-      return new Date(simulatedTime);
+      return parseSessionizeTime(simulatedTime);
     }
     // Current Eastern time as a Date with UTC numbers (matching Sessionize format)
     const eastern = new Date().toLocaleString("en-US", {

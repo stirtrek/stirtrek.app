@@ -1,30 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  Film,
   Map,
   AlertTriangle,
-  CalendarCheck,
+  BarChart3,
 } from "lucide-react";
-import { SponsorLeadsLink } from "@/components/leads/sponsor-leads-link";
-
-export const metadata = {
-  title: "More",
-};
+import { useAuth } from "@/providers/auth-provider";
 
 const moreItems = [
-  {
-    href: "/my-schedule",
-    title: "My Schedule",
-    description: "View your bookmarked sessions",
-    icon: CalendarCheck,
-  },
-  {
-    href: "/movie-vote",
-    title: "Movie Vote",
-    description: "Vote for the movie you want to watch",
-    icon: Film,
-  },
   {
     href: "/venue-map",
     title: "Venue Map",
@@ -40,31 +25,44 @@ const moreItems = [
 ];
 
 export default function MorePage() {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">More</h1>
-      <div className="space-y-3">
-        {moreItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link key={item.href} href={item.href}>
-              <Card className="transition-colors hover:bg-accent">
-                <CardHeader className="flex flex-row items-center gap-4 py-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">{item.title}</CardTitle>
-                    <CardDescription>{item.description}</CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            </Link>
-          );
-        })}
+  const { profile } = useAuth();
 
-        <SponsorLeadsLink />
-      </div>
+  return (
+    <div className="flex flex-col gap-4">
+      {moreItems.map((item) => {
+        const Icon = item.icon;
+        return (
+          <Link key={item.href} href={item.href}>
+            <Card className="transition-colors hover:bg-accent">
+              <CardHeader className="flex flex-row items-center gap-4 py-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">{item.title}</CardTitle>
+                  <CardDescription>{item.description}</CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        );
+      })}
+
+      {profile?.is_sponsor && (
+        <Link href="/polls">
+          <Card className="transition-colors hover:bg-accent">
+            <CardHeader className="flex flex-row items-center gap-4 py-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Polls</CardTitle>
+                <CardDescription>Vote in active polls</CardDescription>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+      )}
     </div>
   );
 }

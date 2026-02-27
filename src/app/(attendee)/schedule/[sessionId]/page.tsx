@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/schedule/bookmark-button";
-import { MapPin, Clock, ArrowLeft, MessageSquare, User } from "lucide-react";
+import { FeedbackButton } from "@/components/schedule/feedback-button";
+import { SpeakerCard } from "@/components/speakers/speaker-card";
+import { MapPin, Clock, ArrowLeft } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import type { SessionWithDetails } from "@/lib/types";
 
@@ -111,8 +112,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
         )}
 
         {s.description && (
-          <Card>
-            <CardContent className="pt-6">
+          <Card className="py-0 gap-0">
+            <CardContent className="p-4">
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {s.description}
               </p>
@@ -126,44 +127,13 @@ export default async function SessionDetailPage({ params }: PageProps) {
               {s.speakers.length === 1 ? "Speaker" : "Speakers"}
             </h2>
             {s.speakers.map((speaker) => (
-              <Link key={speaker.id} href={`/speakers/${speaker.id}`}>
-                <Card className="transition-colors hover:bg-accent">
-                  <CardContent className="flex items-center gap-3 p-4">
-                    {speaker.profile_picture ? (
-                      <Image
-                        src={speaker.profile_picture}
-                        alt={speaker.full_name}
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                        <User className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-medium text-sm">{speaker.full_name}</p>
-                      {speaker.tag_line && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">
-                          {speaker.tag_line}
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <SpeakerCard key={speaker.id} speaker={speaker} />
             ))}
           </div>
         )}
 
         {!s.is_service_session && user && (
-          <Link href={`/schedule/${s.id}/feedback`}>
-            <Button variant="outline" className="w-full">
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Leave Feedback
-            </Button>
-          </Link>
+          <FeedbackButton sessionId={s.id} startsAt={s.starts_at} />
         )}
       </div>
     </div>
