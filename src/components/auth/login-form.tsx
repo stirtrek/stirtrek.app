@@ -66,7 +66,23 @@ export function LoginForm({ accentColor }: LoginFormProps) {
       return;
     }
 
-    router.push("/schedule");
+    // Check if profile is complete (has first/last name)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.first_name && profile?.last_name) {
+        router.push("/schedule");
+      } else {
+        router.push("/profile/complete");
+      }
+    } else {
+      router.push("/schedule");
+    }
     router.refresh();
   };
 

@@ -56,18 +56,48 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Admin route protection
-  if (user && pathname.startsWith("/admin")) {
+  // For authenticated users, check profile completeness and role-based access
+  if (user && (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/leads") ||
+    // Check profile completeness for all non-excluded routes
+    (!pathname.startsWith("/profile/complete") && !pathname.startsWith("/auth/") && !pathname.startsWith("/api/"))
+  )) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("first_name, last_name, role, is_sponsor")
       .eq("id", user.id)
       .single();
 
-    if (!profile || !["admin", "staff"].includes(profile.role)) {
+    // Redirect incomplete profiles to complete their profile
+    if (
+      profile &&
+      (!profile.first_name || !profile.last_name) &&
+      !pathname.startsWith("/profile/complete") &&
+      !pathname.startsWith("/auth/") &&
+      !pathname.startsWith("/api/")
+    ) {
       const url = request.nextUrl.clone();
-      url.pathname = "/schedule";
+      url.pathname = "/profile/complete";
       return NextResponse.redirect(url);
+    }
+
+    // Admin route protection
+    if (pathname.startsWith("/admin")) {
+      if (!profile || !["admin", "staff"].includes(profile.role)) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/schedule";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // Sponsor leads route protection
+    if (pathname.startsWith("/leads")) {
+      if (!profile?.is_sponsor) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/schedule";
+        return NextResponse.redirect(url);
+      }
     }
   }
 

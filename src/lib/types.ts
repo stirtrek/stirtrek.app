@@ -27,11 +27,25 @@ export interface Profile {
   id: string;
   email: string;
   display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   role: UserRole;
+  is_sponsor: boolean;
   phone: string | null;
   receives_sms_alerts: boolean;
   receives_push_alerts: boolean;
   created_at: string;
+  updated_at: string;
+}
+
+export interface Lead {
+  id: string;
+  sponsor_profile_id: string;
+  attendee_email: string;
+  attendee_first_name: string | null;
+  attendee_last_name: string | null;
+  scanned_at: string;
+  notes: string | null;
   updated_at: string;
 }
 

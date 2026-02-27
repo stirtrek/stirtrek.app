@@ -1,4 +1,5 @@
 import { SponsorCard } from "@/components/sponsors/sponsor-card";
+import { AttendeeQrCode } from "@/components/sponsors/attendee-qr-code";
 import { SPONSOR_TIER_ORDER } from "@/lib/constants";
 
 export const metadata = {
@@ -54,6 +55,8 @@ export default async function SponsorsPage() {
 
   return (
     <div className="space-y-6">
+      <AttendeeQrCode />
+
       <p className="text-sm text-muted-foreground">
         Thank you to our {totalCount} sponsors for making Stir Trek possible!
       </p>

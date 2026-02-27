@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   CalendarCheck,
 } from "lucide-react";
+import { SponsorLeadsLink } from "@/components/leads/sponsor-leads-link";
 
 export const metadata = {
   title: "More",
@@ -61,6 +62,8 @@ export default function MorePage() {
             </Link>
           );
         })}
+
+        <SponsorLeadsLink />
       </div>
     </div>
   );
