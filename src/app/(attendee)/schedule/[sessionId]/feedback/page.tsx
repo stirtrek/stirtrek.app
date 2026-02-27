@@ -106,7 +106,7 @@ export default function FeedbackPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Link href={`/schedule/${sessionId}`}>
-          <Button variant="ghost" size="sm">
+          <Button variant="outline" size="sm">
             <ArrowLeft className="mr-1 h-4 w-4" />
             Back
           </Button>

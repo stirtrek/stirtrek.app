@@ -68,7 +68,7 @@ export default function ScanPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => router.push("/leads")}
         >

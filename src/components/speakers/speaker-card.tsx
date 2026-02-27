@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { User } from "lucide-react";
 import type { Speaker } from "@/lib/types";
@@ -13,9 +14,11 @@ export function SpeakerCard({ speaker }: SpeakerCardProps) {
       <Card className="py-0 transition-colors hover:bg-accent">
         <CardContent className="flex items-center gap-4 p-4">
           {speaker.profile_picture ? (
-            <img
+            <Image
               src={speaker.profile_picture}
               alt={speaker.full_name}
+              width={80}
+              height={80}
               className="h-20 w-20 shrink-0 rounded-full object-cover"
             />
           ) : (

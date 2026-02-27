@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
@@ -71,7 +72,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Link href="/schedule">
-          <Button variant="ghost" size="sm">
+          <Button variant="outline" size="sm">
             <ArrowLeft className="mr-1 h-4 w-4" />
             Back
           </Button>
@@ -129,9 +130,11 @@ export default async function SessionDetailPage({ params }: PageProps) {
                 <Card className="transition-colors hover:bg-accent">
                   <CardContent className="flex items-center gap-3 p-4">
                     {speaker.profile_picture ? (
-                      <img
+                      <Image
                         src={speaker.profile_picture}
                         alt={speaker.full_name}
+                        width={40}
+                        height={40}
                         className="h-10 w-10 rounded-full object-cover"
                       />
                     ) : (
