@@ -20,3 +20,22 @@ export function formatTime(iso: string): string {
     timeZone: "UTC",
   });
 }
+
+/**
+ * Find the current or most recent time slot that has started.
+ * Times are sorted ascending ISO strings (Sessionize "fake UTC" = Eastern).
+ * `now` should also be in the same "fake UTC" format from getNow().
+ * Returns null if no slot has started yet (event hasn't begun).
+ */
+export function findCurrentSlot(times: string[], now: Date): string | null {
+  if (times.length === 0) return null;
+  let current: string | null = null;
+  for (const t of times) {
+    if (new Date(t) <= now) {
+      current = t;
+    } else {
+      break;
+    }
+  }
+  return current;
+}

@@ -31,7 +31,7 @@ export default async function SpeakersPage() {
       <p className="text-sm text-muted-foreground">
         {speakers.length} speakers
       </p>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-4">
         {(speakers as Speaker[]).map((speaker) => (
           <SpeakerCard key={speaker.id} speaker={speaker} />
         ))}

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TimeSlotChips } from "./time-slot-chips";
 import { TimeSlotGroup } from "./time-slot-group";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
+import { useSimulatedTime } from "@/providers/simulated-time-provider";
 import { Bookmark, Info } from "lucide-react";
+import { findCurrentSlot } from "@/lib/utils";
 import type { SessionWithDetails } from "@/lib/types";
 
 interface ScheduleGridProps {
@@ -54,6 +56,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const { user } = useAuth();
   const { bookmarkedIds } = useBookmarks();
+  const { getNow } = useSimulatedTime();
 
   // Unique start times for non-service sessions
   const timeSlotTimes = useMemo(() => {
@@ -65,6 +68,13 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
     }
     return Array.from(times).sort();
   }, [sessions]);
+
+  // Auto-select the current time slot on mount
+  useEffect(() => {
+    const current = findCurrentSlot(timeSlotTimes, getNow());
+    if (current) setActiveSlot(current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeSlotTimes]);
 
   // Full schedule time slots (filtered by active chip)
   const fullTimeSlots = useMemo(() => {
@@ -155,6 +165,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
               time={slot.time}
               endTime={slot.endTime}
               sessions={slot.sessions}
+              highlightBookmarks
             />
           ))}
         </div>

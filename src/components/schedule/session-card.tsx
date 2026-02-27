@@ -4,16 +4,17 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Bookmark, BookmarkCheck } from "lucide-react";
-import { formatTime } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import type { SessionWithDetails } from "@/lib/types";
 
 interface SessionCardProps {
   session: SessionWithDetails;
+  highlightBookmark?: boolean;
 }
 
-export function SessionCard({ session }: SessionCardProps) {
+export function SessionCard({ session, highlightBookmark }: SessionCardProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks();
@@ -26,7 +27,10 @@ export function SessionCard({ session }: SessionCardProps) {
 
   return (
     <Card
-      className="cursor-pointer transition-colors hover:bg-accent"
+      className={cn(
+        "cursor-pointer transition-colors hover:bg-accent",
+        highlightBookmark && bookmarked && "border-[#FFD36E] bg-[#FFD36E]/10"
+      )}
       onClick={() => router.push(`/schedule/${session.id}`)}
     >
       <CardContent className="p-4">

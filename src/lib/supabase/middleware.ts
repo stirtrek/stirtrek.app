@@ -49,8 +49,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If authenticated and on login page, redirect to schedule
-  if (user && pathname === "/login") {
+  // If authenticated and on home or login page, redirect to schedule
+  if (user && (pathname === "/" || pathname === "/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/schedule";
     return NextResponse.redirect(url);

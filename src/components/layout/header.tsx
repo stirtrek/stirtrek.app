@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/providers/auth-provider";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,13 +12,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Shield, User, Calendar } from "lucide-react";
 import Link from "next/link";
-import { APP_NAME } from "@/lib/constants";
+import { HeaderLogo } from "./header-logo";
+
+const PAGE_TITLES: Record<string, string> = {
+  "/schedule": "SCHEDULE",
+  "/speakers": "SPEAKERS",
+  "/sponsors": "SPONSORS",
+  "/polls": "POLLS",
+  "/movie-vote": "MOVIE VOTE",
+  "/emergency": "EMERGENCY",
+  "/venue-map": "VENUE MAP",
+  "/more": "MORE",
+};
 
 export function Header() {
   const { user, profile, signOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const isAdmin = profile?.role === "admin" || profile?.role === "staff";
+
+  // Find page title by matching pathname prefix
+  const pageTitle = Object.entries(PAGE_TITLES).find(
+    ([path]) => pathname === path || pathname.startsWith(path + "/")
+  )?.[1];
 
   const handleSignOut = async () => {
     await signOut();
@@ -29,11 +46,17 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-md items-center justify-between px-4">
-        <Link href="/schedule" className="font-bold text-lg">
-          {APP_NAME}
+        <Link href="/schedule">
+          <HeaderLogo className="h-10" />
         </Link>
 
-        {user && (
+        {pageTitle && (
+          <span className="text-base font-bold tracking-wide text-foreground">
+            {pageTitle}
+          </span>
+        )}
+
+        {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -68,6 +91,8 @@ export function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        ) : (
+          <div className="h-8 w-8" />
         )}
       </div>
     </header>

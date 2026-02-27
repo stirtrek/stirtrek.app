@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import {
   Calendar,
+  Clock,
   MessageSquare,
   BarChart3,
   AlertTriangle,
@@ -23,6 +24,7 @@ const adminNavItems = [
   { href: "/admin/movies", label: "Movies", icon: Film },
   { href: "/admin/venue-map", label: "Venue Map", icon: Map },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/time-simulator", label: "Time Sim", icon: Clock },
 ];
 
 export default function AdminLayout({

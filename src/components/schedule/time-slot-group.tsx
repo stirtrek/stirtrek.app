@@ -9,6 +9,7 @@ interface TimeSlotGroupProps {
   endTime: string;
   sessions: SessionWithDetails[];
   conflictCount?: number;
+  highlightBookmarks?: boolean;
 }
 
 export function TimeSlotGroup({
@@ -16,6 +17,7 @@ export function TimeSlotGroup({
   endTime,
   sessions,
   conflictCount,
+  highlightBookmarks,
 }: TimeSlotGroupProps) {
   return (
     <div id={`slot-${time}`} className="space-y-2">
@@ -37,7 +39,7 @@ export function TimeSlotGroup({
       </div>
       <div className="space-y-2">
         {sessions.map((session) => (
-          <SessionCard key={session.id} session={session} />
+          <SessionCard key={session.id} session={session} highlightBookmark={highlightBookmarks} />
         ))}
       </div>
     </div>

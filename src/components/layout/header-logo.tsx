@@ -1,0 +1,112 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+
+const STAR_COLORS = ["#c48c2f", "#0169AC", "#8e203a"];
+
+const ANIMATIONS = [
+  "spin-pop",
+  "wiggle",
+  "pulse-glow",
+  "flip",
+  "bounce",
+] as const;
+
+const KEYFRAMES = `
+  @keyframes spin-pop {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.05) rotate(180deg); }
+    100% { transform: scale(1) rotate(360deg); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(-6deg); }
+    40% { transform: rotate(6deg); }
+    60% { transform: rotate(-4deg); }
+    80% { transform: rotate(4deg); }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.06); opacity: 0.9; }
+  }
+  @keyframes flip {
+    0% { transform: perspective(400px) rotateY(0deg); }
+    100% { transform: perspective(400px) rotateY(360deg); }
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+    60% { transform: translateY(1px); }
+  }
+`;
+
+export function HeaderLogo({ className }: { className?: string }) {
+  const [starColor, setStarColor] = useState(STAR_COLORS[0]);
+  const [anim, setAnim] = useState<string | null>(null);
+
+  const triggerAnimation = useCallback(() => {
+    const newColor = STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)];
+    const newAnim = ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)];
+    setStarColor(newColor);
+    setAnim(newAnim);
+    // Clear animation after it finishes so it can retrigger
+    setTimeout(() => setAnim(null), 800);
+  }, []);
+
+  useEffect(() => {
+    // Animate on mount
+    triggerAnimation();
+
+    // Then occasionally animate (every 8–15 seconds)
+    const schedule = () => {
+      const delay = 8000 + Math.random() * 7000;
+      return setTimeout(() => {
+        triggerAnimation();
+        timerId = schedule();
+      }, delay);
+    };
+
+    let timerId = schedule();
+    return () => clearTimeout(timerId);
+  }, [triggerAnimation]);
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 408.78 187.48"
+      className={className}
+      aria-label="Stir Trek"
+      style={{ overflow: "visible" }}
+    >
+      <style>{KEYFRAMES}</style>
+
+      {/* STIR TREK text — uses currentColor so it works in light/dark themes */}
+      <g fill="currentColor">
+        <path d="M33.97,67.77c9.6,0,12.45,5.74,8.79,15.8l-.72,1.98h-9.34l.95-2.6c1.63-4.49.46-6.19-2.68-6.19s-5.56,1.7-7.19,6.19c-4.71,12.93,13.71,15.35,7.18,33.3-3.66,10.05-10.78,15.8-20.47,15.8s-12.63-5.74-8.97-15.8l1.4-3.86h9.34l-1.63,4.49c-1.63,4.49-.25,6.1,2.89,6.1s5.7-1.62,7.34-6.1c4.7-12.92-13.71-15.35-7.18-33.3,3.66-10.05,10.69-15.8,20.29-15.8Z" />
+        <path d="M49.32,68.49h30.52l-3.27,8.98h-10.32l-19.6,53.86h-9.87l19.6-53.86h-10.32l3.27-8.98Z" />
+        <path d="M84.14,68.49h9.87l-22.87,62.83h-9.87l22.87-62.83Z" />
+        <path d="M98.97,131.32c.05-1.62.05-2.6,1.91-7.72l3.59-9.87c2.12-5.83.93-7.99-3.55-7.99h-3.41l-9.31,25.58h-9.87l22.87-62.83h14.9c10.23,0,12.9,4.76,9.37,14.45l-1.8,4.94c-2.35,6.46-5.95,10.68-11.1,12.75,4.18,2.06,4.07,6.82,1.68,13.37l-3.53,9.7c-1.11,3.05-1.84,5.3-1.7,7.63h-10.05ZM107.81,77.47l-7.02,19.3h3.86c3.68,0,6.51-1.61,8.34-6.64l2.25-6.19c1.63-4.49.83-6.46-2.67-6.46h-4.76Z" />
+        <path d="M153.69,68.49h30.52l-3.27,8.98h-10.32l-19.6,53.86h-9.87l19.6-53.86h-10.32l3.27-8.98Z" />
+        <path d="M186.29,131.32c.05-1.62.05-2.6,1.91-7.72l3.59-9.87c2.12-5.83.93-7.99-3.55-7.99h-3.41l-9.31,25.58h-9.87l22.87-62.83h14.9c10.23,0,12.9,4.76,9.37,14.45l-1.8,4.94c-2.35,6.46-5.95,10.68-11.1,12.75,4.19,2.06,4.07,6.82,1.69,13.37l-3.53,9.7c-1.11,3.05-1.84,5.3-1.7,7.63h-10.05ZM195.12,77.47l-7.02,19.3h3.86c3.68,0,6.51-1.61,8.34-6.64l2.25-6.19c1.63-4.49.83-6.46-2.67-6.46h-4.76Z" />
+        <path d="M224.83,94.97h13.55l-3.27,8.97h-13.55l-6.7,18.4h17.06l-3.27,8.97h-26.93l22.87-62.83h26.93l-3.27,8.98h-17.05l-6.37,17.5Z" />
+        <path d="M256.79,106.28l-5.14,5.74-7.03,19.3h-9.88l22.87-62.83h9.87l-9.96,27.38,22.89-27.38h9.87l-23.92,28,1.06,34.83h-10.14l-.49-25.04Z" />
+      </g>
+
+      {/* Star — colored + animated */}
+      <g
+        fill={starColor}
+        style={{
+          transformOrigin: "346px 94px",
+          animation: anim ? `${anim} 0.7s ease-in-out` : undefined,
+          transition: "fill 0.6s ease",
+        }}
+      >
+        <path d="M333.9,55.64c-1.31.2-2.63-.28-3.51-1.29-.91-1.06-1.19-2.52-.71-3.84l17.27-47.96c.48-1.34,1.66-2.29,3.04-2.5.19-.03.39-.05.59-.05,1.63,0,3.08,1.03,3.63,2.56l14.87,41.41c.38,1.06.28,2.23-.27,3.2-.55.98-1.5,1.67-2.6,1.89l-32.14,6.55c-.06.01-.12.02-.19.03Z" />
+        <path d="M384.96,101.78c-1.08.17-2.21-.13-3.09-.88l-33.13-28.15c-1.12-.95-1.61-2.46-1.24-3.88.36-1.43,1.5-2.53,2.93-2.83l21.38-4.58c.08-.02.15-.03.22-.04,1.81-.28,3.59.76,4.22,2.51l11.75,32.73c.59,1.65,0,3.49-1.43,4.48-.49.34-1.04.55-1.61.64Z" />
+        <path d="M354.19,106.92c-.2.03-.4.05-.61.04l-38.69-.18c-1.26,0-2.43-.62-3.15-1.65-.72-1.03-.89-2.34-.47-3.52l8.59-23.85c.42-1.17,1.38-2.06,2.58-2.41.15-.04.31-.07.46-.1,1.06-.16,2.15.12,3,.8l30.1,24.03c1.29,1.03,1.78,2.75,1.24,4.3-.48,1.36-1.67,2.32-3.05,2.53Z" />
+        <path d="M405.5,158.99c-1.03.16-2.11-.1-2.97-.78l-34.21-26.89c-.93-.73-1.48-1.86-1.47-3.05,0-1.19.56-2.31,1.51-3.04l19.22-14.83c.52-.4,1.13-.66,1.77-.76.55-.08,1.12-.05,1.68.11,1.18.35,2.13,1.24,2.54,2.4l14.98,41.71c.58,1.62.02,3.43-1.38,4.43-.51.37-1.08.6-1.67.69Z" />
+        <path d="M286.44,187.43c-.96.15-1.98-.07-2.82-.67-1.41-1-1.99-2.83-1.4-4.46l20.48-56.88c.48-1.35,1.66-2.29,3.04-2.51.22-.03.45-.05.69-.04l47.71,1.18c1.62.04,3.04,1.08,3.55,2.61.53,1.53.04,3.22-1.21,4.24l-68.19,55.69c-.55.45-1.19.72-1.86.83Z" />
+      </g>
+    </svg>
+  );
+}
