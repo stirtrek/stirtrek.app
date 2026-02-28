@@ -8,7 +8,7 @@ import { TimeSlotGroup } from "./time-slot-group";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
-import { Bookmark, Info } from "lucide-react";
+import { Bookmark, Info, Loader2 } from "lucide-react";
 import { findCurrentSlot } from "@/lib/utils";
 import type { SessionWithDetails } from "@/lib/types";
 
@@ -55,7 +55,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
     searchParams.get("tab") === "my-schedule" ? "my-schedule" : "full-schedule";
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const { user } = useAuth();
-  const { bookmarkedIds } = useBookmarks();
+  const { bookmarkedIds, loading: bookmarksLoading } = useBookmarks();
   const { getNow, loading: timeLoading } = useSimulatedTime();
 
   // Unique start times for non-service sessions
@@ -193,7 +193,11 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
             </p>
           </div>
 
-          {!hasBookmarks ? (
+          {bookmarksLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : !hasBookmarks ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <Bookmark className="h-10 w-10 text-muted-foreground" />
               <p className="text-muted-foreground">

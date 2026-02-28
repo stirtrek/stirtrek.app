@@ -27,12 +27,15 @@ const BookmarkContext = createContext<BookmarkContextValue>({
 });
 
 export function BookmarkProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    // Wait for auth to finish before deciding there are no bookmarks
+    if (authLoading) return;
+
     if (!user) {
       setBookmarkedIds(new Set());
       setLoading(false);
@@ -52,7 +55,7 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchBookmarks();
-  }, [user, supabase]);
+  }, [user, authLoading, supabase]);
 
   const isBookmarked = useCallback(
     (sessionId: string) => bookmarkedIds.has(sessionId),
