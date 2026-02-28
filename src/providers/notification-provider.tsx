@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
+import type { EmergencyMessageStatus } from "@/lib/types";
 
 interface NotificationContextValue {
   unreadCount: number;
@@ -17,7 +18,7 @@ interface NotificationContextValue {
   pushSupported: boolean;
   pushSubscribed: boolean;
   subscribeToPush: () => Promise<void>;
-  markMessageRead: (messageId: string) => Promise<void>;
+  updateMessageStatus: (messageId: string, status: EmergencyMessageStatus) => Promise<void>;
   markRepliesRead: (replyIds: string[]) => Promise<void>;
   refreshCount: () => Promise<void>;
 }
@@ -28,7 +29,7 @@ const NotificationContext = createContext<NotificationContextValue>({
   pushSupported: false,
   pushSubscribed: false,
   subscribeToPush: async () => {},
-  markMessageRead: async () => {},
+  updateMessageStatus: async () => {},
   markRepliesRead: async () => {},
   refreshCount: async () => {},
 });
@@ -210,8 +211,8 @@ export function NotificationProvider({
             table: "emergency_messages",
           },
           (payload) => {
-            if (payload.new.is_read && !payload.old.is_read) {
-              setUnreadCount((prev) => Math.max(0, prev - 1));
+            if (payload.old.status !== payload.new.status) {
+              refreshCount();
             }
           }
         )
@@ -245,21 +246,25 @@ export function NotificationProvider({
     setBadge(unreadCount);
   }, [unreadCount]);
 
-  const markMessageRead = useCallback(
-    async (messageId: string) => {
+  const updateMessageStatus = useCallback(
+    async (messageId: string, status: EmergencyMessageStatus) => {
       try {
         const res = await fetch(
-          `/api/emergency/messages/${messageId}/read`,
-          { method: "PATCH" }
+          `/api/emergency/messages/${messageId}/status`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+          }
         );
         if (res.ok) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
+          await refreshCount();
         }
       } catch {
         // Silently fail
       }
     },
-    []
+    [refreshCount]
   );
 
   const markRepliesRead = useCallback(
@@ -290,7 +295,7 @@ export function NotificationProvider({
         pushSupported,
         pushSubscribed,
         subscribeToPush,
-        markMessageRead,
+        updateMessageStatus,
         markRepliesRead,
         refreshCount,
       }}

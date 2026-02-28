@@ -79,14 +79,14 @@ export async function POST(
   if (isAdmin) {
     // Admin replied → notify the message owner
     sendPushToUser(message.user_id, {
-      title: "Staff replied to your report",
+      title: "Staff replied to your message",
       body: preview,
       url: "/emergency",
     }).catch(() => {});
   } else {
     // User added context → notify admins
     sendPushToAdmins({
-      title: "Emergency update",
+      title: "Attendee update",
       body: preview,
       url: "/admin/emergency",
     }).catch(() => {});

@@ -26,7 +26,7 @@ export async function GET() {
     const { count, error } = await admin
       .from("emergency_messages")
       .select("*", { count: "exact", head: true })
-      .eq("is_read", false);
+      .eq("status", "unresponded");
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

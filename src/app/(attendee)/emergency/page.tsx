@@ -7,7 +7,7 @@ import { useNotifications } from "@/providers/notification-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { EmergencyMessageWithReplies } from "@/lib/types";
 
@@ -117,6 +117,17 @@ export default function EmergencyPage() {
           refreshCount();
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "emergency_messages",
+        },
+        () => {
+          fetchMessages();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -127,9 +138,9 @@ export default function EmergencyPage() {
   if (!user) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Emergency Report</h1>
+        <h1 className="text-2xl font-bold">Feedback & Concerns</h1>
         <p className="text-muted-foreground">
-          Please sign in to report an issue.
+          Please sign in to send a message.
         </p>
       </div>
     );
@@ -140,11 +151,11 @@ export default function EmergencyPage() {
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <h1 className="text-2xl font-bold">Emergency Report</h1>
+          <MessageCircle className="h-5 w-5 text-primary" />
+          <h1 className="text-2xl font-bold">Feedback & Concerns</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Contact event staff with any urgent issues.
+          Let the staff know there's a problem.
         </p>
       </div>
 

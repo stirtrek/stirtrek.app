@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { Home } from "lucide-react";
 import { NotificationProvider } from "@/providers/notification-provider";
+import { PresenceTracker } from "@/components/presence-tracker";
 
 export default function AdminLayout({
   children,
@@ -23,6 +24,7 @@ export default function AdminLayout({
             <Home className="h-5 w-5" />
           </Link>
         </header>
+        <PresenceTracker />
         <main className="p-4">{children}</main>
       </div>
     </NotificationProvider>

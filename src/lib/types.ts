@@ -253,11 +253,13 @@ export interface PushSubscription {
   created_at: string;
 }
 
+export type EmergencyMessageStatus = 'unresponded' | 'acknowledged' | 'closed';
+
 export interface EmergencyMessage {
   id: string;
   user_id: string;
   message: string;
-  is_read: boolean;
+  status: EmergencyMessageStatus;
   created_at: string;
   updated_at: string;
 }

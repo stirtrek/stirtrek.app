@@ -12,7 +12,7 @@ import {
   Calendar,
   MessageSquare,
   BarChart3,
-  AlertTriangle,
+  MessageCircle,
   Film,
   Map,
   Clock,
@@ -56,9 +56,9 @@ const adminTools = [
   },
   {
     href: "/admin/emergency",
-    label: "Emergency",
-    description: "Monitor emergency reports",
-    icon: AlertTriangle,
+    label: "Concerns",
+    description: "Attendee feedback & concerns",
+    icon: MessageCircle,
   },
   {
     href: "/admin/movies",

@@ -6,13 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Send, Loader2, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
-import type { EmergencyMessageWithReplies } from "@/lib/types";
+import type { EmergencyMessageStatus, EmergencyMessageWithReplies } from "@/lib/types";
 
 interface MessageCardProps {
   message: EmergencyMessageWithReplies;
   isAdmin: boolean;
   onReply?: (messageId: string, reply: string) => Promise<void>;
-  onMarkRead?: (messageId: string) => Promise<void>;
+  onStatusChange?: (messageId: string, status: EmergencyMessageStatus) => Promise<void>;
 }
 
 function formatTime(dateStr: string) {
@@ -56,7 +56,7 @@ function getReplySenderLabel(reply: EmergencyMessageWithReplies["replies"][0]) {
 function AdminMessageCard({
   message,
   onReply,
-  onMarkRead,
+  onStatusChange,
 }: Omit<MessageCardProps, "isAdmin">) {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
@@ -73,48 +73,57 @@ function AdminMessageCard({
     }
   };
 
-  // Auto-mark as read when admin views an unread message
-  if (!message.is_read && onMarkRead) {
-    onMarkRead(message.id);
-  }
+  const statusBadge = {
+    unresponded: { variant: "destructive" as const, label: "New" },
+    acknowledged: { variant: "default" as const, label: "Acknowledged" },
+    closed: { variant: "secondary" as const, label: "Closed" },
+  }[message.status];
 
   return (
-    <Card className="p-3 space-y-2">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium truncate">
-            {getSenderName(message)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {formatDate(message.created_at)}
-          </p>
+    <Card className="overflow-hidden py-0 gap-0">
+      {/* Header row: name, time, badge, status buttons */}
+      <div className="flex items-center gap-2 px-2.5 pt-1.5">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <p className="text-sm font-medium truncate">{getSenderName(message)}</p>
+          <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(message.created_at)}</span>
         </div>
-        <Badge variant={message.is_read ? "secondary" : "default"}>
-          {message.is_read ? "Read" : "New"}
+        <Badge variant={statusBadge.variant} className="text-[10px] px-1.5 py-0">
+          {statusBadge.label}
         </Badge>
+        {onStatusChange && (
+          <>
+            {message.status === "unresponded" && (
+              <Button size="sm" variant="outline" className="h-5 px-1.5 text-[10px]" onClick={() => onStatusChange(message.id, "acknowledged")}>
+                Ack
+              </Button>
+            )}
+            {message.status !== "closed" && (
+              <Button size="sm" variant="outline" className="h-5 px-1.5 text-[10px]" onClick={() => onStatusChange(message.id, "closed")}>
+                Close
+              </Button>
+            )}
+            {message.status === "closed" && (
+              <Button size="sm" variant="outline" className="h-5 px-1.5 text-[10px]" onClick={() => onStatusChange(message.id, "unresponded")}>
+                Reopen
+              </Button>
+            )}
+          </>
+        )}
       </div>
 
       {/* Message body */}
-      <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+      <p className="text-sm whitespace-pre-wrap px-2.5 pb-1.5">{message.message}</p>
 
       {/* Replies */}
       {message.replies.length > 0 && (
-        <div className="space-y-1.5 border-t pt-2">
+        <div className="space-y-1 border-t px-2.5 py-1.5">
           {message.replies.map((reply) => (
-            <div
-              key={reply.id}
-              className="rounded-md bg-muted/50 px-2.5 py-2 space-y-0.5"
-            >
+            <div key={reply.id} className="rounded bg-muted/50 px-2 py-1">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium">
-                  {getReplySenderLabel(reply)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatTime(reply.created_at)}
-                </p>
+                <p className="text-[11px] font-medium leading-none">{getReplySenderLabel(reply)}</p>
+                <p className="text-[11px] text-muted-foreground leading-none">{formatTime(reply.created_at)}</p>
               </div>
-              <p className="text-sm whitespace-pre-wrap">{reply.reply}</p>
+              <p className="text-sm whitespace-pre-wrap mt-0.5">{reply.reply}</p>
             </div>
           ))}
         </div>
@@ -122,28 +131,28 @@ function AdminMessageCard({
 
       {/* Reply form */}
       {onReply && (
-        <div className="border-t pt-2 space-y-2">
-          <Textarea
-            placeholder="Type a reply..."
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            maxLength={1000}
-            rows={2}
-            className="resize-none text-sm"
-            disabled={sending}
-          />
-          <div className="flex justify-end">
+        <div className="border-t px-2.5 py-1.5">
+          <div className="flex gap-1.5 items-end">
+            <Textarea
+              placeholder="Reply..."
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              maxLength={1000}
+              rows={1}
+              className="resize-none text-sm min-h-0"
+              disabled={sending}
+            />
             <Button
-              size="sm"
+              size="icon"
+              className="h-8 w-8 shrink-0"
               onClick={handleReply}
               disabled={!replyText.trim() || sending}
             >
               {sending ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Send className="mr-1.5 h-3.5 w-3.5" />
+                <Send className="h-3.5 w-3.5" />
               )}
-              Reply
             </Button>
           </div>
         </div>
@@ -156,7 +165,7 @@ function AdminMessageCard({
 function AttendeeMessageCard({
   message,
   onReply,
-}: Omit<MessageCardProps, "isAdmin" | "onMarkRead">) {
+}: Omit<MessageCardProps, "isAdmin" | "onStatusChange">) {
   const [expanded, setExpanded] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
@@ -198,6 +207,12 @@ function AttendeeMessageCard({
               <span className="flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-bold text-white leading-none">
                 {unreadReplies}
               </span>
+            )}
+            {message.status === "acknowledged" && (
+              <span className="text-[10px] font-medium text-blue-400">Acknowledged</span>
+            )}
+            {message.status === "closed" && (
+              <span className="text-[10px] font-medium text-muted-foreground/60">Closed</span>
             )}
           </div>
           {expanded ? (
@@ -275,7 +290,7 @@ export function MessageCard(props: MessageCardProps) {
       <AdminMessageCard
         message={props.message}
         onReply={props.onReply}
-        onMarkRead={props.onMarkRead}
+        onStatusChange={props.onStatusChange}
       />
     );
   }

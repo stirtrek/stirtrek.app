@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Stir Trek Conference - Day-of Attendee App",
     start_url: "/",
     display: "standalone",
-    background_color: "#808080",
+    background_color: "#ffffff",
     theme_color: "#1a1a2e",
     orientation: "portrait",
     icons: [

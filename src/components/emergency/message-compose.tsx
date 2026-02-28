@@ -23,7 +23,7 @@ export function MessageCompose({ onSend, sending }: MessageComposeProps) {
   return (
     <div className="space-y-3">
       <Textarea
-        placeholder="Describe the issue..."
+        placeholder="What's on your mind?"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         maxLength={1000}

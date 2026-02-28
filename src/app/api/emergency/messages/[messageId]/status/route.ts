@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const VALID_STATUSES = ["unresponded", "acknowledged", "closed"];
+
 export async function PATCH(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ messageId: string }> }
 ) {
   const { messageId } = await params;
@@ -25,9 +27,19 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const body = await request.json();
+  const newStatus = body.status;
+
+  if (!VALID_STATUSES.includes(newStatus)) {
+    return NextResponse.json(
+      { error: "Invalid status. Must be: unresponded, acknowledged, or closed" },
+      { status: 400 }
+    );
+  }
+
   const { error } = await supabase
     .from("emergency_messages")
-    .update({ is_read: true })
+    .update({ status: newStatus })
     .eq("id", messageId);
 
   if (error) {

@@ -14,7 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/sponsors": "SPONSORS",
   "/polls": "POLLS",
   "/movie-vote": "MOVIE VOTE",
-  "/emergency": "EMERGENCY",
+  "/emergency": "FEEDBACK",
   "/venue-map": "VENUE MAP",
   "/more": "MORE",
   "/profile": "PROFILE",

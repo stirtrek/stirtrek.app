@@ -7,12 +7,15 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Sponsor } from "@/lib/types";
+
+const NOT_A_SPONSOR = "__not_a_sponsor__";
 
 export function SponsorCompanySelector() {
   const { profile, refreshProfile } = useAuth();
@@ -28,14 +31,32 @@ export function SponsorCompanySelector() {
       .finally(() => setLoadingSponsors(false));
   }, []);
 
-  const handleChange = async (sponsorId: string) => {
-    if (sponsorId === profile?.sponsor_id) return;
+  const handleChange = async (value: string) => {
+    if (value === NOT_A_SPONSOR) {
+      if (!confirm("Remove your sponsor access? You'll need the access code to reactivate.")) {
+        return;
+      }
+      setSaving(true);
+      const res = await fetch("/api/sponsor/deactivate", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Failed to remove sponsor status");
+        setSaving(false);
+        return;
+      }
+      await refreshProfile();
+      toast.success("Sponsor access removed");
+      setSaving(false);
+      return;
+    }
+
+    if (value === profile?.sponsor_id) return;
     setSaving(true);
 
     const res = await fetch("/api/sponsor/company", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sponsor_id: sponsorId }),
+      body: JSON.stringify({ sponsor_id: value }),
     });
 
     if (!res.ok) {
@@ -80,6 +101,10 @@ export function SponsorCompanySelector() {
                   {sponsor.name}
                 </SelectItem>
               ))}
+              <SelectSeparator />
+              <SelectItem value={NOT_A_SPONSOR} className="text-muted-foreground">
+                I&apos;m not a sponsor
+              </SelectItem>
             </SelectContent>
           </Select>
         )}

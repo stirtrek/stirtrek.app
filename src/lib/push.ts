@@ -66,10 +66,12 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
 
 /**
  * Send a push notification to all admin/staff users.
+ * Uses 2 queries instead of N+1 for better performance.
  */
 export async function sendPushToAdmins(payload: PushPayload) {
   const admin = createAdminClient();
 
+  // Query 1: get admin/staff user IDs
   const { data: adminProfiles } = await admin
     .from("profiles")
     .select("id")
@@ -77,7 +79,47 @@ export async function sendPushToAdmins(payload: PushPayload) {
 
   if (!adminProfiles || adminProfiles.length === 0) return;
 
+  const adminIds = adminProfiles.map((p) => p.id);
+
+  // Query 2: batch-fetch ALL subscriptions for those users
+  const { data: subscriptions } = await admin
+    .from("push_subscriptions")
+    .select("id, endpoint, keys")
+    .in("user_id", adminIds);
+
+  if (!subscriptions || subscriptions.length === 0) return;
+
+  const message = JSON.stringify({
+    title: payload.title,
+    body: payload.body,
+    data: { url: payload.url || "/emergency" },
+  });
+
+  const expiredIds: string[] = [];
+
   await Promise.allSettled(
-    adminProfiles.map((p) => sendPushToUser(p.id, payload))
+    subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: sub.keys as { p256dh: string; auth: string },
+          },
+          message
+        );
+      } catch (err: unknown) {
+        const statusCode = (err as { statusCode?: number }).statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          expiredIds.push(sub.id);
+        }
+      }
+    })
   );
+
+  if (expiredIds.length > 0) {
+    await admin
+      .from("push_subscriptions")
+      .delete()
+      .in("id", expiredIds);
+  }
 }

@@ -178,7 +178,7 @@ export async function POST(request: Request) {
   // Send push notification to all admins (fire-and-forget)
   const preview = message.length > 80 ? message.slice(0, 80) + "…" : message;
   sendPushToAdmins({
-    title: "Emergency Report",
+    title: "New Attendee Message",
     body: preview,
     url: "/admin/emergency",
   }).catch(() => {});

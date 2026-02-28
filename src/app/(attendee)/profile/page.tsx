@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LogOut, Shield, ScanLine } from "lucide-react";
+import { Loader2, LogOut, Shield } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { SponsorActivation } from "@/components/profile/sponsor-activation";
@@ -75,7 +75,18 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Profile</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Profile</h1>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+          >
+            <Shield className="h-4 w-4" />
+            Admin
+          </Link>
+        )}
+      </div>
 
       <Card>
         <CardHeader>
@@ -132,43 +143,8 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {isAdmin && (
-        <Link href="/admin">
-          <Card className="transition-colors hover:bg-accent">
-            <CardContent className="flex items-center gap-4 py-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                <Shield className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Admin Panel</p>
-                <p className="text-sm text-muted-foreground">
-                  Manage the event
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      )}
-
       {profile.is_sponsor && (
-        <>
-          <Link href="/leads">
-            <Card className="transition-colors hover:bg-accent">
-              <CardContent className="flex items-center gap-4 py-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <ScanLine className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">My Leads</p>
-                  <p className="text-sm text-muted-foreground">
-                    View and manage scanned contacts
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          <SponsorCompanySelector />
-        </>
+        <SponsorCompanySelector />
       )}
 
       {!profile.is_sponsor && <SponsorActivation />}

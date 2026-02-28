@@ -5,18 +5,18 @@ import { MessageCard } from "@/components/emergency/message-card";
 import { useNotifications } from "@/providers/notification-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { MessageCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import type { EmergencyMessageWithReplies } from "@/lib/types";
+import type { EmergencyMessageStatus, EmergencyMessageWithReplies } from "@/lib/types";
 
-type TabValue = "unread" | "all";
+type TabValue = "unresponded" | "acknowledged" | "closed";
 
 export default function AdminEmergencyPage() {
-  const { markMessageRead, refreshCount } = useNotifications();
+  const { updateMessageStatus, refreshCount } = useNotifications();
   const [messages, setMessages] = useState<EmergencyMessageWithReplies[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<TabValue>("unread");
+  const [tab, setTab] = useState<TabValue>("unresponded");
   const supabase = useMemo(() => createClient(), []);
 
   const fetchMessages = useCallback(async () => {
@@ -95,21 +95,19 @@ export default function AdminEmergencyPage() {
     }
   };
 
-  const handleMarkRead = async (messageId: string) => {
-    await markMessageRead(messageId);
+  const handleStatusChange = async (messageId: string, status: EmergencyMessageStatus) => {
+    await updateMessageStatus(messageId, status);
     setMessages((prev) =>
       prev.map((m) =>
-        m.id === messageId ? { ...m, is_read: true } : m
+        m.id === messageId ? { ...m, status } : m
       )
     );
   };
 
-  const filtered =
-    tab === "unread"
-      ? messages.filter((m) => !m.is_read)
-      : messages;
-
-  const unreadCount = messages.filter((m) => !m.is_read).length;
+  const filtered = messages.filter((m) => m.status === tab);
+  const unrespondedCount = messages.filter((m) => m.status === "unresponded").length;
+  const acknowledgedCount = messages.filter((m) => m.status === "acknowledged").length;
+  const closedCount = messages.filter((m) => m.status === "closed").length;
 
   return (
     <div className="space-y-4">
@@ -121,31 +119,41 @@ export default function AdminEmergencyPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <AlertTriangle className="h-5 w-5 text-destructive" />
-        <h1 className="text-lg font-semibold">Emergency Messages</h1>
+        <MessageCircle className="h-5 w-5 text-primary" />
+        <h1 className="text-lg font-semibold">Feedback & Concerns</h1>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg bg-muted p-1">
         <button
-          onClick={() => setTab("unread")}
-          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            tab === "unread"
+          onClick={() => setTab("unresponded")}
+          className={`flex-1 rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
+            tab === "unresponded"
               ? "bg-background shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Unread{unreadCount > 0 && ` (${unreadCount})`}
+          New{unrespondedCount > 0 && ` (${unrespondedCount})`}
         </button>
         <button
-          onClick={() => setTab("all")}
-          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            tab === "all"
+          onClick={() => setTab("acknowledged")}
+          className={`flex-1 rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
+            tab === "acknowledged"
               ? "bg-background shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          All ({messages.length})
+          Ack&apos;d{acknowledgedCount > 0 && ` (${acknowledgedCount})`}
+        </button>
+        <button
+          onClick={() => setTab("closed")}
+          className={`flex-1 rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${
+            tab === "closed"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Closed{closedCount > 0 && ` (${closedCount})`}
         </button>
       </div>
 
@@ -164,17 +172,19 @@ export default function AdminEmergencyPage() {
               message={msg}
               isAdmin={true}
               onReply={handleReply}
-              onMarkRead={handleMarkRead}
+              onStatusChange={handleStatusChange}
             />
           ))}
         </div>
       ) : (
         <div className="py-12 text-center text-muted-foreground">
-          <AlertTriangle className="mx-auto mb-2 h-8 w-8 opacity-50" />
+          <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
           <p className="text-sm">
-            {tab === "unread"
-              ? "No unread messages"
-              : "No emergency messages yet"}
+            {tab === "unresponded"
+              ? "No new messages"
+              : tab === "acknowledged"
+              ? "No acknowledged messages"
+              : "No closed messages"}
           </p>
         </div>
       )}

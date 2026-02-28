@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Map,
-  AlertTriangle,
+  MessageCircle,
   BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
@@ -18,9 +18,9 @@ const moreItems = [
   },
   {
     href: "/emergency",
-    title: "Emergency Report",
-    description: "Report an urgent issue to event staff",
-    icon: AlertTriangle,
+    title: "Feedback & Concerns",
+    description: "Let the staff know there's a problem",
+    icon: MessageCircle,
   },
 ];
 
