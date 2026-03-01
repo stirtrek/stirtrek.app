@@ -116,16 +116,6 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
 
   const hasBookmarks = bookmarkedIds.size > 0;
 
-  // While bookmarks are loading for a logged-in user, show a spinner
-  // so the full schedule renders with highlights already in place.
-  if (user && bookmarksLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   // Logged-out: show read-only schedule with time chips, no tabs
   if (!user) {
     return (
