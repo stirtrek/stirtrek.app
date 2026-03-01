@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchSessionizeData } from "./client";
 import type { SessionizeResponse } from "./types";
+import { getTelemetryService } from "@/lib/telemetry/service";
 
 interface SyncResult {
   rooms: number;
@@ -11,62 +12,83 @@ interface SyncResult {
 }
 
 export async function syncSessionizeData(
-  triggeredBy?: string
+  triggeredBy?: string,
 ): Promise<SyncResult> {
-  const supabase = createAdminClient();
+  const telemetry = getTelemetryService();
+  return telemetry.trackSessionizeSync(async () => {
+    const supabase = createAdminClient();
 
-  // Create sync log entry
-  const { data: syncLog } = await supabase
-    .from("sessionize_sync_log")
-    .insert({
-      status: "in_progress",
-      triggered_by: triggeredBy || null,
-    })
-    .select("id")
-    .single();
+    // Create sync log entry
+    const { data: syncLog } = await supabase
+      .from("sessionize_sync_log")
+      .insert({
+        status: "in_progress",
+        triggered_by: triggeredBy || null,
+      })
+      .select("id")
+      .single();
 
-  const syncId = syncLog?.id;
+    const syncId = syncLog?.id;
 
-  try {
-    const data = await fetchSessionizeData();
-    const result = await upsertData(supabase, data);
+    try {
+      const data = await fetchSessionizeData();
+      const result = await upsertData(supabase, data);
 
-    // Update sync log
-    if (syncId) {
-      await supabase
-        .from("sessionize_sync_log")
-        .update({
-          status: "completed",
-          rooms_synced: result.rooms,
-          speakers_synced: result.speakers,
-          sessions_synced: result.sessions,
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", syncId);
+      // Update sync log
+      if (syncId) {
+        await supabase
+          .from("sessionize_sync_log")
+          .update({
+            status: "completed",
+            rooms_synced: result.rooms,
+            speakers_synced: result.speakers,
+            sessions_synced: result.sessions,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", syncId);
+      }
+
+      telemetry.logInfo("Sessionize sync completed", {
+        rooms: result.rooms,
+        speakers: result.speakers,
+        sessions: result.sessions,
+        triggeredBy: triggeredBy || "cron",
+      });
+
+      return result;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown error during sync";
+
+      if (syncId) {
+        await supabase
+          .from("sessionize_sync_log")
+          .update({
+            status: "failed",
+            error_message: message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", syncId);
+      }
+
+      telemetry.logError("Sessionize sync failed", { error: message });
+
+      return {
+        rooms: 0,
+        categories: 0,
+        speakers: 0,
+        sessions: 0,
+        error: message,
+      };
     }
-
-    return result;
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error during sync";
-
-    if (syncId) {
-      await supabase
-        .from("sessionize_sync_log")
-        .update({
-          status: "failed",
-          error_message: message,
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", syncId);
-    }
-
-    return { rooms: 0, categories: 0, speakers: 0, sessions: 0, error: message };
-  }
+  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function upsertData(supabase: any, data: SessionizeResponse): Promise<SyncResult> {
+async function upsertData(
+  supabase: any,
+  data: SessionizeResponse,
+): Promise<SyncResult> {
   // 1. Upsert rooms
   if (data.rooms.length > 0) {
     const rooms = data.rooms.map((r) => ({
@@ -93,7 +115,7 @@ async function upsertData(supabase: any, data: SessionizeResponse): Promise<Sync
           category_type: cat.type,
           sort_order: cat.sort,
         },
-        { onConflict: "id" }
+        { onConflict: "id" },
       );
     if (catError)
       throw new Error(`Failed to upsert category: ${catError.message}`);
@@ -110,7 +132,9 @@ async function upsertData(supabase: any, data: SessionizeResponse): Promise<Sync
         .from("category_items")
         .upsert(items, { onConflict: "id" });
       if (itemError)
-        throw new Error(`Failed to upsert category items: ${itemError.message}`);
+        throw new Error(
+          `Failed to upsert category items: ${itemError.message}`,
+        );
 
       categoryItemCount += items.length;
     }
@@ -134,7 +158,8 @@ async function upsertData(supabase: any, data: SessionizeResponse): Promise<Sync
     const { error } = await supabase
       .from("speakers")
       .upsert(speakers, { onConflict: "id" });
-    if (error) throw new Error(`Failed to upsert speakers: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to upsert speakers: ${error.message}`);
   }
 
   // 4. Upsert sessions
@@ -157,7 +182,8 @@ async function upsertData(supabase: any, data: SessionizeResponse): Promise<Sync
     const { error } = await supabase
       .from("sessions")
       .upsert(sessions, { onConflict: "id" });
-    if (error) throw new Error(`Failed to upsert sessions: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to upsert sessions: ${error.message}`);
   }
 
   // 5. Sync session_speakers junction table
@@ -203,7 +229,7 @@ async function upsertData(supabase: any, data: SessionizeResponse): Promise<Sync
       .insert(sessionCategories);
     if (error)
       throw new Error(
-        `Failed to sync session_categories: ${error.message}`
+        `Failed to sync session_categories: ${error.message}`,
       );
   }
 

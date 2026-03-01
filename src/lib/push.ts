@@ -1,10 +1,11 @@
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getTelemetryService } from "@/lib/telemetry/service";
 
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL || "mailto:admin@stirtrek.com",
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
+  process.env.VAPID_PRIVATE_KEY!,
 );
 
 interface PushPayload {
@@ -18,6 +19,7 @@ interface PushPayload {
  * Silently removes expired/invalid subscriptions.
  */
 export async function sendPushToUser(userId: string, payload: PushPayload) {
+  const telemetry = getTelemetryService();
   const admin = createAdminClient();
 
   const { data: subscriptions } = await admin
@@ -43,7 +45,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
             endpoint: sub.endpoint,
             keys: sub.keys as { p256dh: string; auth: string },
           },
-          message
+          message,
         );
       } catch (err: unknown) {
         const statusCode = (err as { statusCode?: number }).statusCode;
@@ -52,8 +54,11 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
           expiredIds.push(sub.id);
         }
       }
-    })
+    }),
   );
+
+  const successCount = subscriptions.length - expiredIds.length;
+  telemetry.trackPushNotification("user", successCount, { userId });
 
   // Clean up expired subscriptions
   if (expiredIds.length > 0) {
@@ -69,6 +74,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
  * Uses 2 queries instead of N+1 for better performance.
  */
 export async function sendPushToAdmins(payload: PushPayload) {
+  const telemetry = getTelemetryService();
   const admin = createAdminClient();
 
   // Query 1: get admin/staff user IDs
@@ -105,7 +111,7 @@ export async function sendPushToAdmins(payload: PushPayload) {
             endpoint: sub.endpoint,
             keys: sub.keys as { p256dh: string; auth: string },
           },
-          message
+          message,
         );
       } catch (err: unknown) {
         const statusCode = (err as { statusCode?: number }).statusCode;
@@ -113,8 +119,11 @@ export async function sendPushToAdmins(payload: PushPayload) {
           expiredIds.push(sub.id);
         }
       }
-    })
+    }),
   );
+
+  const successCount = subscriptions.length - expiredIds.length;
+  telemetry.trackPushNotification("admins", successCount);
 
   if (expiredIds.length > 0) {
     await admin

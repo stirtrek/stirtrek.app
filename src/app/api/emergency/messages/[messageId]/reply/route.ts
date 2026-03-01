@@ -1,96 +1,106 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sendPushToUser, sendPushToAdmins } from "@/lib/push";
+import { getTelemetryService } from "@/lib/telemetry/service";
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ messageId: string }> }
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
-  const { messageId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const telemetry = getTelemetryService();
+  return telemetry.trackAPIRoute(
+    "/api/emergency/messages/[messageId]/reply",
+    "POST",
+    async () => {
+      const { messageId } = await params;
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+      if (!user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
 
-  // Verify the message exists and the user is either admin/staff or the message owner
-  const { data: message } = await supabase
-    .from("emergency_messages")
-    .select("id, user_id")
-    .eq("id", messageId)
-    .single();
+      // Verify the message exists and the user is either admin/staff or the message owner
+      const { data: message } = await supabase
+        .from("emergency_messages")
+        .select("id, user_id")
+        .eq("id", messageId)
+        .single();
 
-  if (!message) {
-    return NextResponse.json(
-      { error: "Message not found" },
-      { status: 404 }
-    );
-  }
+      if (!message) {
+        return NextResponse.json(
+          { error: "Message not found" },
+          { status: 404 },
+        );
+      }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
-  const isAdmin = profile && ["admin", "staff"].includes(profile.role);
-  const isOwner = message.user_id === user.id;
+      const isAdmin = profile && ["admin", "staff"].includes(profile.role);
+      const isOwner = message.user_id === user.id;
 
-  if (!isAdmin && !isOwner) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+      if (!isAdmin && !isOwner) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
 
-  const body = await request.json();
-  const reply = (body.reply || "").trim();
+      const body = await request.json();
+      const reply = (body.reply || "").trim();
 
-  if (!reply) {
-    return NextResponse.json(
-      { error: "Reply is required" },
-      { status: 400 }
-    );
-  }
+      if (!reply) {
+        return NextResponse.json(
+          { error: "Reply is required" },
+          { status: 400 },
+        );
+      }
 
-  if (reply.length > 1000) {
-    return NextResponse.json(
-      { error: "Reply must be 1000 characters or less" },
-      { status: 400 }
-    );
-  }
+      if (reply.length > 1000) {
+        return NextResponse.json(
+          { error: "Reply must be 1000 characters or less" },
+          { status: 400 },
+        );
+      }
 
-  const { data, error } = await supabase
-    .from("emergency_replies")
-    .insert({
-      message_id: messageId,
-      sender_id: user.id,
-      reply,
-    })
-    .select()
-    .single();
+      const { data, error } = await supabase
+        .from("emergency_replies")
+        .insert({
+          message_id: messageId,
+          sender_id: user.id,
+          reply,
+        })
+        .select()
+        .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
 
-  // Send push notification (fire-and-forget)
-  const preview = reply.length > 80 ? reply.slice(0, 80) + "…" : reply;
-  if (isAdmin) {
-    // Admin replied → notify the message owner
-    sendPushToUser(message.user_id, {
-      title: "Staff replied to your message",
-      body: preview,
-      url: "/emergency",
-    }).catch(() => {});
-  } else {
-    // User added context → notify admins
-    sendPushToAdmins({
-      title: "Attendee update",
-      body: preview,
-      url: "/admin/emergency",
-    }).catch(() => {});
-  }
+      telemetry.trackEmergencyMessage("reply", { messageId, userId: user.id });
 
-  return NextResponse.json(data, { status: 201 });
+      // Send push notification (fire-and-forget)
+      const preview = reply.length > 80 ? reply.slice(0, 80) + "\u2026" : reply;
+      if (isAdmin) {
+        // Admin replied → notify the message owner
+        sendPushToUser(message.user_id, {
+          title: "Staff replied to your message",
+          body: preview,
+          url: "/emergency",
+        }).catch(() => {});
+      } else {
+        // User added context → notify admins
+        sendPushToAdmins({
+          title: "Attendee update",
+          body: preview,
+          url: "/admin/emergency",
+        }).catch(() => {});
+      }
+
+      return NextResponse.json(data, { status: 201 });
+    },
+  );
 }

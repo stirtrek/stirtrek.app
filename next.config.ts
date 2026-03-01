@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
+  serverExternalPackages: [
+    "@opentelemetry/sdk-node",
+    "@opentelemetry/exporter-trace-otlp-proto",
+    "@opentelemetry/exporter-metrics-otlp-proto",
+    "@opentelemetry/exporter-logs-otlp-proto",
+  ],
 };
 
 export default withSerwist(nextConfig);
