@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TimeSlotChips } from "./time-slot-chips";
@@ -8,6 +8,7 @@ import { TimeSlotGroup } from "./time-slot-group";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
+import { AnimatedLogo, STAR_COLORS } from "@/components/layout/animated-logo";
 import { Bookmark, Info, Loader2 } from "lucide-react";
 import { findCurrentSlot } from "@/lib/utils";
 import type { SessionWithDetails } from "@/lib/types";
@@ -54,7 +55,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const defaultTab =
     searchParams.get("tab") === "my-schedule" ? "my-schedule" : "full-schedule";
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { bookmarkedIds, loading: bookmarksLoading } = useBookmarks();
   const { getNow, loading: timeLoading } = useSimulatedTime();
 
@@ -103,6 +104,20 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
     }
     return counts;
   }, [sessions, bookmarkedIds]);
+
+  // Stable random color for the splash logo
+  const splashColor = useRef(
+    STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)]
+  );
+
+  // Show animated logo splash while auth is resolving
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center">
+        <AnimatedLogo className="h-24 w-auto" color={splashColor.current} />
+      </div>
+    );
+  }
 
   if (sessions.length === 0) {
     return (
