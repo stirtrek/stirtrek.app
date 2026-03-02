@@ -32,6 +32,7 @@ export default function PollsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, string>>({});
+  const [changingVote, setChangingVote] = useState<Set<string>>(new Set());
   const supabase = useMemo(() => createClient(), []);
 
   const fetchPolls = useCallback(async () => {
@@ -155,6 +156,11 @@ export default function PollsPage() {
       }
 
       setMyVotes((prev) => ({ ...prev, [pollId]: optionId }));
+      setChangingVote((prev) => {
+        const next = new Set(prev);
+        next.delete(pollId);
+        return next;
+      });
 
       // Fetch results for this poll
       const { data } = await supabase.rpc("get_poll_results", {
@@ -203,7 +209,7 @@ export default function PollsPage() {
         const voted = myVotes[poll.id];
         const pollResults = results[poll.id];
 
-        if (voted && pollResults) {
+        if (voted && pollResults && !changingVote.has(poll.id)) {
           return (
             <PollResultsCard
               key={poll.id}
@@ -211,11 +217,7 @@ export default function PollsPage() {
               results={pollResults}
               myVote={voted}
               onChangeVote={() => {
-                setMyVotes((prev) => {
-                  const next = { ...prev };
-                  delete next[poll.id];
-                  return next;
-                });
+                setChangingVote((prev) => new Set(prev).add(poll.id));
                 setSelected((prev) => ({ ...prev, [poll.id]: voted }));
               }}
             />
