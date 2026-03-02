@@ -60,6 +60,11 @@ type View =
   | { mode: "form"; pollId: string | null }
   | { mode: "results"; pollId: string; question: string; status: PollStatus };
 
+let nextKey = 0;
+function genKey() {
+  return `opt-${++nextKey}`;
+}
+
 // ---------------------------------------------------------------------------
 // Status badge helper
 // ---------------------------------------------------------------------------
@@ -316,8 +321,8 @@ function PollForm({
   const [description, setDescription] = useState("");
   const [allowMultiple, setAllowMultiple] = useState(false);
   const [options, setOptions] = useState<FormOption[]>([
-    { key: crypto.randomUUID(), text: "" },
-    { key: crypto.randomUUID(), text: "" },
+    { key: genKey(), text: "" },
+    { key: genKey(), text: "" },
   ]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -338,7 +343,7 @@ function PollForm({
       setAllowMultiple(poll.allow_multiple);
       setOptions(
         poll.options.map((o: { text: string }) => ({
-          key: crypto.randomUUID(),
+          key: genKey(),
           text: o.text,
         })),
       );
@@ -349,7 +354,7 @@ function PollForm({
   }, [isEdit, pollId, onBack]);
 
   const addOption = () => {
-    setOptions((prev) => [...prev, { key: crypto.randomUUID(), text: "" }]);
+    setOptions((prev) => [...prev, { key: genKey(), text: "" }]);
   };
 
   const removeOption = (key: string) => {
