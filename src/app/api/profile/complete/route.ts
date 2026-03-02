@@ -26,13 +26,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .update({ first_name: firstName, last_name: lastName })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select()
+      .single();
 
     if (error) {
+      console.error("Profile complete update failed:", error.message, { userId: user.id });
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+      console.error("Profile complete update matched 0 rows", { userId: user.id });
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     telemetry.trackAuthEvent("profile_complete", { userId: user.id });

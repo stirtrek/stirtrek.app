@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, UserCheck } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function CompleteProfilePage() {
   const router = useRouter();
@@ -10,6 +11,23 @@ export default function CompleteProfilePage() {
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pre-populate with existing profile data (e.g. returning user on new device)
+  useEffect(() => {
+    async function loadProfile() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .single();
+      if (profile?.first_name) setFirstName(profile.first_name);
+      if (profile?.last_name) setLastName(profile.last_name);
+    }
+    loadProfile();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

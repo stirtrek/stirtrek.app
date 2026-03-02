@@ -147,6 +147,9 @@ export function LoginForm({ accentColor }: LoginFormProps) {
             We sent a 6-digit code to<br />
             <strong className="text-[#F4F6F8]">{email}</strong>
           </p>
+          <p className="mt-1 text-center text-xs text-[#B8BDC7]/60">
+            Don&apos;t see it? Check your spam or junk folder.
+          </p>
 
           <div className="mt-6 flex justify-center gap-2" onPaste={handlePaste}>
             {code.map((digit, i) => (

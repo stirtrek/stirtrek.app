@@ -7,36 +7,10 @@ import {
   useState,
   useCallback,
   useMemo,
-  useRef,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
 import { toast } from "sonner";
-
-const CACHE_KEY = "stirtrek:bookmarks";
-
-function readCache(userId: string): Set<string> | null {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed.userId !== userId) return null;
-    return new Set<string>(parsed.ids);
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(userId: string, ids: Set<string>) {
-  try {
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify({ userId, ids: [...ids] }),
-    );
-  } catch {
-    // Storage full or unavailable — ignore
-  }
-}
 
 interface BookmarkContextValue {
   bookmarkedIds: Set<string>;
@@ -57,7 +31,6 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
-  const didHydrate = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -68,27 +41,17 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Hydrate from localStorage cache immediately
-    if (!didHydrate.current) {
-      const cached = readCache(user.id);
-      if (cached) {
-        setBookmarkedIds(cached);
-        setLoading(false);
-      }
-      didHydrate.current = true;
-    }
-
-    // Refresh from Supabase in the background
     async function fetchBookmarks() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("personal_schedule")
         .select("session_id")
         .eq("user_id", user!.id);
 
-      if (data) {
-        const fresh = new Set(data.map((d) => d.session_id));
-        setBookmarkedIds(fresh);
-        writeCache(user!.id, fresh);
+      if (error) {
+        console.error("Failed to load bookmarks:", error.message);
+        toast.error("Could not load your saved schedule");
+      } else if (data) {
+        setBookmarkedIds(new Set(data.map((d) => d.session_id)));
       }
       setLoading(false);
     }
@@ -105,7 +68,6 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     async (sessionId: string) => {
       if (!user) return;
 
-      // Read the current state via the updater to avoid stale closures
       let wasBookmarked = false;
       setBookmarkedIds((prev) => {
         wasBookmarked = prev.has(sessionId);
@@ -115,11 +77,9 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
         } else {
           next.add(sessionId);
         }
-        writeCache(user.id, next);
         return next;
       });
 
-      // Persist to Supabase
       if (wasBookmarked) {
         const { error } = await supabase
           .from("personal_schedule")
@@ -128,12 +88,7 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
           .eq("session_id", sessionId);
 
         if (error) {
-          // Roll back
-          setBookmarkedIds((prev) => {
-            const next = new Set(prev).add(sessionId);
-            writeCache(user.id, next);
-            return next;
-          });
+          setBookmarkedIds((prev) => new Set(prev).add(sessionId));
           toast.error("Failed to remove bookmark");
         }
       } else {
@@ -145,11 +100,9 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
           );
 
         if (error) {
-          // Roll back
           setBookmarkedIds((prev) => {
             const next = new Set(prev);
             next.delete(sessionId);
-            writeCache(user.id, next);
             return next;
           });
           toast.error("Failed to save bookmark");
