@@ -120,35 +120,57 @@ export default function PollsPage() {
 
     setSubmitting(pollId);
 
-    const { error } = await supabase.from("poll_responses").insert({
-      poll_id: pollId,
-      option_id: optionId,
-      user_id: user.id,
-    });
+    try {
+      const existingVote = myVotes[pollId];
 
-    if (error) {
-      if (error.code === "23505") {
-        toast.error("You've already voted on this poll");
-      } else {
-        toast.error("Failed to submit vote");
-        console.error("Vote error:", error.message);
+      if (existingVote) {
+        // Change vote: delete old, insert new
+        const { error: deleteError } = await supabase
+          .from("poll_responses")
+          .delete()
+          .eq("poll_id", pollId)
+          .eq("user_id", user.id);
+
+        if (deleteError) {
+          toast.error("Failed to change vote");
+          console.error("Vote delete error:", deleteError.message);
+          return;
+        }
       }
+
+      const { error } = await supabase.from("poll_responses").insert({
+        poll_id: pollId,
+        option_id: optionId,
+        user_id: user.id,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.error("You've already voted on this poll");
+        } else {
+          toast.error("Failed to submit vote");
+          console.error("Vote error:", error.message);
+        }
+        return;
+      }
+
+      setMyVotes((prev) => ({ ...prev, [pollId]: optionId }));
+
+      // Fetch results for this poll
+      const { data } = await supabase.rpc("get_poll_results", {
+        p_poll_id: pollId,
+      });
+      if (data) {
+        setResults((prev) => ({ ...prev, [pollId]: data }));
+      }
+
+      toast.success(existingVote ? "Vote changed!" : "Vote submitted!");
+    } catch (err) {
+      console.error("Vote failed:", err);
+      toast.error("Something went wrong");
+    } finally {
       setSubmitting(null);
-      return;
     }
-
-    setMyVotes((prev) => ({ ...prev, [pollId]: optionId }));
-
-    // Fetch results for this poll
-    const { data } = await supabase.rpc("get_poll_results", {
-      p_poll_id: pollId,
-    });
-    if (data) {
-      setResults((prev) => ({ ...prev, [pollId]: data }));
-    }
-
-    setSubmitting(null);
-    toast.success("Vote submitted!");
   };
 
   if (loading || authLoading) {
@@ -188,6 +210,14 @@ export default function PollsPage() {
               poll={poll}
               results={pollResults}
               myVote={voted}
+              onChangeVote={() => {
+                setMyVotes((prev) => {
+                  const next = { ...prev };
+                  delete next[poll.id];
+                  return next;
+                });
+                setSelected((prev) => ({ ...prev, [poll.id]: voted }));
+              }}
             />
           );
         }
@@ -253,10 +283,12 @@ function PollResultsCard({
   poll,
   results,
   myVote,
+  onChangeVote,
 }: {
   poll: PollWithOptions;
   results: PollResult[];
   myVote: string;
+  onChangeVote: () => void;
 }) {
   const totalVotes = results.reduce((sum, r) => sum + r.vote_count, 0);
   const maxVotes = Math.max(...results.map((r) => r.vote_count), 1);
@@ -310,6 +342,14 @@ function PollResultsCard({
             </div>
           );
         })}
+
+        <button
+          type="button"
+          onClick={onChangeVote}
+          className="mt-1 w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Change your vote
+        </button>
       </CardContent>
     </Card>
   );
