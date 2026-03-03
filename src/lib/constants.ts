@@ -1,6 +1,6 @@
 /** Default app name used in root layout metadata and the offline page. */
-export const DEFAULT_APP_NAME = "Stir Trek";
-export const APP_DESCRIPTION = "Stir Trek Conference - Day-of Attendee App";
+export const DEFAULT_APP_NAME = "Conference App";
+export const APP_DESCRIPTION = "Day-of attendee app for conferences and events";
 
 export const FEEDBACK_RATINGS = {
   green: { label: "Great", color: "#22c55e" },

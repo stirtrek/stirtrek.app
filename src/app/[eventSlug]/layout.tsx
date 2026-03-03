@@ -1,6 +1,25 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveEvent } from "@/lib/events/resolve";
 import { EventProvider } from "@/providers/event-provider";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ eventSlug: string }>;
+}): Promise<Metadata> {
+  const { eventSlug } = await params;
+  const event = await resolveEvent(eventSlug);
+  if (!event) return {};
+
+  return {
+    title: {
+      default: event.name,
+      template: `%s | ${event.name}`,
+    },
+    description: event.description ?? `${event.name} - Conference App`,
+  };
+}
 
 export default async function EventLayout({
   children,

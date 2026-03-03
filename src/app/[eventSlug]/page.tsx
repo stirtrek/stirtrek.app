@@ -86,8 +86,18 @@ export default function EventHomePage() {
             alt={event.name}
             className="w-72 object-contain"
           />
-        ) : (
+        ) : event.slug === "stirtrek" ? (
           <AnimatedLogo className="w-72" color={accentColor} />
+        ) : (
+          <h1
+            className="text-4xl font-bold uppercase tracking-wider text-[#F4F6F8]"
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+            }}
+          >
+            {event.name}
+          </h1>
         )}
 
         <div

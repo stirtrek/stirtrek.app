@@ -11,7 +11,7 @@ const DEFAULT_EVENT_SLUG = "stirtrek";
 const PLATFORM_HOSTS = ["localhost", "127.0.0.1"];
 
 // Paths that are truly global (no event slug prefix)
-const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/api/debug", "/super-admin", "/api/super-admin"];
+const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/super-admin", "/api/super-admin"];
 
 // Paths within an event that don't require auth
 const PUBLIC_EVENT_PATHS = [
@@ -75,15 +75,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isCustomDomain && event) {
-    const response = await handleCustomDomain(request, event, pathname);
-    response.headers.set("x-debug-mw", `custom:${event.slug}:${pathname}`);
-    return response;
+    return handleCustomDomain(request, event, pathname);
   }
 
   // ── 3. Platform domain: slug-based routing ──
-  const response = await handlePlatformDomain(request, pathname);
-  response.headers.set("x-debug-mw", `platform:${hostname}:${pathname}:isPlatform=${isPlatformHost}:foundEvent=${!!event}`);
-  return response;
+  return handlePlatformDomain(request, pathname);
 }
 
 // ─────────────────────────────────────────────────────
