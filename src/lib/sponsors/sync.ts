@@ -1,8 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
 
-const SPONSORS_FEED_URL = "https://stirtrek.com/api/sponsors/current.json";
-
 interface FeedSponsor {
   name: string;
   link: string;
@@ -22,10 +20,35 @@ const TIER_ORDER: Record<string, number> = {
   community: 400,
 };
 
-export async function syncSponsorsFromFeed() {
+/**
+ * Sync sponsors from an external feed URL for a specific event.
+ * Reads the sponsor_feed_url from the event record.
+ * Falls back to the hardcoded Stir Trek URL if no eventId provided.
+ */
+export async function syncSponsorsFromFeed(eventId?: string) {
   const telemetry = getTelemetryService();
   return telemetry.trackSponsorSync(async () => {
-    const res = await fetch(SPONSORS_FEED_URL, { cache: "no-store" });
+    const admin = createAdminClient();
+
+    // Resolve feed URL from event record or use default
+    let feedUrl = "https://stirtrek.com/api/sponsors/current.json";
+    const resolvedEventId =
+      eventId || "00000000-0000-0000-0000-000000000001";
+
+    if (eventId) {
+      const { data: event } = await admin
+        .from("events")
+        .select("sponsor_feed_url")
+        .eq("id", eventId)
+        .single();
+
+      if (!event?.sponsor_feed_url) {
+        return { synced: 0, error: "No sponsor feed URL configured for this event" };
+      }
+      feedUrl = event.sponsor_feed_url;
+    }
+
+    const res = await fetch(feedUrl, { cache: "no-store" });
     if (!res.ok) {
       return { error: `Failed to fetch sponsor feed: ${res.status}` };
     }
@@ -33,12 +56,11 @@ export async function syncSponsorsFromFeed() {
     const data: FeedResponse = await res.json();
     const sponsorsByTier = data.sponsors ?? data;
 
-    const admin = createAdminClient();
-
-    // Get existing sponsors for matching by name
+    // Get existing sponsors for this event for matching by name
     const { data: existing } = await admin
       .from("sponsors")
-      .select("id, name");
+      .select("id, name")
+      .eq("event_id", resolvedEventId);
     const existingMap = new Map(
       (existing ?? []).map((s) => [s.name, s.id]),
     );
@@ -60,6 +82,7 @@ export async function syncSponsorsFromFeed() {
 
         const record = {
           name: sponsor.name,
+          event_id: resolvedEventId,
           tier,
           website_url: sponsor.link || null,
           description: sponsor.description || null,
@@ -82,7 +105,10 @@ export async function syncSponsorsFromFeed() {
       }
     }
 
-    telemetry.logInfo("Sponsor sync completed", { synced });
+    telemetry.logInfo("Sponsor sync completed", {
+      eventId: resolvedEventId,
+      synced,
+    });
 
     return { synced, error: null };
   });

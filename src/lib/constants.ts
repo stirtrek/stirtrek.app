@@ -1,8 +1,6 @@
-export const APP_NAME = "Stir Trek 2026";
+/** Default app name used in root layout metadata and the offline page. */
+export const DEFAULT_APP_NAME = "Stir Trek";
 export const APP_DESCRIPTION = "Stir Trek Conference - Day-of Attendee App";
-export const EVENT_DATE = "2026-05-01";
-export const VENUE_NAME = "AMC Easton Town Center 30";
-export const VENUE_ADDRESS = "275 Easton Town Ctr, Columbus, OH 43219";
 
 export const FEEDBACK_RATINGS = {
   green: { label: "Great", color: "#22c55e" },
@@ -27,11 +25,3 @@ export const SPONSOR_TIER_ORDER = [
 ] as const;
 
 export const BOOTH_SPONSOR_TIERS = ["platinum", "gold", "silver"] as const;
-
-export const NAV_ITEMS = [
-  { href: "/schedule", label: "Schedule", icon: "Calendar" },
-  { href: "/speakers", label: "Speakers", icon: "Users" },
-  { href: "/sponsors", label: "Sponsors", icon: "Building2" },
-  { href: "/polls", label: "Polls", icon: "BarChart3" },
-  { href: "/more", label: "More", icon: "Menu" },
-] as const;

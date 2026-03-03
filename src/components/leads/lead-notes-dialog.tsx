@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useEvent } from "@/providers/event-provider";
 import type { Lead } from "@/lib/types";
 
 interface LeadNotesDialogProps {
@@ -28,6 +29,7 @@ export function LeadNotesDialog({
   onSaved,
   onDeleted,
 }: LeadNotesDialogProps) {
+  const { eventSlug } = useEvent();
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -45,7 +47,7 @@ export function LeadNotesDialog({
     if (!lead) return;
     setSaving(true);
 
-    const res = await fetch(`/api/leads/${lead.id}`, {
+    const res = await fetch(`/${eventSlug}/api/leads/${lead.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ notes: notes || null }),
@@ -68,7 +70,7 @@ export function LeadNotesDialog({
     if (!lead) return;
     setDeleting(true);
 
-    const res = await fetch(`/api/leads/${lead.id}`, {
+    const res = await fetch(`/${eventSlug}/api/leads/${lead.id}`, {
       method: "DELETE",
     });
 

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
+import { useEvent } from "@/providers/event-provider";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -18,18 +20,34 @@ import type { Sponsor } from "@/lib/types";
 const NOT_A_SPONSOR = "__not_a_sponsor__";
 
 export function SponsorCompanySelector() {
-  const { profile, refreshProfile } = useAuth();
+  const { user, refreshProfile } = useAuth();
+  const { eventId, eventSlug } = useEvent();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loadingSponsors, setLoadingSponsors] = useState(true);
+  const [sponsorId, setSponsorId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/sponsors")
+    fetch(`/${eventSlug}/api/sponsors`)
       .then((res) => res.json())
       .then((data) => setSponsors(data.sponsors ?? []))
       .catch(() => toast.error("Failed to load sponsors"))
       .finally(() => setLoadingSponsors(false));
-  }, []);
+  }, [eventSlug]);
+
+  useEffect(() => {
+    if (!user || !eventId) return;
+    const supabase = createClient(eventId);
+    supabase
+      .from("event_memberships")
+      .select("sponsor_id")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        setSponsorId(data?.sponsor_id ?? null);
+      });
+  }, [user, eventId]);
 
   const handleChange = async (value: string) => {
     if (value === NOT_A_SPONSOR) {
@@ -37,7 +55,7 @@ export function SponsorCompanySelector() {
         return;
       }
       setSaving(true);
-      const res = await fetch("/api/sponsor/deactivate", { method: "POST" });
+      const res = await fetch(`/${eventSlug}/api/sponsor/deactivate`, { method: "POST" });
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error || "Failed to remove sponsor status");
@@ -45,15 +63,16 @@ export function SponsorCompanySelector() {
         return;
       }
       await refreshProfile();
+      setSponsorId(null);
       toast.success("Sponsor access removed");
       setSaving(false);
       return;
     }
 
-    if (value === profile?.sponsor_id) return;
+    if (value === sponsorId) return;
     setSaving(true);
 
-    const res = await fetch("/api/sponsor/company", {
+    const res = await fetch(`/${eventSlug}/api/sponsor/company`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sponsor_id: value }),
@@ -67,6 +86,7 @@ export function SponsorCompanySelector() {
     }
 
     await refreshProfile();
+    setSponsorId(value);
     toast.success("Company updated");
     setSaving(false);
   };
@@ -88,7 +108,7 @@ export function SponsorCompanySelector() {
           </div>
         ) : (
           <Select
-            value={profile?.sponsor_id ?? undefined}
+            value={sponsorId ?? undefined}
             onValueChange={handleChange}
             disabled={saving}
           >

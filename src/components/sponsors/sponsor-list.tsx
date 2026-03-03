@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/providers/auth-provider";
+import { useEvent } from "@/providers/event-provider";
 import { SponsorCard } from "@/components/sponsors/sponsor-card";
 import { SPONSOR_TIER_ORDER, BOOTH_SPONSOR_TIERS } from "@/lib/constants";
 import confetti from "canvas-confetti";
@@ -30,13 +31,14 @@ interface SponsorListProps {
 
 export function SponsorList({ sponsorsByTier, totalCount }: SponsorListProps) {
   const { profile } = useAuth();
+  const { eventSlug } = useEvent();
   const [visitedNames, setVisitedNames] = useState<Set<string>>(new Set());
   const confettiFired = useRef(false);
 
   useEffect(() => {
     if (!profile) return;
 
-    fetch("/api/passport")
+    fetch(`/${eventSlug}/api/passport`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.visitedSponsorNames) {

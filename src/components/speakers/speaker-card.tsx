@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { User } from "lucide-react";
+import { useEvent } from "@/providers/event-provider";
 import type { Speaker } from "@/lib/types";
 
 interface SpeakerCardProps {
@@ -9,8 +12,10 @@ interface SpeakerCardProps {
 }
 
 export function SpeakerCard({ speaker }: SpeakerCardProps) {
+  const { eventPath } = useEvent();
+
   return (
-    <Link href={`/speakers/${speaker.id}`}>
+    <Link href={eventPath(`/speakers/${speaker.id}`)}>
       <Card className="py-0 transition-colors hover:bg-accent">
         <CardContent className="flex items-center gap-4 p-4">
           {speaker.profile_picture ? (

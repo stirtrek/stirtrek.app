@@ -8,6 +8,7 @@ import { TimeSlotGroup } from "./time-slot-group";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
+import { useEvent } from "@/providers/event-provider";
 import { AnimatedLogo, STAR_COLORS } from "@/components/layout/animated-logo";
 import { Bookmark, Info, Loader2 } from "lucide-react";
 import { findCurrentSlot } from "@/lib/utils";
@@ -58,6 +59,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const { user, loading: authLoading } = useAuth();
   const { bookmarkedIds, loading: bookmarksLoading } = useBookmarks();
   const { getNow, loading: timeLoading } = useSimulatedTime();
+  const { event } = useEvent();
 
   // Unique start times for non-service sessions
   const timeSlotTimes = useMemo(() => {
@@ -73,7 +75,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   // Auto-select the current time slot once simulated time is loaded
   useEffect(() => {
     if (timeLoading) return;
-    const current = findCurrentSlot(timeSlotTimes, getNow());
+    const current = findCurrentSlot(timeSlotTimes, getNow(), event.event_date ?? "");
     if (current) setActiveSlot(current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeSlotTimes, timeLoading]);

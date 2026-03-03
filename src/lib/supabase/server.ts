@@ -1,8 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 export async function createClient() {
   const cookieStore = await cookies();
+  const headerStore = await headers();
+  const eventId = headerStore.get("x-event-id");
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,6 +25,14 @@ export async function createClient() {
           }
         },
       },
+      // Forward event ID to PostgREST so RLS policies can read it
+      ...(eventId && {
+        global: {
+          headers: {
+            "x-event-id": eventId,
+          },
+        },
+      }),
     }
   );
 }

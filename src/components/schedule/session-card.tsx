@@ -9,6 +9,7 @@ import { cn, formatTime, isFeedbackAvailable } from "@/lib/utils";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
+import { useEvent } from "@/providers/event-provider";
 import { InlineFeedback } from "./inline-feedback";
 import type { SessionWithDetails } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { getNow } = useSimulatedTime();
+  const { event, eventPath } = useEvent();
   const bookmarked = isBookmarked(session.id);
 
   const startTime = session.starts_at ? formatTime(session.starts_at) : "";
@@ -34,7 +36,7 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
   const showFeedback =
     !!user &&
     !session.is_service_session &&
-    isFeedbackAvailable(session.starts_at, getNow());
+    isFeedbackAvailable(session.starts_at, getNow(), event.event_date ?? "");
 
   return (
     <Card
@@ -47,7 +49,7 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
         <div className="space-y-2">
           <div className="flex items-start gap-2">
             <Link
-              href={`/schedule/${session.id}`}
+              href={eventPath(`/schedule/${session.id}`)}
               className="flex-1 text-sm font-semibold leading-tight hover:underline"
             >
               {session.title}
@@ -96,7 +98,7 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
                   <span key={speaker.id}>
                     {i > 0 && ", "}
                     <Link
-                      href={`/speakers/${speaker.id}`}
+                      href={eventPath(`/speakers/${speaker.id}`)}
                       className="hover:underline"
                     >
                       {speaker.full_name}

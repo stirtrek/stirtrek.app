@@ -1,6 +1,5 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { EVENT_DATE } from "@/lib/constants"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -34,34 +33,41 @@ export function formatTime(iso: string): string {
 }
 
 /**
- * Normalize a session timestamp onto EVENT_DATE, keeping only time-of-day.
+ * Normalize a session timestamp onto the given event date, keeping only time-of-day.
  * This lets us compare session times regardless of what year the data is from.
+ *
+ * @param sessionTime - The parsed session timestamp
+ * @param eventDate - The event date string in "YYYY-MM-DD" format (from event.event_date)
  */
-function toEventDay(sessionTime: Date): Date {
-  const [year, month, day] = EVENT_DATE.split("-").map(Number);
+function toEventDay(sessionTime: Date, eventDate: string): Date {
+  const [year, month, day] = eventDate.split("-").map(Number);
   const result = new Date(sessionTime);
   result.setUTCFullYear(year, month - 1, day);
   return result;
 }
 
 /**
- * Check if `now` falls on event day (month+day match, year ignored).
+ * Check if `now` falls on the given event day (month+day match, year ignored).
  */
-function isEventDay(now: Date): boolean {
-  return now.toISOString().slice(5, 10) === EVENT_DATE.slice(5, 10);
+function isEventDay(now: Date, eventDate: string): boolean {
+  return now.toISOString().slice(5, 10) === eventDate.slice(5, 10);
 }
 
 /**
  * Find the current or most recent time slot that has started.
  * Returns null on non-event days so the default selection is "All".
+ *
+ * @param times - Sorted array of session start times (ISO strings)
+ * @param now - Current time
+ * @param eventDate - The event date string in "YYYY-MM-DD" format (from event.event_date)
  */
-export function findCurrentSlot(times: string[], now: Date): string | null {
+export function findCurrentSlot(times: string[], now: Date, eventDate: string): string | null {
   if (times.length === 0) return null;
-  if (!isEventDay(now)) return null;
+  if (!eventDate || !isEventDay(now, eventDate)) return null;
 
   let current: string | null = null;
   for (const t of times) {
-    if (toEventDay(parseSessionizeTime(t)) <= now) {
+    if (toEventDay(parseSessionizeTime(t), eventDate) <= now) {
       current = t;
     } else {
       break;
@@ -73,12 +79,17 @@ export function findCurrentSlot(times: string[], now: Date): string | null {
 /**
  * Returns true if feedback should be available for a session.
  * Requires: it's event day AND the session's time-of-day has passed.
+ *
+ * @param startsAt - Session start time (ISO string) or null
+ * @param now - Current time
+ * @param eventDate - The event date string in "YYYY-MM-DD" format (from event.event_date)
  */
 export function isFeedbackAvailable(
   startsAt: string | null,
-  now: Date
+  now: Date,
+  eventDate: string
 ): boolean {
   if (!startsAt) return false;
-  if (!isEventDay(now)) return false;
-  return toEventDay(parseSessionizeTime(startsAt)) <= now;
+  if (!eventDate || !isEventDay(now, eventDate)) return false;
+  return toEventDay(parseSessionizeTime(startsAt), eventDate) <= now;
 }

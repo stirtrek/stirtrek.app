@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
+import { useEvent } from "@/providers/event-provider";
 import { isFeedbackAvailable } from "@/lib/utils";
 
 interface FeedbackButtonProps {
@@ -14,11 +15,12 @@ interface FeedbackButtonProps {
 /** Only renders the "Leave Feedback" button if the session has started on event day. */
 export function FeedbackButton({ sessionId, startsAt }: FeedbackButtonProps) {
   const { getNow } = useSimulatedTime();
+  const { event, eventPath } = useEvent();
 
-  if (!isFeedbackAvailable(startsAt, getNow())) return null;
+  if (!isFeedbackAvailable(startsAt, getNow(), event.event_date ?? "")) return null;
 
   return (
-    <Link href={`/schedule/${sessionId}/feedback`}>
+    <Link href={eventPath(`/schedule/${sessionId}/feedback`)}>
       <Button variant="outline" className="w-full">
         <MessageSquare className="mr-2 h-4 w-4" />
         Leave Feedback

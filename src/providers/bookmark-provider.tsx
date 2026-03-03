@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
+import { useEvent } from "./event-provider";
 import { toast } from "sonner";
 
 interface BookmarkContextValue {
@@ -28,9 +29,10 @@ const BookmarkContext = createContext<BookmarkContextValue>({
 
 export function BookmarkProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
+  const { eventId } = useEvent();
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -45,7 +47,8 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase
         .from("personal_schedule")
         .select("session_id")
-        .eq("user_id", user!.id);
+        .eq("user_id", user!.id)
+        .eq("event_id", eventId);
 
       if (error) {
         console.error("Failed to load bookmarks:", error.message);
@@ -57,7 +60,7 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchBookmarks();
-  }, [user, authLoading, supabase]);
+  }, [user, authLoading, supabase, eventId]);
 
   const isBookmarked = useCallback(
     (sessionId: string) => bookmarkedIds.has(sessionId),
@@ -95,7 +98,7 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase
           .from("personal_schedule")
           .upsert(
-            { user_id: user.id, session_id: sessionId },
+            { user_id: user.id, session_id: sessionId, event_id: eventId },
             { onConflict: "user_id,session_id" },
           );
 
@@ -109,7 +112,7 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
         }
       }
     },
-    [user, supabase],
+    [user, supabase, eventId],
   );
 
   return (

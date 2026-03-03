@@ -21,7 +21,7 @@ self.addEventListener("push", (event) => {
     body: body || "New message",
     icon: icon || "/icons/icon-192x192.png",
     badge: "/icons/icon-192x192.png",
-    tag: "emergency-notification",
+    tag: notificationData?.tag || "stirtrek-notification",
     renotify: true,
     data: notificationData,
     vibrate: [100, 50, 100],

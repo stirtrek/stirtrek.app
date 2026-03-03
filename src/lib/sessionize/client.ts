@@ -2,19 +2,28 @@ import type { SessionizeResponse } from "./types";
 
 const SESSIONIZE_BASE_URL = "https://sessionize.com/api/v2";
 
-export async function fetchSessionizeData(): Promise<SessionizeResponse> {
-  const apiId = process.env.SESSIONIZE_API_ID;
+/**
+ * Fetch data from the Sessionize API for the given API ID.
+ */
+export async function fetchSessionizeData(
+  apiId: string,
+): Promise<SessionizeResponse> {
   if (!apiId) {
-    throw new Error("SESSIONIZE_API_ID environment variable is not set");
+    throw new Error("No Sessionize API ID provided");
   }
 
-  const response = await fetch(`${SESSIONIZE_BASE_URL}/${apiId}/view/All`, {
-    next: { revalidate: 0 },
-  });
+  const resolvedApiId = apiId;
+
+  const response = await fetch(
+    `${SESSIONIZE_BASE_URL}/${resolvedApiId}/view/All`,
+    {
+      next: { revalidate: 0 },
+    },
+  );
 
   if (!response.ok) {
     throw new Error(
-      `Sessionize API error: ${response.status} ${response.statusText}`
+      `Sessionize API error: ${response.status} ${response.statusText}`,
     );
   }
 

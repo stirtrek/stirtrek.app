@@ -165,7 +165,7 @@ class TelemetryService {
   }
 
   trackPushNotification(
-    target: "user" | "admins",
+    target: "user" | "admins" | "all",
     recipientCount: number,
     attributes: Record<string, string> = {},
   ): void {

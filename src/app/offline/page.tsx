@@ -2,7 +2,7 @@
 
 import { WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { APP_NAME } from "@/lib/constants";
+import { DEFAULT_APP_NAME } from "@/lib/constants";
 
 export default function OfflinePage() {
   return (
@@ -10,7 +10,7 @@ export default function OfflinePage() {
       <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
         <WifiOff className="h-8 w-8 text-muted-foreground" />
       </div>
-      <h1 className="text-2xl font-bold">{APP_NAME}</h1>
+      <h1 className="text-2xl font-bold">{DEFAULT_APP_NAME}</h1>
       <p className="mt-2 text-muted-foreground">
         You appear to be offline. Some features may be limited.
       </p>

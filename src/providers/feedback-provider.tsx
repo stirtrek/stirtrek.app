@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
+import { useEvent } from "./event-provider";
 import { toast } from "sonner";
 import type { FeedbackRating } from "@/lib/types";
 
@@ -36,11 +37,12 @@ const FeedbackContext = createContext<FeedbackContextValue>({
 
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { eventId } = useEvent();
   const [feedbackMap, setFeedbackMap] = useState<Map<string, FeedbackEntry>>(
     new Map()
   );
   const [loading, setLoading] = useState(true);
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
     if (!user) {
@@ -53,7 +55,8 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
       const { data } = await supabase
         .from("session_feedback")
         .select("session_id, rating, comment")
-        .eq("user_id", user!.id);
+        .eq("user_id", user!.id)
+        .eq("event_id", eventId);
 
       if (data) {
         const map = new Map<string, FeedbackEntry>();
@@ -69,7 +72,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchFeedback();
-  }, [user, supabase]);
+  }, [user, supabase, eventId]);
 
   const getFeedback = useCallback(
     (sessionId: string) => feedbackMap.get(sessionId) ?? null,
@@ -95,6 +98,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
         {
           user_id: user.id,
           session_id: sessionId,
+          event_id: eventId,
           rating,
           comment: comment?.trim() || null,
         },
@@ -111,7 +115,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
         toast.error("Failed to save feedback");
       }
     },
-    [user, supabase]
+    [user, supabase, eventId]
   );
 
   return (

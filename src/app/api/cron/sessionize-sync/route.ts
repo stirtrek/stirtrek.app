@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncSessionizeData } from "@/lib/sessionize/sync";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
 
 export async function GET(request: NextRequest) {
@@ -14,13 +15,45 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const result = await syncSessionizeData();
+      // Fetch all active events that have a sessionize_api_id configured
+      const admin = createAdminClient();
+      const { data: events, error: eventsError } = await admin
+        .from("events")
+        .select("id, name, sessionize_api_id")
+        .eq("is_active", true)
+        .not("sessionize_api_id", "is", null);
 
-      if (result.error) {
-        return NextResponse.json({ error: result.error }, { status: 500 });
+      if (eventsError) {
+        return NextResponse.json(
+          { error: eventsError.message },
+          { status: 500 },
+        );
       }
 
-      return NextResponse.json(result);
+      if (!events || events.length === 0) {
+        return NextResponse.json({
+          message: "No active events with Sessionize configured",
+          results: [],
+        });
+      }
+
+      // Sync each event in sequence
+      const results = [];
+      for (const event of events) {
+        const result = await syncSessionizeData(undefined, event.id);
+        results.push({
+          eventId: event.id,
+          eventName: event.name,
+          ...result,
+        });
+      }
+
+      const hasErrors = results.some((r) => r.error);
+
+      return NextResponse.json(
+        { results },
+        { status: hasErrors ? 207 : 200 },
+      );
     },
   );
 }

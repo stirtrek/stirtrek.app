@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
+import { useEvent } from "./event-provider";
 import type { EmergencyMessageStatus } from "@/lib/types";
 
 interface NotificationContextValue {
@@ -73,13 +74,30 @@ export function NotificationProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { eventSlug, eventId } = useEvent();
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [pushSubscribed, setPushSubscribed] = useState(false);
-  const supabase = useMemo(() => createClient(), []);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const supabase = useMemo(() => createClient(eventId), [eventId]);
 
-  const isAdmin = profile && ["admin", "staff"].includes(profile.role);
+  // Fetch event membership for admin check
+  useEffect(() => {
+    if (!user || !eventId) {
+      setIsAdmin(false);
+      return;
+    }
+    supabase
+      .from("event_memberships")
+      .select("role")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        setIsAdmin(data ? ["admin", "staff"].includes(data.role) : false);
+      });
+  }, [user, eventId, supabase]);
 
   const [pushSupported, setPushSupported] = useState(false);
 
@@ -95,7 +113,7 @@ export function NotificationProvider({
     if (!user) return;
 
     try {
-      const res = await fetch("/api/emergency/unread-count");
+      const res = await fetch(`/${eventSlug}/api/emergency/unread-count`);
       if (res.ok) {
         const data = await res.json();
         setUnreadCount(data.count);
@@ -103,7 +121,7 @@ export function NotificationProvider({
     } catch {
       // Silently fail
     }
-  }, [user]);
+  }, [user, eventSlug]);
 
   // Fetch initial count
   useEffect(() => {
@@ -142,7 +160,7 @@ export function NotificationProvider({
         });
 
         const json = subscription.toJSON();
-        await fetch("/api/push/subscribe", {
+        await fetch(`/${eventSlug}/api/push/subscribe`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -156,7 +174,7 @@ export function NotificationProvider({
         // Silently fail — user denied or browser doesn't support
       }
     });
-  }, [pushSupported, user]);
+  }, [pushSupported, user, eventSlug]);
 
   // Subscribe to push notifications
   const subscribeToPush = useCallback(async () => {
@@ -175,7 +193,7 @@ export function NotificationProvider({
     });
 
     const json = subscription.toJSON();
-    await fetch("/api/push/subscribe", {
+    await fetch(`/${eventSlug}/api/push/subscribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -185,7 +203,7 @@ export function NotificationProvider({
     });
 
     setPushSubscribed(true);
-  }, [pushSupported]);
+  }, [pushSupported, eventSlug]);
 
   // Realtime subscriptions
   useEffect(() => {
@@ -250,7 +268,7 @@ export function NotificationProvider({
     async (messageId: string, status: EmergencyMessageStatus) => {
       try {
         const res = await fetch(
-          `/api/emergency/messages/${messageId}/status`,
+          `/${eventSlug}/api/emergency/messages/${messageId}/status`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -264,7 +282,7 @@ export function NotificationProvider({
         // Silently fail
       }
     },
-    [refreshCount]
+    [refreshCount, eventSlug]
   );
 
   const markRepliesRead = useCallback(
@@ -272,7 +290,7 @@ export function NotificationProvider({
       if (replyIds.length === 0) return;
 
       try {
-        const res = await fetch("/api/emergency/replies/mark-read", {
+        const res = await fetch(`/${eventSlug}/api/emergency/replies/mark-read`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reply_ids: replyIds }),
@@ -284,7 +302,7 @@ export function NotificationProvider({
         // Silently fail
       }
     },
-    []
+    [eventSlug]
   );
 
   return (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
+import { useEvent } from "@/providers/event-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import type { Sponsor } from "@/lib/types";
 
 export function SponsorActivation() {
   const { refreshProfile } = useAuth();
+  const { eventSlug } = useEvent();
   const [expanded, setExpanded] = useState(false);
   const [code, setCode] = useState("");
   const [sponsorId, setSponsorId] = useState<string | undefined>(undefined);
@@ -29,7 +31,7 @@ export function SponsorActivation() {
     if (!expanded || sponsors.length > 0) return;
 
     setLoadingSponsors(true);
-    fetch("/api/sponsors")
+    fetch(`/${eventSlug}/api/sponsors`)
       .then((res) => res.json())
       .then((data) => setSponsors(data.sponsors ?? []))
       .catch(() => toast.error("Failed to load sponsors"))
@@ -40,7 +42,7 @@ export function SponsorActivation() {
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch("/api/sponsor/activate", {
+    const res = await fetch(`/${eventSlug}/api/sponsor/activate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, sponsor_id: sponsorId }),

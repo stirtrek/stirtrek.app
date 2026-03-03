@@ -8,6 +8,7 @@ import {
   useCallback,
 } from "react";
 import { parseSessionizeTime } from "@/lib/utils";
+import { useEvent } from "./event-provider";
 
 interface SimulatedTimeContextValue {
   getNow: () => Date;
@@ -28,6 +29,7 @@ export function SimulatedTimeProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { eventSlug } = useEvent();
   const [simulatedTime, setSimulatedTime] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +38,7 @@ export function SimulatedTimeProvider({
 
     async function fetchSimulatedTime() {
       try {
-        const res = await fetch("/api/admin/simulated-time");
+        const res = await fetch(`/${eventSlug}/api/admin/simulated-time`);
         if (res.ok) {
           const data = await res.json();
           if (mounted) setSimulatedTime(data.simulatedTime ?? null);
@@ -55,7 +57,7 @@ export function SimulatedTimeProvider({
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [eventSlug]);
 
   const getNow = useCallback((): Date => {
     if (simulatedTime) {

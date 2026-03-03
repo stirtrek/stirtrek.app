@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useEvent } from "@/providers/event-provider";
 import { Mail, Loader2, KeyRound } from "lucide-react";
 
 interface LoginFormProps {
@@ -12,6 +13,7 @@ interface LoginFormProps {
 
 export function LoginForm({ accentColor }: LoginFormProps) {
   const router = useRouter();
+  const { eventPath } = useEvent();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -76,12 +78,12 @@ export function LoginForm({ accentColor }: LoginFormProps) {
         .single();
 
       if (profile?.first_name && profile?.last_name) {
-        router.push("/schedule");
+        router.push(eventPath("/schedule"));
       } else {
-        router.push("/profile/complete");
+        router.push(eventPath("/profile/complete"));
       }
     } else {
-      router.push("/schedule");
+      router.push(eventPath("/schedule"));
     }
     router.refresh();
   };
@@ -266,7 +268,7 @@ export function LoginForm({ accentColor }: LoginFormProps) {
       </div>
 
       <Link
-        href="/schedule"
+        href={eventPath("/schedule")}
         className="mt-4 block text-center text-sm text-[#B8BDC7] transition-colors hover:text-white"
       >
         Browse schedule without signing in

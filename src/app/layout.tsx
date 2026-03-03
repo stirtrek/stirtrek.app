@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
+import { DEFAULT_APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,14 +18,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: APP_NAME,
-    template: `%s - ${APP_NAME}`,
+    default: DEFAULT_APP_NAME,
+    template: "%s",
   },
   description: APP_DESCRIPTION,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: APP_NAME,
+    title: "Conference App",
   },
   icons: {
     icon: "/icon.png",

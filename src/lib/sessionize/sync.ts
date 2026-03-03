@@ -11,12 +11,34 @@ interface SyncResult {
   error?: string;
 }
 
+/**
+ * Sync Sessionize data for a specific event.
+ * Reads the sessionize_api_id from the event record.
+ */
 export async function syncSessionizeData(
-  triggeredBy?: string,
+  triggeredBy: string | undefined,
+  eventId: string,
 ): Promise<SyncResult> {
   const telemetry = getTelemetryService();
   return telemetry.trackSessionizeSync(async () => {
     const supabase = createAdminClient();
+
+    // Resolve the Sessionize API ID
+    const { data: event } = await supabase
+      .from("events")
+      .select("sessionize_api_id")
+      .eq("id", eventId)
+      .single();
+
+    if (!event?.sessionize_api_id) {
+      return {
+        rooms: 0,
+        categories: 0,
+        speakers: 0,
+        sessions: 0,
+        error: "No Sessionize API ID configured for this event",
+      };
+    }
 
     // Create sync log entry
     const { data: syncLog } = await supabase
@@ -24,6 +46,7 @@ export async function syncSessionizeData(
       .insert({
         status: "in_progress",
         triggered_by: triggeredBy || null,
+        event_id: eventId,
       })
       .select("id")
       .single();
@@ -31,8 +54,8 @@ export async function syncSessionizeData(
     const syncId = syncLog?.id;
 
     try {
-      const data = await fetchSessionizeData();
-      const result = await upsertData(supabase, data);
+      const data = await fetchSessionizeData(event.sessionize_api_id);
+      const result = await upsertData(supabase, data, eventId);
 
       // Update sync log
       if (syncId) {
@@ -49,6 +72,7 @@ export async function syncSessionizeData(
       }
 
       telemetry.logInfo("Sessionize sync completed", {
+        eventId: eventId,
         rooms: result.rooms,
         speakers: result.speakers,
         sessions: result.sessions,
@@ -88,11 +112,13 @@ export async function syncSessionizeData(
 async function upsertData(
   supabase: any,
   data: SessionizeResponse,
+  eventId: string,
 ): Promise<SyncResult> {
   // 1. Upsert rooms
   if (data.rooms.length > 0) {
     const rooms = data.rooms.map((r) => ({
       id: r.id,
+      event_id: eventId,
       name: r.name,
       sort_order: r.sort,
     }));
@@ -111,6 +137,7 @@ async function upsertData(
       .upsert(
         {
           id: cat.id,
+          event_id: eventId,
           title: cat.title,
           category_type: cat.type,
           sort_order: cat.sort,
@@ -123,6 +150,7 @@ async function upsertData(
     if (cat.items.length > 0) {
       const items = cat.items.map((item) => ({
         id: item.id,
+        event_id: eventId,
         category_id: cat.id,
         name: item.name,
         sort_order: item.sort,
@@ -144,6 +172,7 @@ async function upsertData(
   if (data.speakers.length > 0) {
     const speakers = data.speakers.map((s) => ({
       id: s.id,
+      event_id: eventId,
       first_name: s.firstName,
       last_name: s.lastName,
       full_name: s.fullName,
@@ -166,6 +195,7 @@ async function upsertData(
   if (data.sessions.length > 0) {
     const sessions = data.sessions.map((s) => ({
       id: s.id,
+      event_id: eventId,
       title: s.title,
       description: s.description,
       starts_at: s.startsAt,
@@ -186,20 +216,27 @@ async function upsertData(
       throw new Error(`Failed to upsert sessions: ${error.message}`);
   }
 
-  // 5. Sync session_speakers junction table
-  // Build from session.speakers (array of speaker UUIDs)
-  const sessionSpeakers: { session_id: string; speaker_id: string }[] = [];
+  // 5. Sync session_speakers junction table (scoped to this event)
+  const sessionSpeakers: {
+    session_id: string;
+    speaker_id: string;
+    event_id: string;
+  }[] = [];
   for (const session of data.sessions) {
     for (const speakerId of session.speakers) {
       sessionSpeakers.push({
         session_id: session.id,
         speaker_id: speakerId,
+        event_id: eventId,
       });
     }
   }
 
-  // Clear and re-insert (simplest approach for junction tables)
-  await supabase.from("session_speakers").delete().neq("session_id", "");
+  // Clear only this event's junction rows and re-insert
+  await supabase
+    .from("session_speakers")
+    .delete()
+    .eq("event_id", eventId);
   if (sessionSpeakers.length > 0) {
     const { error } = await supabase
       .from("session_speakers")
@@ -208,21 +245,26 @@ async function upsertData(
       throw new Error(`Failed to sync session_speakers: ${error.message}`);
   }
 
-  // 6. Sync session_categories junction table
+  // 6. Sync session_categories junction table (scoped to this event)
   const sessionCategories: {
     session_id: string;
     category_item_id: number;
+    event_id: string;
   }[] = [];
   for (const session of data.sessions) {
     for (const catItemId of session.categoryItems) {
       sessionCategories.push({
         session_id: session.id,
         category_item_id: catItemId,
+        event_id: eventId,
       });
     }
   }
 
-  await supabase.from("session_categories").delete().neq("session_id", "");
+  await supabase
+    .from("session_categories")
+    .delete()
+    .eq("event_id", eventId);
   if (sessionCategories.length > 0) {
     const { error } = await supabase
       .from("session_categories")

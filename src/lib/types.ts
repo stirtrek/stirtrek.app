@@ -20,18 +20,68 @@ export type SponsorTier =
   | "community";
 export type PollStatus = "draft" | "active" | "closed";
 export type FeedbackRating = "red" | "yellow" | "green";
+export type AnnouncementStatus = "draft" | "sent";
 export type SyncStatus = "pending" | "in_progress" | "completed" | "failed";
 
+// ============================================================
+// Multi-tenant types
+// ============================================================
+
+export interface EventFeatureFlags {
+  polls: boolean;
+  movie_voting: boolean;
+  emergency_reporting: boolean;
+  sponsor_leads: boolean;
+  announcements: boolean;
+  feedback: boolean;
+  venue_map: boolean;
+  passport: boolean;
+}
+
+export interface Event {
+  id: string;
+  slug: string;
+  name: string;
+  short_name: string | null;
+  description: string | null;
+  logo_url: string | null;
+  event_date: string | null;
+  event_end_date: string | null;
+  venue_name: string | null;
+  venue_address: string | null;
+  venue_maps_url: string | null;
+  timezone: string;
+  sessionize_api_id: string | null;
+  sponsor_feed_url: string | null;
+  sponsor_access_code: string | null;
+  feature_flags: EventFeatureFlags;
+  domain: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventMembership {
+  id: string;
+  event_id: string;
+  user_id: string;
+  role: UserRole;
+  is_sponsor: boolean;
+  sponsor_id: string | null;
+  joined_at: string;
+}
+
+// ============================================================
 // Database row types
+// ============================================================
+
 export interface Profile {
   id: string;
   email: string;
   display_name: string | null;
   first_name: string | null;
   last_name: string | null;
-  role: UserRole;
-  is_sponsor: boolean;
-  sponsor_id: string | null;
+  is_super_admin: boolean;
   phone: string | null;
   receives_sms_alerts: boolean;
   receives_push_alerts: boolean;
@@ -41,6 +91,7 @@ export interface Profile {
 
 export interface Lead {
   id: string;
+  event_id: string;
   sponsor_profile_id: string;
   attendee_email: string;
   attendee_first_name: string | null;
@@ -52,6 +103,7 @@ export interface Lead {
 
 export interface Room {
   id: number;
+  event_id: string;
   name: string;
   sort_order: number;
   created_at: string;
@@ -60,6 +112,7 @@ export interface Room {
 
 export interface Category {
   id: number;
+  event_id: string;
   title: string;
   category_type: string | null;
   sort_order: number;
@@ -68,6 +121,7 @@ export interface Category {
 
 export interface CategoryItem {
   id: number;
+  event_id: string;
   category_id: number;
   name: string;
   sort_order: number;
@@ -75,6 +129,7 @@ export interface CategoryItem {
 
 export interface Speaker {
   id: string;
+  event_id: string;
   first_name: string;
   last_name: string;
   full_name: string;
@@ -96,6 +151,7 @@ export interface SpeakerLink {
 
 export interface Session {
   id: string;
+  event_id: string;
   title: string;
   description: string | null;
   starts_at: string | null;
@@ -119,6 +175,7 @@ export interface SessionWithDetails extends Session {
 
 export interface PersonalScheduleEntry {
   id: string;
+  event_id: string;
   user_id: string;
   session_id: string;
   created_at: string;
@@ -126,6 +183,7 @@ export interface PersonalScheduleEntry {
 
 export interface SessionFeedback {
   id: string;
+  event_id: string;
   user_id: string;
   session_id: string;
   rating: FeedbackRating;
@@ -136,6 +194,7 @@ export interface SessionFeedback {
 
 export interface Movie {
   id: string;
+  event_id: string;
   title: string;
   description: string | null;
   poster_url: string | null;
@@ -150,6 +209,7 @@ export interface Movie {
 
 export interface MovieVote {
   id: string;
+  event_id: string;
   user_id: string;
   movie_id: string;
   created_at: string;
@@ -157,6 +217,7 @@ export interface MovieVote {
 
 export interface Sponsor {
   id: string;
+  event_id: string;
   name: string;
   tier: SponsorTier;
   logo_url: string | null;
@@ -171,6 +232,7 @@ export interface Sponsor {
 
 export interface Poll {
   id: string;
+  event_id: string;
   question: string;
   description: string | null;
   status: PollStatus;
@@ -184,6 +246,7 @@ export interface Poll {
 
 export interface PollOption {
   id: string;
+  event_id: string;
   poll_id: string;
   text: string;
   sort_order: number;
@@ -192,6 +255,7 @@ export interface PollOption {
 
 export interface PollResponse {
   id: string;
+  event_id: string;
   poll_id: string;
   option_id: string;
   user_id: string;
@@ -200,6 +264,7 @@ export interface PollResponse {
 
 export interface EmergencyReport {
   id: string;
+  event_id: string;
   user_id: string | null;
   category: EmergencyCategory;
   severity: EmergencySeverity;
@@ -216,6 +281,7 @@ export interface EmergencyReport {
 
 export interface VenueMap {
   id: string;
+  event_id: string;
   title: string;
   image_url: string;
   floor: string | null;
@@ -226,6 +292,7 @@ export interface VenueMap {
 }
 
 export interface AppSetting {
+  event_id: string;
   key: string;
   value: unknown;
   updated_at: string;
@@ -234,6 +301,7 @@ export interface AppSetting {
 
 export interface SessionizeSyncLog {
   id: string;
+  event_id: string;
   status: SyncStatus;
   triggered_by: string | null;
   sessions_synced: number;
@@ -246,6 +314,7 @@ export interface SessionizeSyncLog {
 
 export interface PushSubscription {
   id: string;
+  event_id: string;
   user_id: string;
   endpoint: string;
   keys: { p256dh: string; auth: string };
@@ -257,6 +326,7 @@ export type EmergencyMessageStatus = 'unresponded' | 'acknowledged' | 'closed';
 
 export interface EmergencyMessage {
   id: string;
+  event_id: string;
   user_id: string;
   message: string;
   status: EmergencyMessageStatus;
@@ -266,11 +336,23 @@ export interface EmergencyMessage {
 
 export interface EmergencyReply {
   id: string;
+  event_id: string;
   message_id: string;
   sender_id: string;
   reply: string;
   is_read: boolean;
   created_at: string;
+}
+
+export interface Announcement {
+  id: string;
+  event_id: string;
+  message: string;
+  status: AnnouncementStatus;
+  created_by: string;
+  sent_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface EmergencyReplyWithSender extends EmergencyReply {

@@ -15,26 +15,18 @@ interface PushPayload {
 }
 
 /**
- * Send a push notification to all subscriptions for a given user.
- * Silently removes expired/invalid subscriptions.
+ * Send push notifications and clean up expired subscriptions.
+ * Shared helper used by all send functions.
  */
-export async function sendPushToUser(userId: string, payload: PushPayload) {
+async function sendAndCleanup(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  subscriptions: any[],
+  message: string,
+  label: "user" | "admins" | "all",
+  meta?: Record<string, string>,
+) {
   const telemetry = getTelemetryService();
   const admin = createAdminClient();
-
-  const { data: subscriptions } = await admin
-    .from("push_subscriptions")
-    .select("id, endpoint, keys")
-    .eq("user_id", userId);
-
-  if (!subscriptions || subscriptions.length === 0) return;
-
-  const message = JSON.stringify({
-    title: payload.title,
-    body: payload.body,
-    data: { url: payload.url || "/emergency" },
-  });
-
   const expiredIds: string[] = [];
 
   await Promise.allSettled(
@@ -49,7 +41,6 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
         );
       } catch (err: unknown) {
         const statusCode = (err as { statusCode?: number }).statusCode;
-        // 404 or 410 = subscription expired/invalid
         if (statusCode === 404 || statusCode === 410) {
           expiredIds.push(sub.id);
         }
@@ -58,9 +49,8 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
   );
 
   const successCount = subscriptions.length - expiredIds.length;
-  telemetry.trackPushNotification("user", successCount, { userId });
+  telemetry.trackPushNotification(label, successCount, meta);
 
-  // Clean up expired subscriptions
   if (expiredIds.length > 0) {
     await admin
       .from("push_subscriptions")
@@ -70,29 +60,26 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
 }
 
 /**
- * Send a push notification to all admin/staff users.
- * Uses 2 queries instead of N+1 for better performance.
+ * Send a push notification to all subscriptions for a given user.
+ * When eventId is provided, only sends to subscriptions for that event.
  */
-export async function sendPushToAdmins(payload: PushPayload) {
-  const telemetry = getTelemetryService();
+export async function sendPushToUser(
+  userId: string,
+  payload: PushPayload,
+  eventId?: string,
+) {
   const admin = createAdminClient();
 
-  // Query 1: get admin/staff user IDs
-  const { data: adminProfiles } = await admin
-    .from("profiles")
-    .select("id")
-    .in("role", ["admin", "staff"]);
-
-  if (!adminProfiles || adminProfiles.length === 0) return;
-
-  const adminIds = adminProfiles.map((p) => p.id);
-
-  // Query 2: batch-fetch ALL subscriptions for those users
-  const { data: subscriptions } = await admin
+  let query = admin
     .from("push_subscriptions")
     .select("id, endpoint, keys")
-    .in("user_id", adminIds);
+    .eq("user_id", userId);
 
+  if (eventId) {
+    query = query.eq("event_id", eventId);
+  }
+
+  const { data: subscriptions } = await query;
   if (!subscriptions || subscriptions.length === 0) return;
 
   const message = JSON.stringify({
@@ -101,34 +88,71 @@ export async function sendPushToAdmins(payload: PushPayload) {
     data: { url: payload.url || "/emergency" },
   });
 
-  const expiredIds: string[] = [];
+  await sendAndCleanup(subscriptions, message, "user", { userId });
+}
 
-  await Promise.allSettled(
-    subscriptions.map(async (sub) => {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: sub.keys as { p256dh: string; auth: string },
-          },
-          message,
-        );
-      } catch (err: unknown) {
-        const statusCode = (err as { statusCode?: number }).statusCode;
-        if (statusCode === 404 || statusCode === 410) {
-          expiredIds.push(sub.id);
-        }
-      }
-    }),
-  );
+/**
+ * Send a push notification to all admin/staff users for a specific event.
+ * Uses event_memberships to determine who the admins are.
+ */
+export async function sendPushToAdmins(
+  payload: PushPayload,
+  eventId: string,
+) {
+  const admin = createAdminClient();
 
-  const successCount = subscriptions.length - expiredIds.length;
-  telemetry.trackPushNotification("admins", successCount);
+  const { data: memberships } = await admin
+    .from("event_memberships")
+    .select("user_id")
+    .eq("event_id", eventId)
+    .in("role", ["admin", "staff"]);
 
-  if (expiredIds.length > 0) {
-    await admin
-      .from("push_subscriptions")
-      .delete()
-      .in("id", expiredIds);
+  if (!memberships || memberships.length === 0) return;
+  const adminIds = memberships.map((m) => m.user_id);
+
+  const { data: subscriptions } = await admin
+    .from("push_subscriptions")
+    .select("id, endpoint, keys")
+    .in("user_id", adminIds)
+    .eq("event_id", eventId);
+  if (!subscriptions || subscriptions.length === 0) return;
+
+  const message = JSON.stringify({
+    title: payload.title,
+    body: payload.body,
+    data: { url: payload.url || "/emergency" },
+  });
+
+  await sendAndCleanup(subscriptions, message, "admins");
+}
+
+/**
+ * Send a push notification to ALL users with push subscriptions for an event.
+ * Used for broadcast announcements.
+ * When eventId is provided, only sends to subscriptions for that event.
+ */
+export async function sendPushToAll(
+  payload: PushPayload,
+  eventId?: string,
+) {
+  const admin = createAdminClient();
+
+  let query = admin
+    .from("push_subscriptions")
+    .select("id, endpoint, keys");
+
+  if (eventId) {
+    query = query.eq("event_id", eventId);
   }
+
+  const { data: subscriptions } = await query;
+  if (!subscriptions || subscriptions.length === 0) return;
+
+  const message = JSON.stringify({
+    title: payload.title,
+    body: payload.body,
+    data: { url: payload.url || "/announcements", tag: "announcement" },
+  });
+
+  await sendAndCleanup(subscriptions, message, "all");
 }
