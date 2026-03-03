@@ -18,10 +18,17 @@ export async function generateMetadata({
       template: `%s | ${event.name}`,
     },
     description: event.description ?? `${event.name} - Conference App`,
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: event.short_name ?? event.name,
+    },
     ...(event.logo_url && {
       icons: {
         icon: event.logo_url,
-        apple: event.logo_url,
+        apple: [
+          { url: event.logo_url, sizes: "180x180", type: "image/png" },
+        ],
       },
     }),
   };

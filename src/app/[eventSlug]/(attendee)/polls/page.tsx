@@ -151,27 +151,31 @@ export default function PollsPage() {
         return;
       }
 
+      // Fetch results before updating vote state so all state updates
+      // batch into a single render and the UI transitions cleanly.
+      const { data } = await supabase.rpc("get_poll_results_batch", {
+        p_poll_ids: [pollId],
+      });
+
+      const pollResults: PollResult[] = data?.length
+        ? data.map((r: { option_id: string; option_text: string; vote_count: number }) => ({
+            option_id: r.option_id,
+            option_text: r.option_text,
+            vote_count: r.vote_count,
+          }))
+        : (polls.find((p) => p.id === pollId)?.options.map((opt) => ({
+            option_id: opt.id,
+            option_text: opt.text,
+            vote_count: opt.id === optionId ? 1 : 0,
+          })) ?? []);
+
       setMyVotes((prev) => ({ ...prev, [pollId]: optionId }));
       setChangingVote((prev) => {
         const next = new Set(prev);
         next.delete(pollId);
         return next;
       });
-
-      // Fetch results for this poll
-      const { data } = await supabase.rpc("get_poll_results_batch", {
-        p_poll_ids: [pollId],
-      });
-      if (data) {
-        setResults((prev) => ({
-          ...prev,
-          [pollId]: data.map((r: { option_id: string; option_text: string; vote_count: number }) => ({
-            option_id: r.option_id,
-            option_text: r.option_text,
-            vote_count: r.vote_count,
-          })),
-        }));
-      }
+      setResults((prev) => ({ ...prev, [pollId]: pollResults }));
 
       toast.success(existingVote ? "Vote changed!" : "Vote submitted!");
     } catch (err) {
