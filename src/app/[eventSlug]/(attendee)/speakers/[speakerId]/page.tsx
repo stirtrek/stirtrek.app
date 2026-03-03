@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveEvent } from "@/lib/events/resolve";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,13 +22,16 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const { speakerId } = await params;
-  // eventSlug not needed for metadata
+  const { eventSlug, speakerId } = await params;
   const supabase = createAdminClient();
+  const event = await resolveEvent(eventSlug);
+  if (!event) return { title: "Speaker" };
+
   const { data } = await supabase
     .from("speakers")
     .select("full_name")
     .eq("id", speakerId)
+    .eq("event_id", event.id)
     .single();
 
   return {
@@ -51,12 +55,16 @@ function getLinkIcon(linkType: string) {
 
 export default async function SpeakerDetailPage({ params }: PageProps) {
   const { eventSlug, speakerId } = await params;
+  const event = await resolveEvent(eventSlug);
+  if (!event) notFound();
+
   const supabase = createAdminClient();
 
   const { data: speaker } = await supabase
     .from("speakers")
     .select("*")
     .eq("id", speakerId)
+    .eq("event_id", event.id)
     .single();
 
   if (!speaker) {
@@ -175,7 +183,7 @@ export default async function SpeakerDetailPage({ params }: PageProps) {
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     {session.starts_at && (
                       <span>
-                        {formatTime(session.starts_at)}
+                        {formatTime(session.starts_at, event.timezone)}
                       </span>
                     )}
                     {session.room && <span>{session.room.name}</span>}

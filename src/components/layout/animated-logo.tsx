@@ -217,11 +217,12 @@ function buildCSS(anim: AnimationVariant, fill: string) {
 interface AnimatedLogoProps {
   className?: string;
   color?: string;
+  ariaLabel?: string;
 }
 
 export { STAR_COLORS };
 
-export function AnimatedLogo({ className, color }: AnimatedLogoProps) {
+export function AnimatedLogo({ className, color, ariaLabel }: AnimatedLogoProps) {
   // Cache only the animation variant (stable across renders); use color prop reactively
   const [anim] = useState(
     () => ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)]
@@ -233,7 +234,7 @@ export function AnimatedLogo({ className, color }: AnimatedLogoProps) {
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 263.23 187.48"
       className={className}
-      aria-label="Stir Trek"
+      aria-label={ariaLabel ?? "Stir Trek"}
       suppressHydrationWarning
     >
       <style suppressHydrationWarning>

@@ -1,20 +1,21 @@
 "use client";
 
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
-import { parseSessionizeTime } from "@/lib/utils";
+import { useEvent } from "@/providers/event-provider";
 
 export function DevTimeBanner() {
   const { simulatedTime } = useSimulatedTime();
+  const { event } = useEvent();
 
   if (!simulatedTime) return null;
 
-  const formatted = parseSessionizeTime(simulatedTime).toLocaleString("en-US", {
+  const formatted = new Date(simulatedTime).toLocaleString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "UTC",
+    timeZone: event.timezone,
   });
 
   return (

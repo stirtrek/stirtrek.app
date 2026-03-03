@@ -38,7 +38,6 @@ const LEGACY_PATHS = [
   "/more",
   "/admin",
   "/emergency",
-  "/movie-vote",
   "/my-schedule",
   "/profile",
   "/leads",

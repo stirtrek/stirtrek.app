@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { resolveEvent } from "@/lib/events/resolve";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,8 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function SessionDetailPage({ params }: PageProps) {
   const { eventSlug, sessionId } = await params;
+  const event = await resolveEvent(eventSlug);
+  if (!event) notFound();
   const supabase = createAdminClient();
 
   const { data: session } = await supabase
@@ -67,8 +70,8 @@ export default async function SessionDetailPage({ params }: PageProps) {
       .filter(Boolean),
   } as SessionWithDetails;
 
-  const startTime = s.starts_at ? formatTime(s.starts_at) : null;
-  const endTime = s.ends_at ? formatTime(s.ends_at) : null;
+  const startTime = s.starts_at ? formatTime(s.starts_at, event.timezone) : null;
+  const endTime = s.ends_at ? formatTime(s.ends_at, event.timezone) : null;
 
   return (
     <div className="space-y-4">

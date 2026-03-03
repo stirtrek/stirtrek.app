@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { User, Bell } from "lucide-react";
 import Link from "next/link";
 import { HeaderLogo } from "./header-logo";
+import { AnimatedBaconLogo } from "./animated-bacon-logo";
 import type { UserRole } from "@/lib/types";
 
 /** Relative paths within the event — resolved via eventPath() at render time */
@@ -18,7 +19,6 @@ const PAGE_TITLE_MAP: Record<string, string> = {
   "/speakers": "SPEAKERS",
   "/sponsors": "SPONSORS",
   "/polls": "POLLS",
-  "/movie-vote": "MOVIE VOTE",
   "/announcements": "ANNOUNCEMENTS",
   "/emergency": "FEEDBACK",
   "/venue-map": "VENUE MAP",
@@ -79,7 +79,9 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-md items-center justify-between px-4">
         <Link href={eventPath("/schedule")} aria-label={event.name}>
-          {event.logo_url ? (
+          {event.slug === "bacon" ? (
+            <AnimatedBaconLogo className="h-10" compact />
+          ) : event.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={event.logo_url}

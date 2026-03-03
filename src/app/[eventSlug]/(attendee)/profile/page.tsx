@@ -40,32 +40,42 @@ export default function ProfilePage() {
   // activate/deactivate) triggers a re-fetch of membership status.
   useEffect(() => {
     if (!user || !eventId) return;
-    supabase
-      .from("event_memberships")
-      .select("role, is_sponsor")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setMemberRole(data.role);
-          setMemberIsSponsor(data.is_sponsor);
-        }
-      });
+    async function fetchMembership() {
+      const { data, error } = await supabase
+        .from("event_memberships")
+        .select("role, is_sponsor")
+        .eq("event_id", eventId)
+        .eq("user_id", user!.id)
+        .single();
+      if (error) {
+        console.error("Membership fetch error:", error);
+        return;
+      }
+      if (data) {
+        setMemberRole(data.role);
+        setMemberIsSponsor(data.is_sponsor);
+      }
+    }
+    fetchMembership();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, eventId, supabase, profile]);
 
   // Check super admin status
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("is_super_admin")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.is_super_admin) setIsSuperAdmin(true);
-      });
+    async function checkSuperAdmin() {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", user!.id)
+        .single();
+      if (error) {
+        console.error("Super admin check error:", error);
+        return;
+      }
+      if (data?.is_super_admin) setIsSuperAdmin(true);
+    }
+    checkSuperAdmin();
   }, [user, supabase]);
 
   if (loading) {

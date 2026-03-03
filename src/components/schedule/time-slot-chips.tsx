@@ -6,12 +6,14 @@ interface TimeSlotChipsProps {
   times: string[];
   activeSlot: string | null;
   onSelectSlot: (time: string | null) => void;
+  timezone: string;
 }
 
 export function TimeSlotChips({
   times,
   activeSlot,
   onSelectSlot,
+  timezone,
 }: TimeSlotChipsProps) {
   const cols = Math.ceil(times.length / 2);
 
@@ -49,7 +51,7 @@ export function TimeSlotChips({
                 : "border-border bg-background text-foreground hover:bg-accent"
             )}
           >
-            {formatTime(time)}
+            {formatTime(time, timezone)}
           </button>
         ))}
       </div>

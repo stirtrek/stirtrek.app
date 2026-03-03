@@ -44,19 +44,24 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     }
 
     async function fetchBookmarks() {
-      const { data, error } = await supabase
-        .from("personal_schedule")
-        .select("session_id")
-        .eq("user_id", user!.id)
-        .eq("event_id", eventId);
+      try {
+        const { data, error } = await supabase
+          .from("personal_schedule")
+          .select("session_id")
+          .eq("user_id", user!.id)
+          .eq("event_id", eventId);
 
-      if (error) {
-        console.error("Failed to load bookmarks:", error.message);
-        toast.error("Could not load your saved schedule");
-      } else if (data) {
-        setBookmarkedIds(new Set(data.map((d) => d.session_id)));
+        if (error) {
+          console.error("Failed to load bookmarks:", error.message);
+          toast.error("Could not load your saved schedule");
+        } else if (data) {
+          setBookmarkedIds(new Set(data.map((d) => d.session_id)));
+        }
+      } catch (err) {
+        console.error("Bookmark fetch error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     fetchBookmarks();

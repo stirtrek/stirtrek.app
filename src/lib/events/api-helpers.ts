@@ -3,9 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Event, EventFeatureFlags, EventMembership } from "@/lib/types";
 
-// Default event ID for backward compatibility during migration
-const DEFAULT_EVENT_ID = "00000000-0000-0000-0000-000000000001";
-
 // Simple in-memory cache for event lookups
 const eventCacheById = new Map<string, { event: Event; expiresAt: number }>();
 const CACHE_TTL_MS = 60_000;
@@ -38,16 +35,17 @@ export async function getEventById(eventId: string): Promise<Event | null> {
 }
 
 /**
- * Get the event ID from request headers or default.
- * During Phase 2 (before route restructuring), API routes read from
- * the X-Event-Id header. Falls back to the default Stir Trek event.
+ * Get the event ID from request headers.
+ * The middleware resolves the event from the URL slug and sets
+ * the x-event-id header on every request under [eventSlug]/.
+ * Throws if the header is missing (should never happen in normal flow).
  */
-export function getEventId(request?: Request): string {
-  if (request) {
-    const headerVal = request.headers.get("x-event-id");
-    if (headerVal) return headerVal;
+export function getEventId(request: Request): string {
+  const headerVal = request.headers.get("x-event-id");
+  if (!headerVal) {
+    throw new Error("Missing x-event-id header. Ensure middleware is resolving the event.");
   }
-  return DEFAULT_EVENT_ID;
+  return headerVal;
 }
 
 /**

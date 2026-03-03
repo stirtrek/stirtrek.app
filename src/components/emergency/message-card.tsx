@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Send, Loader2, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
+import { useEvent } from "@/providers/event-provider";
 import type { EmergencyMessageStatus, EmergencyMessageWithReplies } from "@/lib/types";
 
 interface MessageCardProps {
@@ -15,19 +16,21 @@ interface MessageCardProps {
   onStatusChange?: (messageId: string, status: EmergencyMessageStatus) => Promise<void>;
 }
 
-function formatTime(dateStr: string) {
+function formatTime(dateStr: string, timezone: string) {
   return new Date(dateStr).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: timezone,
   });
 }
 
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string, timezone: string) {
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: timezone,
   });
 }
 
@@ -58,6 +61,7 @@ function AdminMessageCard({
   onReply,
   onStatusChange,
 }: Omit<MessageCardProps, "isAdmin">) {
+  const { event } = useEvent();
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -85,7 +89,7 @@ function AdminMessageCard({
       <div className="flex items-center gap-2 px-2.5 pt-1.5">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <p className="text-sm font-medium truncate">{getSenderName(message)}</p>
-          <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(message.created_at)}</span>
+          <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(message.created_at, event.timezone)}</span>
         </div>
         <Badge variant={statusBadge.variant} className="text-[10px] px-1.5 py-0">
           {statusBadge.label}
@@ -121,7 +125,7 @@ function AdminMessageCard({
             <div key={reply.id} className="rounded bg-muted/50 px-2 py-1">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-medium leading-none">{getReplySenderLabel(reply)}</p>
-                <p className="text-[11px] text-muted-foreground leading-none">{formatTime(reply.created_at)}</p>
+                <p className="text-[11px] text-muted-foreground leading-none">{formatTime(reply.created_at, event.timezone)}</p>
               </div>
               <p className="text-sm whitespace-pre-wrap mt-0.5">{reply.reply}</p>
             </div>
@@ -166,6 +170,7 @@ function AttendeeMessageCard({
   message,
   onReply,
 }: Omit<MessageCardProps, "isAdmin" | "onStatusChange">) {
+  const { event } = useEvent();
   const [expanded, setExpanded] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
@@ -196,7 +201,7 @@ function AttendeeMessageCard({
         {/* Row 1: meta + caret */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-[11px] leading-none text-muted-foreground">
-            <span>{formatTime(message.created_at)}</span>
+            <span>{formatTime(message.created_at, event.timezone)}</span>
             {hasReplies && (
               <span className="flex items-center gap-0.5">
                 <MessageSquare className="h-2.5 w-2.5" />
@@ -242,7 +247,7 @@ function AttendeeMessageCard({
                       {getReplySenderLabel(reply)}
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-none">
-                      {formatTime(reply.created_at)}
+                      {formatTime(reply.created_at, event.timezone)}
                     </p>
                   </div>
                   <p className="text-sm whitespace-pre-wrap mt-0.5">{reply.reply}</p>

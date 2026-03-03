@@ -11,6 +11,7 @@ interface TimeSlotGroupProps {
   conflictCount?: number;
   highlightBookmarks?: boolean;
   variant?: "full-schedule" | "my-schedule";
+  timezone: string;
 }
 
 export function TimeSlotGroup({
@@ -20,13 +21,14 @@ export function TimeSlotGroup({
   conflictCount,
   highlightBookmarks,
   variant,
+  timezone,
 }: TimeSlotGroupProps) {
   return (
     <div id={`slot-${time}`} className="space-y-2">
       <div className="py-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-muted-foreground">
-            {formatTime(time)} - {formatTime(endTime)}
+            {formatTime(time, timezone)} - {formatTime(endTime, timezone)}
           </h2>
           {conflictCount && conflictCount > 1 && (
             <Badge

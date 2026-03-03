@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "sessionize.com" },
       { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "clubrunner.blob.core.windows.net" },
     ],
   },
   serverExternalPackages: [

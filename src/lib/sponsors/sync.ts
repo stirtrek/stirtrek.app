@@ -1,5 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
+import { DEFAULT_SPONSOR_TIERS } from "@/lib/constants";
+import type { SponsorTierConfig } from "@/lib/types";
 
 interface FeedSponsor {
   name: string;
@@ -12,13 +14,18 @@ type FeedResponse = {
   sponsors?: Record<string, FeedSponsor[]>;
 } & Record<string, FeedSponsor[]>;
 
-const TIER_ORDER: Record<string, number> = {
-  platinum: 0,
-  gold: 100,
-  silver: 200,
-  bronze: 300,
-  community: 400,
-};
+/**
+ * Build a tier-key → base sort order map from the event's tier config.
+ * Tiers are spaced by 100 to allow per-sponsor ordering within a tier.
+ */
+function buildTierOrderMap(tiers: SponsorTierConfig[]): Record<string, number> {
+  const sorted = [...tiers].sort((a, b) => a.sort_order - b.sort_order);
+  const map: Record<string, number> = {};
+  for (let i = 0; i < sorted.length; i++) {
+    map[sorted[i].key] = i * 100;
+  }
+  return map;
+}
 
 /**
  * Sync sponsors from an external feed URL for a specific event.
@@ -35,10 +42,12 @@ export async function syncSponsorsFromFeed(eventId?: string) {
     const resolvedEventId =
       eventId || "00000000-0000-0000-0000-000000000001";
 
+    let tierConfig: SponsorTierConfig[] = DEFAULT_SPONSOR_TIERS;
+
     if (eventId) {
       const { data: event } = await admin
         .from("events")
-        .select("sponsor_feed_url")
+        .select("sponsor_feed_url, sponsor_tiers")
         .eq("id", eventId)
         .single();
 
@@ -46,7 +55,13 @@ export async function syncSponsorsFromFeed(eventId?: string) {
         return { synced: 0, error: "No sponsor feed URL configured for this event" };
       }
       feedUrl = event.sponsor_feed_url;
+      if (event.sponsor_tiers) {
+        tierConfig = event.sponsor_tiers;
+      }
     }
+
+    const tierOrder = buildTierOrderMap(tierConfig);
+    const feedOrigin = new URL(feedUrl).origin;
 
     const res = await fetch(feedUrl, { cache: "no-store" });
     if (!res.ok) {
@@ -70,14 +85,14 @@ export async function syncSponsorsFromFeed(eventId?: string) {
     for (const [tier, sponsors] of Object.entries(sponsorsByTier)) {
       if (!Array.isArray(sponsors)) continue;
 
-      const baseSortOrder = TIER_ORDER[tier] ?? 500;
+      const baseSortOrder = tierOrder[tier] ?? 500;
 
       for (let i = 0; i < sponsors.length; i++) {
         const sponsor = sponsors[i];
         const logoUrl = sponsor.logo
           ? sponsor.logo.startsWith("http")
             ? sponsor.logo
-            : `https://stirtrek.com${sponsor.logo}`
+            : `${feedOrigin}${sponsor.logo}`
           : null;
 
         const record = {

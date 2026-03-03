@@ -7,7 +7,6 @@ import {
   useState,
   useCallback,
 } from "react";
-import { parseSessionizeTime } from "@/lib/utils";
 import { useEvent } from "./event-provider";
 
 interface SimulatedTimeContextValue {
@@ -35,13 +34,24 @@ export function SimulatedTimeProvider({
 
   useEffect(() => {
     let mounted = true;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     async function fetchSimulatedTime() {
       try {
         const res = await fetch(`/${eventSlug}/api/admin/simulated-time`);
         if (res.ok) {
           const data = await res.json();
-          if (mounted) setSimulatedTime(data.simulatedTime ?? null);
+          const time = data.simulatedTime ?? null;
+          if (mounted) {
+            setSimulatedTime(time);
+            // Only poll while simulated time is active
+            if (time && !interval) {
+              interval = setInterval(fetchSimulatedTime, POLL_INTERVAL);
+            } else if (!time && interval) {
+              clearInterval(interval);
+              interval = null;
+            }
+          }
         }
       } catch {
         // Silently fail — use real time
@@ -52,22 +62,17 @@ export function SimulatedTimeProvider({
 
     fetchSimulatedTime();
 
-    const interval = setInterval(fetchSimulatedTime, POLL_INTERVAL);
     return () => {
       mounted = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
   }, [eventSlug]);
 
   const getNow = useCallback((): Date => {
     if (simulatedTime) {
-      return parseSessionizeTime(simulatedTime);
+      return new Date(simulatedTime);
     }
-    // Current Eastern time as a Date with UTC numbers (matching Sessionize format)
-    const eastern = new Date().toLocaleString("en-US", {
-      timeZone: "America/New_York",
-    });
-    return new Date(eastern);
+    return new Date();
   }, [simulatedTime]);
 
   return (

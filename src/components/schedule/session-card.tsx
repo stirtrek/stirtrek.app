@@ -27,8 +27,8 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
   const { event, eventPath } = useEvent();
   const bookmarked = isBookmarked(session.id);
 
-  const startTime = session.starts_at ? formatTime(session.starts_at) : "";
-  const endTime = session.ends_at ? formatTime(session.ends_at) : "";
+  const startTime = session.starts_at ? formatTime(session.starts_at, event.timezone) : "";
+  const endTime = session.ends_at ? formatTime(session.ends_at, event.timezone) : "";
 
   const showBookmark = !session.is_service_session && !!user;
 
@@ -36,7 +36,7 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
   const showFeedback =
     !!user &&
     !session.is_service_session &&
-    isFeedbackAvailable(session.starts_at, getNow(), event.event_date ?? "");
+    isFeedbackAvailable(session.starts_at, getNow(), event.event_date ?? "", event.timezone);
 
   return (
     <Card

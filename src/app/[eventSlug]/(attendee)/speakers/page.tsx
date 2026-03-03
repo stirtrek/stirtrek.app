@@ -1,4 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveEvent } from "@/lib/events/resolve";
+import { notFound } from "next/navigation";
 import { SpeakerCard } from "@/components/speakers/speaker-card";
 import type { Speaker } from "@/lib/types";
 
@@ -6,12 +8,21 @@ export const metadata = {
   title: "Speakers",
 };
 
-export default async function SpeakersPage() {
+export default async function SpeakersPage({
+  params,
+}: {
+  params: Promise<{ eventSlug: string }>;
+}) {
+  const { eventSlug } = await params;
+  const event = await resolveEvent(eventSlug);
+  if (!event) notFound();
+
   const supabase = createAdminClient();
 
   const { data: speakers } = await supabase
     .from("speakers")
     .select("*")
+    .eq("event_id", event.id)
     .order("full_name", { ascending: true });
 
   if (!speakers || speakers.length === 0) {
@@ -19,7 +30,7 @@ export default async function SpeakersPage() {
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Speakers</h1>
         <p className="text-muted-foreground">
-          Speaker profiles will appear here once synced from Sessionize.
+          No speaker information is available for this event yet.
         </p>
       </div>
     );

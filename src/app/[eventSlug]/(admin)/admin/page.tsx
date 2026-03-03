@@ -14,7 +14,6 @@ import {
   MessageSquare,
   BarChart3,
   MessageCircle,
-  Film,
   Map,
   Clock,
   Megaphone,
@@ -32,7 +31,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboardPage() {
-  const { event, eventSlug, eventPath } = useEvent();
+  const { event, eventSlug, eventPath, hasFeature } = useEvent();
 
   const adminTools = [
     {
@@ -44,7 +43,7 @@ export default function AdminDashboardPage() {
     {
       href: eventPath("/admin/sponsors"),
       label: "Sponsors",
-      description: "Manage sponsor accounts & leads",
+      description: "Manage sponsors, accounts & leads",
       icon: Building2,
     },
     {
@@ -71,18 +70,13 @@ export default function AdminDashboardPage() {
       description: "Attendee feedback & concerns",
       icon: MessageCircle,
     },
-    {
-      href: eventPath("/admin/movies"),
-      label: "Movies",
-      description: "Manage movie voting",
-      icon: Film,
-    },
-    {
-      href: eventPath("/admin/venue-map"),
-      label: "Venue Map",
-      description: "Upload venue maps",
-      icon: Map,
-    },
+    // TODO: re-enable when venue map is ready
+    // hasFeature("venue_map") && {
+    //   href: eventPath("/admin/venue-map"),
+    //   label: "Venue Map",
+    //   description: "Upload venue maps",
+    //   icon: Map,
+    // },
     {
       href: eventPath("/admin/users"),
       label: "Users",
@@ -95,7 +89,7 @@ export default function AdminDashboardPage() {
       description: "Override event time for testing",
       icon: Clock,
     },
-  ];
+  ].filter(Boolean) as { href: string; label: string; description: string; icon: typeof Calendar }[];
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);

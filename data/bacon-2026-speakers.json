@@ -1,0 +1,231 @@
+{
+  "speakers": [
+    {
+      "full_name": "Russ Abrams",
+      "first_name": "Russ",
+      "last_name": "Abrams",
+      "tag_line": "Lean Sigma Master Black Belt, Kaizen Leader, Power Platform Power User",
+      "bio": "Extensive experience leading transformation across healthcare, government, telecommunications, and retail. Six Sigma Master Black Belt with expertise in Lean methodologies and process improvement. Founded non-profit organization building devices for people with disabilities.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/russ-abrams.png",
+      "session_title": "Your Process Isn't Broken. Your View Is."
+    },
+    {
+      "full_name": "Neshmi Alhayek",
+      "first_name": "Neshmi",
+      "last_name": "Alhayek",
+      "tag_line": "IT Project Manager & Security Specialist",
+      "bio": "Background in business analysis, AI integration, and regulatory compliance. Hands-on implementation experience with AI-driven cybersecurity solutions aligned with NIST, HIPAA, and CIS Controls standards.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/neshmi-alhayek.jpg",
+      "session_title": "Smart Defense: Leveraging Artificial Intelligence to strengthen Cybersecurity Strategies"
+    },
+    {
+      "full_name": "Holly Bielawa",
+      "first_name": "Holly",
+      "last_name": "Bielawa",
+      "tag_line": "Head of Product, Jeff Patton & Associates",
+      "bio": "International tech startup founder and Chief Product Officer. Brings experience in transformational strategy and product development coaching. Helps organizations adopt product-oriented cultures.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/holly-bielawa.jpeg",
+      "session_title": "Implementing OKRs and Product Thinking"
+    },
+    {
+      "full_name": "Sudhasri Mohanty",
+      "first_name": "Sudhasri",
+      "last_name": "Mohanty",
+      "tag_line": "Scrum Master Sr & IT PM",
+      "bio": "Joint presentation with Julie Bohn on collaborative learning and professional development in transforming business environments.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/Untitled-design-3.png",
+      "session_title": "From Learner to Leader: How to stay relevant & thrive in a rapidly changing business world"
+    },
+    {
+      "full_name": "Julie Bohn",
+      "first_name": "Julie",
+      "last_name": "Bohn",
+      "tag_line": "Lead BSA and CBAP",
+      "bio": "Joint presentation with Sudhasri Mohanty on collaborative learning and professional development in transforming business environments.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/Untitled-design-3.png",
+      "session_title": "From Learner to Leader: How to stay relevant & thrive in a rapidly changing business world"
+    },
+    {
+      "full_name": "TC Clements",
+      "first_name": "TC",
+      "last_name": "Clements",
+      "tag_line": "CEO, former Deputy Chief of Police, State Representative, serial entrepreneur",
+      "bio": "\"Leadership is not a trick...it is a culmination of all that a leader is.\" Experience spans law enforcement, government, and entrepreneurship with focus on practical leadership development.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/tc-clements.png",
+      "session_title": "Tech Creep and the Chaos of Convenience"
+    },
+    {
+      "full_name": "Bishal Dasgupta",
+      "first_name": "Bishal",
+      "last_name": "Dasgupta",
+      "tag_line": "Specialist, McKinsey & Company",
+      "bio": "MBA graduate and Beta Gamma Sigma honoree. Technology expert in digital transformation, AI, and enterprise systems architecture. Featured in Poets&Quants' MBAs To Watch.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/bishal-dasgupta.jpg",
+      "session_title": "Agentic AI: A Product Management Framework for Scalable Implementation"
+    },
+    {
+      "full_name": "Dave Davis",
+      "first_name": "Dave",
+      "last_name": "Davis",
+      "tag_line": "Program Manager, Cincinnati Children's Hospital",
+      "bio": "Holds PMP, PgMP, PMI-PBA, PMI-ACP, DASSM, CSM, ATP credentials. Co-chaired PMI Business Analyst Practice Guide development. Currently Senior Program Manager at Cincinnati Children's Health.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/dave-davis.jpg",
+      "session_title": "Harnessing the Power of Pattern Matching as a Catalyst for Success"
+    },
+    {
+      "full_name": "Staci Evans",
+      "first_name": "Staci",
+      "last_name": "Evans",
+      "tag_line": "Agile Delivery Leader, Huntington National Bank",
+      "bio": "8+ years driving transformation in banking technology.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/Untitled-design-4.png",
+      "session_title": "Getting a Seat at the Table: A Technical Toolkit for Agile Leaders"
+    },
+    {
+      "full_name": "Andrew Hall",
+      "first_name": "Andrew",
+      "last_name": "Hall",
+      "tag_line": "VP, Agile Delivery Leader",
+      "bio": "15+ years in IT, specializing in QA and flow delivery with metric-oriented approach.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/Untitled-design-4.png",
+      "session_title": "Getting a Seat at the Table: A Technical Toolkit for Agile Leaders"
+    },
+    {
+      "full_name": "Thomas Haver",
+      "first_name": "Thomas",
+      "last_name": "Haver",
+      "tag_line": "Master Software Engineer",
+      "bio": "Consultant for Renegade Game Studios. Previously led enterprise automation supporting 73 applications at Huntington Bank. Background in Physics & Biophysics with decade in research science.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/thomas-haver.jpg",
+      "session_title": "Product Development: From Board Games to Bytes"
+    },
+    {
+      "full_name": "Art Lashchonau",
+      "first_name": "Art",
+      "last_name": "Lashchonau",
+      "tag_line": "National Consultant, Insight; Professional Scrum Trainer, Scrum.org",
+      "bio": "Consulting experience across diverse industries and Fortune 500 companies. Specializes in navigating agile and traditional environments with focus on value delivery.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/art-lashchonau.jpg",
+      "session_title": "From Resistance to Results: How Leaders Unlock 5x More Success"
+    },
+    {
+      "full_name": "Caleb Metcalf",
+      "first_name": "Caleb",
+      "last_name": "Metcalf",
+      "tag_line": "Business Systems Analyst Lead, Huntington Bank",
+      "bio": "Self-described \"avid Star Trek geek.\" Serves as product owner for Salesforce platform scrum team. Interests include cooking and construction podcasts.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/caleb-metcalf.jpg",
+      "session_title": "Boldly Go Where no Business Analyst has Gone Before"
+    },
+    {
+      "full_name": "Sifat Mahmud",
+      "first_name": "Sifat",
+      "last_name": "Mahmud",
+      "tag_line": "Business Analyst, PUI Audio, Inc",
+      "bio": "Over a decade at global institutions (HSBC, Eastern Bank PLC). Holds two master's degrees in Marketing Analytics and Banking. Certified Expert in Risk Management.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/sifat-mahmud.jpg",
+      "session_title": "AI vs Humans: Driving Service Excellence in U.S. Retail Banking"
+    },
+    {
+      "full_name": "Chris Pipito",
+      "first_name": "Chris",
+      "last_name": "Pipito",
+      "tag_line": "Software product development coach",
+      "bio": "Founded DDD Philly community group. Focuses on immersive learning environments and systems thinking.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/Untitled-design-5.png",
+      "session_title": "Systems Thinking Workshop: Visualizing Relationships & Knowing Where to Act"
+    },
+    {
+      "full_name": "Joel Tosi",
+      "first_name": "Joel",
+      "last_name": "Tosi",
+      "tag_line": "Co-author of coaching/dojo books",
+      "bio": "Deep experience in architecture modernization and systems thinking. Focuses on immersive learning environments.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/Untitled-design-5.png",
+      "session_title": "Systems Thinking Workshop: Visualizing Relationships & Knowing Where to Act"
+    },
+    {
+      "full_name": "Vandana Rajagopal",
+      "first_name": "Vandana",
+      "last_name": "Rajagopal",
+      "tag_line": "Strategic Agile Transformation Lead",
+      "bio": "Experience in healthcare and IT implementing Agile. Leads Women in Agile Columbus chapter. Serves as yoga instructor promoting mindfulness in community.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/image.png",
+      "session_title": "Refinement with AI: Augmenting Speed, Preserving Clarity"
+    },
+    {
+      "full_name": "John Riley",
+      "first_name": "John",
+      "last_name": "Riley",
+      "tag_line": "Principal Agile Coach & Trainer, Ready Set Agile",
+      "bio": "Experienced Agile Coach and Professional Scrum Trainer. Background in manufacturing and software delivery. Emphasizes continuous learning and test-first mindset.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/john-riley.png",
+      "session_title": "Charting Your Path to be the Best Business Analyst"
+    },
+    {
+      "full_name": "Edward Shanley",
+      "first_name": "Edward",
+      "last_name": "Shanley",
+      "tag_line": "Business analyst, project manager, scrum master, trainer",
+      "bio": "25+ years experience with Fortune 500 companies. MBA with Business Psychology specialization. Certified life coach with training in NLP and trauma-informed practice.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/edward-shanley.jpg",
+      "session_title": "Beyond SMART: Goal Setting that Actually Works"
+    },
+    {
+      "full_name": "Faye Thompson",
+      "first_name": "Faye",
+      "last_name": "Thompson",
+      "tag_line": "Senior Solutions Consultant, StarSevenSix",
+      "bio": "28+ years project delivery experience across financial services, healthcare, advertising, and aviation. Board director for Central Ohio Agile Association. Emergency medical responder.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/faye-thompson.jpg",
+      "session_titles": ["From Chaos to Clarity: Roadmaps that Deliver", "Becoming an Integral Influencer"],
+      "session_title": "From Chaos to Clarity: Roadmaps that Deliver"
+    },
+    {
+      "full_name": "Tom Tomasovic",
+      "first_name": "Tom",
+      "last_name": "Tomasovic",
+      "tag_line": "Freelance instructor, BA practice builder",
+      "bio": "20+ years experience building BA practices from ground up. Holds 5 of 7 IIBA certifications. Trains 100+ students annually with consistently high satisfaction ratings.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/tom-tomasovic.jpg",
+      "session_title": "Talk to Me! Real Conversations with Virtual Stakeholders"
+    },
+    {
+      "full_name": "Kyle Jenkins",
+      "first_name": "Kyle",
+      "last_name": "Jenkins",
+      "tag_line": "Full Stack Developer, Public Speaker, Consultant with Improving",
+      "bio": "Principal consultant integrating into teams for quality software solutions. Avid video gamer correlating gaming learnings to workplace challenges.",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/171c-400o400o2-fLkrnrZ1fd3PXZLwJEvj6T.jpg",
+      "session_title": "What's Your Working Genius?"
+    },
+    {
+      "full_name": "Brian Link",
+      "first_name": "Brian",
+      "last_name": "Link",
+      "tag_line": "Lead Enterprise Coach, Author, Speaker, Agile Consultant",
+      "bio": "Enterprise Agile Coach in multiple transformations. CTO of funded startups. Adjunct Professor at Columbus State Community College. Author of \"The Practical Agilist Guidebook.\"",
+      "profile_picture": "https://clubrunner.blob.core.windows.net/00000400593/tiny/Images/Brian-Link-Profile.jpeg",
+      "session_title": "The Good (Product Alignment), The Bad (Not Thinking Iteratively), & The Ugly (estimation) of Agile"
+    }
+  ],
+  "cancelled": [
+    {
+      "full_name": "Kalp Patel",
+      "first_name": "Kalp",
+      "last_name": "Patel",
+      "tag_line": "Sr. Business Intelligence Engineer, Amazon",
+      "note": "CANCELLED due to unforeseen circumstances"
+    }
+  ],
+  "notes": {
+    "co_presented_sessions": [
+      "Sudhasri Mohanty & Julie Bohn share the same session",
+      "Staci Evans & Andrew Hall share the same session",
+      "Chris Pipito & Joel Tosi share the same session"
+    ],
+    "multi_session_speakers": [
+      "Faye Thompson has two sessions: 'From Chaos to Clarity: Roadmaps that Deliver' and 'Becoming an Integral Influencer'"
+    ]
+  }
+}

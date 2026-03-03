@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { AnimatedLogo } from "@/components/layout/animated-logo";
+import { AnimatedBaconLogo } from "@/components/layout/animated-bacon-logo";
 import { useEvent } from "@/providers/event-provider";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -75,7 +76,9 @@ export default function EventHomePage() {
       />
 
       <div className="relative z-20 flex flex-col items-center gap-8">
-        {event.logo_url ? (
+        {event.slug === "bacon" ? (
+          <AnimatedBaconLogo className="w-72" />
+        ) : event.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={event.logo_url}
@@ -83,7 +86,7 @@ export default function EventHomePage() {
             className="w-72 object-contain"
           />
         ) : event.slug === "stirtrek" ? (
-          <AnimatedLogo className="w-72" color={accentColor} />
+          <AnimatedLogo className="w-72" color={accentColor} ariaLabel={event.name} />
         ) : (
           <h1
             className="text-4xl font-bold uppercase tracking-wider text-[#F4F6F8]"

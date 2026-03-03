@@ -16,6 +16,16 @@ export const EMERGENCY_CATEGORIES = {
   other: { label: "Other", icon: "AlertCircle" },
 } as const;
 
+import type { SponsorTierConfig } from "@/lib/types";
+
+export const DEFAULT_SPONSOR_TIERS: SponsorTierConfig[] = [
+  { key: "platinum", label: "Platinum", sort_order: 0, has_booth: true },
+  { key: "gold", label: "Gold", sort_order: 1, has_booth: true },
+  { key: "silver", label: "Silver", sort_order: 2, has_booth: true },
+  { key: "bronze", label: "Bronze", sort_order: 3, has_booth: false },
+  { key: "community", label: "Community", sort_order: 4, has_booth: false },
+];
+
 export const SPONSOR_TIER_ORDER = [
   "platinum",
   "gold",

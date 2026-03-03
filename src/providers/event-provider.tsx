@@ -19,12 +19,11 @@ const EventContext = createContext<EventContextValue | null>(null);
 
 const DEFAULT_FEATURE_FLAGS: EventFeatureFlags = {
   polls: true,
-  movie_voting: true,
   emergency_reporting: true,
   sponsor_leads: true,
   announcements: true,
   feedback: true,
-  venue_map: true,
+  venue_map: false,
   passport: true,
 };
 

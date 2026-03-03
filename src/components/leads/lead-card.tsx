@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
+import { useEvent } from "@/providers/event-provider";
 import type { Lead } from "@/lib/types";
 
 interface LeadCardProps {
@@ -10,6 +11,7 @@ interface LeadCardProps {
 }
 
 export function LeadCard({ lead, onTap }: LeadCardProps) {
+  const { event } = useEvent();
   const name = [lead.attendee_first_name, lead.attendee_last_name]
     .filter(Boolean)
     .join(" ");
@@ -19,7 +21,7 @@ export function LeadCard({ lead, onTap }: LeadCardProps) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "America/New_York",
+    timeZone: event.timezone,
   });
 
   return (

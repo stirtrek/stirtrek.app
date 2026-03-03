@@ -76,7 +76,7 @@ export function HeaderLogo({ className }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 408.78 187.48"
       className={className}
-      aria-label="Stir Trek"
+      aria-label={eventCtx?.event?.name ?? "Stir Trek"}
       style={{ overflow: "visible" }}
     >
       <style>{KEYFRAMES}</style>

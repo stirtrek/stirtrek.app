@@ -16,7 +16,7 @@ interface SessionBookmark {
 }
 
 export default function AdminBookmarksPage() {
-  const { eventSlug, eventPath } = useEvent();
+  const { event, eventSlug, eventPath } = useEvent();
   const [sessions, setSessions] = useState<SessionBookmark[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,7 +74,7 @@ export default function AdminBookmarksPage() {
         <Card key={time}>
           <CardHeader className="pb-2 pt-3 px-4">
             <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">
-              {time === "unscheduled" ? "Unscheduled" : formatTime(time)}
+              {time === "unscheduled" ? "Unscheduled" : formatTime(time, event.timezone)}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-3">

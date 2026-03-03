@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, Trash2 } from "lucide-react";
-import { formatTime, parseSessionizeTime } from "@/lib/utils";
+import { formatTime, eventLocalToUTC } from "@/lib/utils";
 
 export default function TimeSimulatorPage() {
-  const { eventSlug } = useEvent();
+  const { event, eventSlug } = useEvent();
   const [simulatedTime, setSimulatedTime] = useState<string | null>(null);
   const [sessionTimes, setSessionTimes] = useState<string[]>([]);
   const [customDate, setCustomDate] = useState("2026-05-01");
@@ -65,10 +65,9 @@ export default function TimeSimulatorPage() {
   }
 
   function offsetTime(baseIso: string, minutesDelta: number): string {
-    const d = parseSessionizeTime(baseIso);
-    d.setUTCMinutes(d.getUTCMinutes() + minutesDelta);
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+    const d = new Date(baseIso);
+    d.setMinutes(d.getMinutes() + minutesDelta);
+    return d.toISOString();
   }
 
   const firstSession = sessionTimes[0];
@@ -97,13 +96,13 @@ export default function TimeSimulatorPage() {
               <p className="text-sm">
                 Simulated time:{" "}
                 <span className="font-semibold text-amber-600">
-                  {parseSessionizeTime(simulatedTime).toLocaleString("en-US", {
+                  {new Date(simulatedTime).toLocaleString("en-US", {
                     weekday: "short",
                     month: "short",
                     day: "numeric",
                     hour: "numeric",
                     minute: "2-digit",
-                    timeZone: "UTC",
+                    timeZone: event.timezone,
                   })}
                 </span>
               </p>
@@ -179,7 +178,7 @@ export default function TimeSimulatorPage() {
                     onClick={() => setTime(t)}
                     disabled={loading}
                   >
-                    {formatTime(t)}
+                    {formatTime(t, event.timezone)}
                   </Button>
                 ))}
               </div>
@@ -209,7 +208,7 @@ export default function TimeSimulatorPage() {
             />
           </div>
           <Button
-            onClick={() => setTime(`${customDate}T${customTime}:00`)}
+            onClick={() => setTime(eventLocalToUTC(`${customDate}T${customTime}`, event.timezone))}
             disabled={loading}
             size="sm"
           >

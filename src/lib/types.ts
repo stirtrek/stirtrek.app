@@ -12,12 +12,14 @@ export type EmergencyStatus =
   | "acknowledged"
   | "in_progress"
   | "resolved";
-export type SponsorTier =
-  | "platinum"
-  | "gold"
-  | "silver"
-  | "bronze"
-  | "community";
+export type SponsorTier = string;
+
+export interface SponsorTierConfig {
+  key: string;
+  label: string;
+  sort_order: number;
+  has_booth: boolean;
+}
 export type PollStatus = "draft" | "active" | "closed";
 export type FeedbackRating = "red" | "yellow" | "green";
 export type AnnouncementStatus = "draft" | "sent";
@@ -29,7 +31,6 @@ export type SyncStatus = "pending" | "in_progress" | "completed" | "failed";
 
 export interface EventFeatureFlags {
   polls: boolean;
-  movie_voting: boolean;
   emergency_reporting: boolean;
   sponsor_leads: boolean;
   announcements: boolean;
@@ -55,6 +56,8 @@ export interface Event {
   sponsor_feed_url: string | null;
   sponsor_access_code: string | null;
   feature_flags: EventFeatureFlags;
+  sponsor_tiers: SponsorTierConfig[];
+  schedule_message: string | null;
   accent_color: string | null;
   domain: string | null;
   is_active: boolean;
@@ -192,29 +195,6 @@ export interface SessionFeedback {
   comment: string | null;
   created_at: string;
   updated_at: string;
-}
-
-export interface Movie {
-  id: string;
-  event_id: string;
-  title: string;
-  description: string | null;
-  poster_url: string | null;
-  trailer_url: string | null;
-  genre: string | null;
-  runtime_minutes: number | null;
-  sort_order: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface MovieVote {
-  id: string;
-  event_id: string;
-  user_id: string;
-  movie_id: string;
-  created_at: string;
 }
 
 export interface Sponsor {

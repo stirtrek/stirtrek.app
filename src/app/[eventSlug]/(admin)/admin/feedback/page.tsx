@@ -37,7 +37,7 @@ function scoreLabel(session: SessionFeedbackSummary): string {
 }
 
 export default function AdminFeedbackPage() {
-  const { eventSlug, eventPath } = useEvent();
+  const { event, eventSlug, eventPath } = useEvent();
   const [sessions, setSessions] = useState<SessionFeedbackSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export default function AdminFeedbackPage() {
         <Card key={time} className="gap-0 py-0">
           <CardHeader className="px-4 py-3">
             <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">
-              {time === "unscheduled" ? "Unscheduled" : formatTime(time)}
+              {time === "unscheduled" ? "Unscheduled" : formatTime(time, event.timezone)}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-3">

@@ -17,7 +17,7 @@ export function FeedbackButton({ sessionId, startsAt }: FeedbackButtonProps) {
   const { getNow } = useSimulatedTime();
   const { event, eventPath } = useEvent();
 
-  if (!isFeedbackAvailable(startsAt, getNow(), event.event_date ?? "")) return null;
+  if (!isFeedbackAvailable(startsAt, getNow(), event.event_date ?? "", event.timezone)) return null;
 
   return (
     <Link href={eventPath(`/schedule/${sessionId}/feedback`)}>

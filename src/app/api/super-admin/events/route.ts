@@ -5,7 +5,6 @@ import type { EventFeatureFlags } from "@/lib/types";
 
 const DEFAULT_FEATURE_FLAGS: EventFeatureFlags = {
   polls: false,
-  movie_voting: false,
   emergency_reporting: false,
   sponsor_leads: false,
   announcements: false,

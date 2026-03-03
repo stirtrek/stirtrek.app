@@ -9,6 +9,7 @@ import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
 import { useEvent } from "@/providers/event-provider";
+import ReactMarkdown from "react-markdown";
 import { Bookmark, Info, Loader2 } from "lucide-react";
 import { findCurrentSlot } from "@/lib/utils";
 import type { SessionWithDetails } from "@/lib/types";
@@ -74,7 +75,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   // Auto-select the current time slot once simulated time is loaded
   useEffect(() => {
     if (timeLoading) return;
-    const current = findCurrentSlot(timeSlotTimes, getNow(), event.event_date ?? "");
+    const current = findCurrentSlot(timeSlotTimes, getNow(), event.event_date ?? "", event.timezone);
     if (current) setActiveSlot(current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeSlotTimes, timeLoading]);
@@ -136,6 +137,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
             times={timeSlotTimes}
             activeSlot={activeSlot}
             onSelectSlot={setActiveSlot}
+            timezone={event.timezone}
           />
         </div>
         <div className="space-y-6 pt-2">
@@ -146,6 +148,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
               endTime={slot.endTime}
               sessions={slot.sessions}
               variant="full-schedule"
+              timezone={event.timezone}
             />
           ))}
         </div>
@@ -169,6 +172,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
             times={timeSlotTimes}
             activeSlot={activeSlot}
             onSelectSlot={setActiveSlot}
+            timezone={event.timezone}
           />
         </div>
         <div className="space-y-6 pt-2">
@@ -180,6 +184,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
               sessions={slot.sessions}
               highlightBookmarks
               variant="full-schedule"
+              timezone={event.timezone}
             />
           ))}
         </div>
@@ -187,22 +192,24 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
 
       <TabsContent value="my-schedule">
         <div className="space-y-4 pt-4">
-          <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/50 p-3">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">
-              Can&apos;t decide? All sessions are recorded and available on
-              the{" "}
-              <a
-                href="https://www.youtube.com/@StirTrek"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Stir Trek YouTube channel
-              </a>{" "}
-              after the event.
-            </p>
-          </div>
+          {event.schedule_message && (
+            <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/50 p-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="text-xs text-muted-foreground [&_p]:m-0 [&_a]:underline">
+                <ReactMarkdown
+                  components={{
+                    a: ({ children, href, ...props }) => (
+                      <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                        {children}
+                      </a>
+                    ),
+                  }}
+                >
+                  {event.schedule_message}
+                </ReactMarkdown>
+              </div>
+            </div>
+          )}
 
           {bookmarksLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -228,6 +235,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
                     sessions={slot.sessions}
                     conflictCount={conflict}
                     variant="my-schedule"
+                    timezone={event.timezone}
                   />
                 );
               })}

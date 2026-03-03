@@ -13,7 +13,6 @@ import type { Event, EventFeatureFlags } from "@/lib/types";
 
 const DEFAULT_FLAGS: EventFeatureFlags = {
   polls: false,
-  movie_voting: false,
   emergency_reporting: false,
   sponsor_leads: false,
   announcements: false,
@@ -33,7 +32,6 @@ const ACCENT_PRESETS = [
 
 const FLAG_LABELS: Record<keyof EventFeatureFlags, string> = {
   polls: "Polls",
-  movie_voting: "Movie Voting",
   emergency_reporting: "Emergency Reporting",
   sponsor_leads: "Sponsor Lead Scanning",
   announcements: "Announcements",
@@ -64,6 +62,7 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
   const [sponsorAccessCode, setSponsorAccessCode] = useState(event?.sponsor_access_code ?? "");
   const [accentColor, setAccentColor] = useState(event?.accent_color ?? "#FF3B3B");
   const [domain, setDomain] = useState(event?.domain ?? "");
+  const [scheduleMessage, setScheduleMessage] = useState(event?.schedule_message ?? "");
   const [logoUrl, setLogoUrl] = useState(event?.logo_url ?? "");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -132,6 +131,7 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
       sponsor_feed_url: sponsorFeedUrl || null,
       sponsor_access_code: sponsorAccessCode || null,
       accent_color: accentColor || "#FF3B3B",
+      schedule_message: scheduleMessage || null,
       domain: domain || null,
       logo_url: logoUrl || null,
       is_active: isActive,
@@ -321,12 +321,27 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
           </div>
           <div>
             <Label htmlFor="timezone">Timezone</Label>
-            <Input
+            <select
               id="timezone"
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
-              placeholder="America/New_York"
-            />
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="America/New_York">Eastern (America/New_York)</option>
+              <option value="America/Chicago">Central (America/Chicago)</option>
+              <option value="America/Denver">Mountain (America/Denver)</option>
+              <option value="America/Los_Angeles">Pacific (America/Los_Angeles)</option>
+              <option value="America/Anchorage">Alaska (America/Anchorage)</option>
+              <option value="Pacific/Honolulu">Hawaii (Pacific/Honolulu)</option>
+              <option value="America/Phoenix">Arizona (America/Phoenix)</option>
+              <option value="America/Indiana/Indianapolis">Indiana (America/Indiana/Indianapolis)</option>
+              <option value="Europe/London">London (Europe/London)</option>
+              <option value="Europe/Berlin">Berlin (Europe/Berlin)</option>
+              <option value="Europe/Paris">Paris (Europe/Paris)</option>
+              <option value="Asia/Tokyo">Tokyo (Asia/Tokyo)</option>
+              <option value="Asia/Shanghai">Shanghai (Asia/Shanghai)</option>
+              <option value="Australia/Sydney">Sydney (Australia/Sydney)</option>
+            </select>
           </div>
           <div>
             <Label htmlFor="venue_name">Venue Name</Label>
@@ -375,6 +390,28 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
             <p className="text-muted-foreground mt-1 text-xs">
               Point this domain&apos;s DNS to your Vercel deployment. Users visiting
               this domain will see this event without needing the slug in the URL.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Content */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Content</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label htmlFor="schedule_message">My Schedule Message</Label>
+            <Textarea
+              id="schedule_message"
+              value={scheduleMessage}
+              onChange={(e) => setScheduleMessage(e.target.value)}
+              placeholder="Can't decide? Watch recordings on [our YouTube](https://youtube.com) after the event."
+              rows={3}
+            />
+            <p className="text-muted-foreground mt-1 text-xs">
+              Shown on the My Schedule tab. Supports markdown links: [text](url). Leave blank to hide.
             </p>
           </div>
         </CardContent>

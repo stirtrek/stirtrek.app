@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/client";
 import { useEvent } from "@/providers/event-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +32,7 @@ import {
 import type { SessionizeSyncLog, Speaker, Room } from "@/lib/types";
 import { toast } from "sonner";
 import Link from "next/link";
+import { formatTime, eventLocalToUTC, utcToEventLocal } from "@/lib/utils";
 
 type Tab = "sessions" | "speakers" | "rooms";
 
@@ -62,6 +69,7 @@ function SessionizeSyncView({
   eventSlug: string;
   eventPath: (p: string) => string;
 }) {
+  const { event } = useEvent();
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [syncLogs, setSyncLogs] = useState<SessionizeSyncLog[]>([]);
@@ -189,7 +197,7 @@ function SessionizeSyncView({
                           day: "numeric",
                           hour: "numeric",
                           minute: "2-digit",
-                          timeZone: "America/New_York",
+                          timeZone: event.timezone,
                         })}
                       </span>
                     </div>
@@ -745,6 +753,7 @@ function SessionsTab({
   eventSlug: string;
   onRefresh: () => void;
 }) {
+  const { event } = useEvent();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -771,8 +780,8 @@ function SessionsTab({
   function startEdit(session: SessionEntry) {
     setTitle(session.title);
     setDescription(session.description ?? "");
-    setStartsAt(session.starts_at ? toLocalInput(session.starts_at) : "");
-    setEndsAt(session.ends_at ? toLocalInput(session.ends_at) : "");
+    setStartsAt(session.starts_at ? toLocalInput(session.starts_at, event.timezone) : "");
+    setEndsAt(session.ends_at ? toLocalInput(session.ends_at, event.timezone) : "");
     setRoomId(session.room_id?.toString() ?? "");
     setSelectedSpeakers(session.speaker_ids);
     setIsService(session.is_service_session);
@@ -787,8 +796,8 @@ function SessionsTab({
     const payload = {
       title,
       description: description || null,
-      starts_at: startsAt ? new Date(startsAt).toISOString() : null,
-      ends_at: endsAt ? new Date(endsAt).toISOString() : null,
+      starts_at: startsAt ? eventLocalToUTC(startsAt, event.timezone) : null,
+      ends_at: endsAt ? eventLocalToUTC(endsAt, event.timezone) : null,
       room_id: roomId ? Number(roomId) : null,
       speaker_ids: selectedSpeakers,
       is_service_session: isService,
@@ -848,30 +857,31 @@ function SessionsTab({
 
   return (
     <div className="space-y-3">
-      {!showForm ? (
-        <Button
-          onClick={() => setShowForm(true)}
-          variant="outline"
-          className="w-full"
-          size="sm"
-        >
-          <Plus className="mr-1 h-4 w-4" />
-          Add Session
-        </Button>
-      ) : (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">
+      <Button
+        onClick={() => { setEditId(null); setShowForm(true); }}
+        variant="outline"
+        className="w-full"
+        size="sm"
+      >
+        <Plus className="mr-1 h-4 w-4" />
+        Add Session
+      </Button>
+
+      <Dialog open={showForm} onOpenChange={(open) => { if (!open) resetForm(); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm">
               {editId ? "Edit Session" : "New Session"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
             <div>
               <Label className="text-xs">Title *</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Session title"
+                className="text-sm"
               />
             </div>
             <div>
@@ -881,6 +891,7 @@ function SessionsTab({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Session description..."
                 rows={3}
+                className="text-sm"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -890,6 +901,7 @@ function SessionsTab({
                   type="datetime-local"
                   value={startsAt}
                   onChange={(e) => setStartsAt(e.target.value)}
+                  className="text-sm"
                 />
               </div>
               <div>
@@ -898,6 +910,7 @@ function SessionsTab({
                   type="datetime-local"
                   value={endsAt}
                   onChange={(e) => setEndsAt(e.target.value)}
+                  className="text-sm"
                 />
               </div>
             </div>
@@ -965,9 +978,9 @@ function SessionsTab({
                 Cancel
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {sessions.length === 0 ? (
         <p className="text-muted-foreground py-4 text-center text-sm">
@@ -988,17 +1001,11 @@ function SessionsTab({
                   <div className="text-muted-foreground mt-0.5 flex flex-wrap gap-x-3 text-xs">
                     {session.starts_at && (
                       <span>
-                        {new Date(session.starts_at).toLocaleTimeString(
-                          "en-US",
-                          { hour: "numeric", minute: "2-digit" },
-                        )}
+                        {formatTime(session.starts_at, event.timezone)}
                         {session.ends_at && (
                           <>
                             {" - "}
-                            {new Date(session.ends_at).toLocaleTimeString(
-                              "en-US",
-                              { hour: "numeric", minute: "2-digit" },
-                            )}
+                            {formatTime(session.ends_at, event.timezone)}
                           </>
                         )}
                       </span>
@@ -1041,10 +1048,7 @@ function SessionsTab({
   );
 }
 
-// Helper: convert ISO string to datetime-local input format
-function toLocalInput(iso: string): string {
-  const d = new Date(iso);
-  const offset = d.getTimezoneOffset();
-  const local = new Date(d.getTime() - offset * 60000);
-  return local.toISOString().slice(0, 16);
+// Helper: convert UTC ISO string to datetime-local input format in event timezone
+function toLocalInput(iso: string, timezone: string): string {
+  return utcToEventLocal(iso, timezone);
 }

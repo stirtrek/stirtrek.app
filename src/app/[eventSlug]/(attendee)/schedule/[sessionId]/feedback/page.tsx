@@ -103,7 +103,7 @@ export default function FeedbackPage() {
   }
 
   // Block feedback before event day / session start
-  if (!loading && !isFeedbackAvailable(sessionStartsAt, getNow(), event.event_date ?? "")) {
+  if (!loading && !isFeedbackAvailable(sessionStartsAt, getNow(), event.event_date ?? "", event.timezone)) {
     return (
       <div className="py-8 text-center">
         <p className="text-muted-foreground">

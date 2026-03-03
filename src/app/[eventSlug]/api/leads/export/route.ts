@@ -62,10 +62,17 @@ export async function GET(request: NextRequest) {
     const csv = [header, ...rows].join("\n");
     const date = new Date().toISOString().split("T")[0];
 
+    const { data: eventRecord } = await admin
+      .from("events")
+      .select("slug")
+      .eq("id", eventId)
+      .single();
+    const slug = eventRecord?.slug ?? "event";
+
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="stirtrek-leads-${date}.csv"`,
+        "Content-Disposition": `attachment; filename="${slug}-leads-${date}.csv"`,
       },
     });
   });

@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function MorePage() {
   const { user } = useAuth();
-  const { eventPath, eventId, hasFeature } = useEvent();
+  const { event, eventPath, eventId, hasFeature } = useEvent();
   const [isSponsor, setIsSponsor] = useState(false);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
@@ -36,16 +36,17 @@ export default function MorePage() {
     hasFeature("announcements") && {
       href: eventPath("/announcements"),
       title: "Announcements",
-      description: "Messages from the Stir Trek team",
+      description: `Messages from the ${event.name} team`,
       icon: Megaphone,
     },
-    hasFeature("venue_map") && {
-      href: eventPath("/venue-map"),
-      title: "Venue Map",
-      description: "Find your way around the venue",
-      icon: Map,
-    },
-    hasFeature("emergency_reporting") && {
+    // TODO: re-enable when venue map is ready
+    // hasFeature("venue_map") && {
+    //   href: eventPath("/venue-map"),
+    //   title: "Venue Map",
+    //   description: "Find your way around the venue",
+    //   icon: Map,
+    // },
+hasFeature("emergency_reporting") && {
       href: eventPath("/emergency"),
       title: "Feedback & Concerns",
       description: "Let the staff know there's a problem",

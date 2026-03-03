@@ -29,7 +29,7 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(
     Promise.all([
-      self.registration.showNotification(title || "Stir Trek", options),
+      self.registration.showNotification(title || "Event Notification", options),
       "setAppBadge" in navigator
         ? (navigator as unknown as { setAppBadge: (n: number) => Promise<void> }).setAppBadge(1).catch(() => {})
         : Promise.resolve(),

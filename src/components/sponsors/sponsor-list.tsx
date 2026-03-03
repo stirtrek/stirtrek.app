@@ -4,25 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
 import { SponsorCard } from "@/components/sponsors/sponsor-card";
-import { SPONSOR_TIER_ORDER, BOOTH_SPONSOR_TIERS } from "@/lib/constants";
+import { DEFAULT_SPONSOR_TIERS } from "@/lib/constants";
 import confetti from "canvas-confetti";
+import type { Sponsor, SponsorTierConfig } from "@/lib/types";
 
-interface ApiSponsor {
-  name: string;
-  link: string;
-  description: string;
-  logo: string;
-}
-
-type SponsorsByTier = Record<string, ApiSponsor[]>;
-
-const tierLabels: Record<string, string> = {
-  platinum: "Platinum Sponsors",
-  gold: "Gold Sponsors",
-  silver: "Silver Sponsors",
-  bronze: "Bronze Sponsors",
-  community: "Community Sponsors",
-};
+type SponsorsByTier = Record<string, Sponsor[]>;
 
 interface SponsorListProps {
   sponsorsByTier: SponsorsByTier;
@@ -31,9 +17,12 @@ interface SponsorListProps {
 
 export function SponsorList({ sponsorsByTier, totalCount }: SponsorListProps) {
   const { profile } = useAuth();
-  const { eventSlug } = useEvent();
+  const { event, eventSlug } = useEvent();
   const [visitedNames, setVisitedNames] = useState<Set<string>>(new Set());
   const confettiFired = useRef(false);
+
+  const tiers: SponsorTierConfig[] = event.sponsor_tiers ?? DEFAULT_SPONSOR_TIERS;
+  const sortedTiers = [...tiers].sort((a, b) => a.sort_order - b.sort_order);
 
   useEffect(() => {
     if (!profile) return;
@@ -46,16 +35,18 @@ export function SponsorList({ sponsorsByTier, totalCount }: SponsorListProps) {
         }
       })
       .catch(() => {});
-  }, [profile]);
+  }, [profile, eventSlug]);
 
   // Count booth sponsors and visited for progress
-  const boothTiers = new Set<string>(BOOTH_SPONSOR_TIERS);
-  const boothSponsors = SPONSOR_TIER_ORDER.flatMap((tier) =>
-    boothTiers.has(tier) ? (sponsorsByTier[tier] ?? []) : []
+  const boothTierKeys = new Set(
+    sortedTiers.filter((t) => t.has_booth).map((t) => t.key),
+  );
+  const boothSponsors = sortedTiers.flatMap((tier) =>
+    boothTierKeys.has(tier.key) ? (sponsorsByTier[tier.key] ?? []) : [],
   );
   const boothTotal = boothSponsors.length;
   const visitedCount = boothSponsors.filter((s) =>
-    visitedNames.has(s.name)
+    visitedNames.has(s.name),
   ).length;
   const allVisited = boothTotal > 0 && visitedCount >= boothTotal;
 
@@ -72,6 +63,7 @@ export function SponsorList({ sponsorsByTier, totalCount }: SponsorListProps) {
   }, [allVisited]);
 
   const showProgress = profile && boothTotal > 0 && visitedNames.size > 0;
+  const eventName = event?.name ?? "this event";
 
   return (
     <>
@@ -103,27 +95,27 @@ export function SponsorList({ sponsorsByTier, totalCount }: SponsorListProps) {
 
       <div className="rounded-lg border-2 border-[#c48c2f] bg-[#c48c2f]/10 px-3 py-2 shadow-[2px_2px_0_#c48c2f]">
         <p className="text-xs text-center text-[#FFD36E] font-medium whitespace-nowrap">
-          Thanks to our sponsors for making Stir Trek possible!
+          Thanks to our sponsors for making {eventName} possible!
         </p>
       </div>
 
-      {SPONSOR_TIER_ORDER.map((tier) => {
-        const tierSponsors = sponsorsByTier[tier];
+      {sortedTiers.map((tierConfig) => {
+        const tierSponsors = sponsorsByTier[tierConfig.key];
         if (!tierSponsors || tierSponsors.length === 0) return null;
 
         return (
-          <section key={tier} className="space-y-3">
+          <section key={tierConfig.key} className="space-y-3">
             <h2 className="text-lg font-semibold capitalize">
-              {tierLabels[tier] ?? tier}
+              {tierConfig.label} Sponsors
             </h2>
             <div className="flex flex-col gap-3">
               {tierSponsors.map((sponsor) => (
                 <SponsorCard
-                  key={sponsor.name}
+                  key={sponsor.id}
                   name={sponsor.name}
-                  url={sponsor.link}
-                  imageUrl={`https://stirtrek.com${sponsor.logo}`}
-                  description={sponsor.description}
+                  url={sponsor.website_url ?? "#"}
+                  imageUrl={sponsor.logo_url ?? ""}
+                  description={sponsor.description ?? undefined}
                   visited={visitedNames.has(sponsor.name)}
                 />
               ))}

@@ -1,44 +1,47 @@
+import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveEvent } from "@/lib/events/resolve";
+import { notFound } from "next/navigation";
 import { AttendeeQrCode } from "@/components/sponsors/attendee-qr-code";
 import { SponsorList } from "@/components/sponsors/sponsor-list";
+import type { Sponsor } from "@/lib/types";
 
 export const metadata = {
   title: "Sponsors",
 };
 
-interface ApiSponsor {
-  name: string;
-  link: string;
-  description: string;
-  logo: string;
-}
+export default async function SponsorsPage({
+  params,
+}: {
+  params: Promise<{ eventSlug: string }>;
+}) {
+  const { eventSlug } = await params;
+  const event = await resolveEvent(eventSlug);
+  if (!event) notFound();
 
-type SponsorsByTier = Record<string, ApiSponsor[]>;
+  const supabase = createAdminClient();
 
-async function getSponsors(): Promise<SponsorsByTier> {
-  const res = await fetch("https://stirtrek.com/api/sponsors/current.json", {
-    next: { revalidate: 3600 },
-  });
+  const { data: sponsors } = await supabase
+    .from("sponsors")
+    .select("*")
+    .eq("event_id", event.id)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
 
-  if (!res.ok) return {};
+  const sponsorsByTier: Record<string, Sponsor[]> = {};
+  for (const sponsor of (sponsors ?? []) as Sponsor[]) {
+    const tier = sponsor.tier;
+    if (!sponsorsByTier[tier]) sponsorsByTier[tier] = [];
+    sponsorsByTier[tier].push(sponsor);
+  }
 
-  const data = await res.json();
-  return data.sponsors ?? {};
-}
-
-export default async function SponsorsPage() {
-  const sponsorsByTier = await getSponsors();
-
-  const totalCount = Object.values(sponsorsByTier).reduce(
-    (sum, list) => sum + list.length,
-    0,
-  );
+  const totalCount = (sponsors ?? []).length;
 
   if (totalCount === 0) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Sponsors</h1>
         <p className="text-muted-foreground">
-          Sponsor information will appear here closer to the event.
+          No sponsor information is available for this event yet.
         </p>
       </div>
     );

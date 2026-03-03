@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/providers/auth-provider";
+import { useEvent } from "@/providers/event-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2 } from "lucide-react";
@@ -26,6 +27,7 @@ interface PollResult {
 
 export default function PollsPage() {
   const { user, loading: authLoading } = useAuth();
+  const { eventId } = useEvent();
   const [polls, setPolls] = useState<PollWithOptions[]>([]);
   const [myVotes, setMyVotes] = useState<Record<string, string>>({});
   const [results, setResults] = useState<Record<string, PollResult[]>>({});
@@ -33,7 +35,7 @@ export default function PollsPage() {
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [changingVote, setChangingVote] = useState<Set<string>>(new Set());
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   const fetchPolls = useCallback(async () => {
     if (!user) return;
@@ -41,6 +43,7 @@ export default function PollsPage() {
     const { data: pollData, error: pollError } = await supabase
       .from("polls")
       .select("id, question, description, status, allow_multiple")
+      .eq("event_id", eventId)
       .eq("status", "active")
       .order("opened_at", { ascending: false });
 
@@ -108,7 +111,7 @@ export default function PollsPage() {
     }
 
     setLoading(false);
-  }, [user, supabase]);
+  }, [user, eventId, supabase]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -140,6 +143,7 @@ export default function PollsPage() {
       }
 
       const { error } = await supabase.from("poll_responses").insert({
+        event_id: eventId,
         poll_id: pollId,
         option_id: optionId,
         user_id: user.id,
