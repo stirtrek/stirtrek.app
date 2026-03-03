@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
-import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,13 +27,21 @@ import type { Sponsor } from "@/lib/types";
 
 const NOT_A_SPONSOR = "__not_a_sponsor__";
 
-export function SponsorCompanySelector() {
-  const { user, refreshProfile } = useAuth();
-  const { eventId, eventSlug } = useEvent();
+interface SponsorCompanySelectorProps {
+  initialSponsorId: string | null;
+}
+
+export function SponsorCompanySelector({ initialSponsorId }: SponsorCompanySelectorProps) {
+  const { refreshProfile } = useAuth();
+  const { eventSlug } = useEvent();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loadingSponsors, setLoadingSponsors] = useState(true);
-  const [sponsorId, setSponsorId] = useState<string | null>(null);
+  const [sponsorId, setSponsorId] = useState<string | null>(initialSponsorId);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setSponsorId(initialSponsorId);
+  }, [initialSponsorId]);
 
   useEffect(() => {
     fetch(`/${eventSlug}/api/sponsors`)
@@ -43,20 +50,6 @@ export function SponsorCompanySelector() {
       .catch(() => toast.error("Failed to load sponsors"))
       .finally(() => setLoadingSponsors(false));
   }, [eventSlug]);
-
-  useEffect(() => {
-    if (!user || !eventId) return;
-    const supabase = createClient(eventId);
-    supabase
-      .from("event_memberships")
-      .select("sponsor_id")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        setSponsorId(data?.sponsor_id ?? null);
-      });
-  }, [user, eventId]);
 
   const [showConfirm, setShowConfirm] = useState(false);
 

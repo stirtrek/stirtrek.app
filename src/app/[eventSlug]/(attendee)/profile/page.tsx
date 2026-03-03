@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [memberRole, setMemberRole] = useState<UserRole>("attendee");
   const [memberIsSponsor, setMemberIsSponsor] = useState(false);
+  const [memberSponsorId, setMemberSponsorId] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function ProfilePage() {
     async function fetchMembership() {
       const { data, error } = await supabase
         .from("event_memberships")
-        .select("role, is_sponsor")
+        .select("role, is_sponsor, sponsor_id")
         .eq("event_id", eventId)
         .eq("user_id", user!.id)
         .single();
@@ -53,6 +54,7 @@ export default function ProfilePage() {
       if (data) {
         setMemberRole(data.role);
         setMemberIsSponsor(data.is_sponsor);
+        setMemberSponsorId(data.sponsor_id ?? null);
       }
     }
     fetchMembership();
@@ -178,7 +180,7 @@ export default function ProfilePage() {
       </Card>
 
       {memberIsSponsor && (
-        <SponsorCompanySelector />
+        <SponsorCompanySelector initialSponsorId={memberSponsorId} />
       )}
 
       {!memberIsSponsor && <SponsorActivation />}
