@@ -5,6 +5,15 @@ import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -49,23 +58,11 @@ export function SponsorCompanySelector() {
       });
   }, [user, eventId]);
 
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const handleChange = async (value: string) => {
     if (value === NOT_A_SPONSOR) {
-      if (!confirm("Remove your sponsor access? You'll need the access code to reactivate.")) {
-        return;
-      }
-      setSaving(true);
-      const res = await fetch(`/${eventSlug}/api/sponsor/deactivate`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json();
-        toast.error(data.error || "Failed to remove sponsor status");
-        setSaving(false);
-        return;
-      }
-      await refreshProfile();
-      setSponsorId(null);
-      toast.success("Sponsor access removed");
-      setSaving(false);
+      setShowConfirm(true);
       return;
     }
 
@@ -91,44 +88,81 @@ export function SponsorCompanySelector() {
     setSaving(false);
   };
 
+  const handleDeactivate = async () => {
+    setShowConfirm(false);
+    setSaving(true);
+    const res = await fetch(`/${eventSlug}/api/sponsor/deactivate`, { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json();
+      toast.error(data.error || "Failed to remove sponsor status");
+      setSaving(false);
+      return;
+    }
+    await refreshProfile();
+    setSponsorId(null);
+    toast.success("Sponsor access removed");
+    setSaving(false);
+  };
+
   return (
-    <Card>
-      <CardContent className="py-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          <p className="text-sm font-medium">Your Sponsor Company</p>
-        </div>
-        <p className="mb-3 text-xs text-muted-foreground">
-          Wrong company? Just select the correct one below.
-        </p>
-        {loadingSponsors ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading...
+    <>
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium">Your Sponsor Company</p>
           </div>
-        ) : (
-          <Select
-            value={sponsorId ?? undefined}
-            onValueChange={handleChange}
-            disabled={saving}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select your company" />
-            </SelectTrigger>
-            <SelectContent position="popper" className="max-h-60">
-              {sponsors.map((sponsor) => (
-                <SelectItem key={sponsor.id} value={sponsor.id}>
-                  {sponsor.name}
+          <p className="mb-3 text-xs text-muted-foreground">
+            Wrong company? Just select the correct one below.
+          </p>
+          {loadingSponsors ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading...
+            </div>
+          ) : (
+            <Select
+              value={sponsorId ?? undefined}
+              onValueChange={handleChange}
+              disabled={saving}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select your company" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-60">
+                {sponsors.map((sponsor) => (
+                  <SelectItem key={sponsor.id} value={sponsor.id}>
+                    {sponsor.name}
+                  </SelectItem>
+                ))}
+                <SelectSeparator />
+                <SelectItem value={NOT_A_SPONSOR} className="text-muted-foreground">
+                  I&apos;m not a sponsor
                 </SelectItem>
-              ))}
-              <SelectSeparator />
-              <SelectItem value={NOT_A_SPONSOR} className="text-muted-foreground">
-                I&apos;m not a sponsor
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        )}
-      </CardContent>
-    </Card>
+              </SelectContent>
+            </Select>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Remove Sponsor Access?</DialogTitle>
+            <DialogDescription>
+              You&apos;ll need the sponsor access code to reactivate. Are you sure you want to continue?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeactivate}>
+              Remove Access
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

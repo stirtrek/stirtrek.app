@@ -36,6 +36,8 @@ export default function ProfilePage() {
   }, [profile]);
 
   // Fetch event membership for role / is_sponsor
+  // profile is included so refreshProfile() (called after sponsor
+  // activate/deactivate) triggers a re-fetch of membership status.
   useEffect(() => {
     if (!user || !eventId) return;
     supabase
@@ -50,7 +52,8 @@ export default function ProfilePage() {
           setMemberIsSponsor(data.is_sponsor);
         }
       });
-  }, [user, eventId, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, eventId, supabase, profile]);
 
   // Check super admin status
   useEffect(() => {

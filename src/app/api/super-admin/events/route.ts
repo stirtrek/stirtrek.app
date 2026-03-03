@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     sponsor_access_code,
     accent_color,
     domain,
+    logo_url,
     feature_flags,
   } = body;
 
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
       sponsor_access_code: sponsor_access_code || null,
       accent_color: accent_color || "#FF3B3B",
       domain: domain || null,
+      logo_url: logo_url || null,
       feature_flags: feature_flags || DEFAULT_FEATURE_FLAGS,
       is_active: true,
     })

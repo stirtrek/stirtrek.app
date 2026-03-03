@@ -21,23 +21,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      // Update profiles (backward compat)
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_sponsor: false, sponsor_id: null })
-        .eq("id", user.id);
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      // Also update event_memberships for event-scoped sponsor status
       const admin = createAdminClient();
-      await admin
+      const { error } = await admin
         .from("event_memberships")
         .update({ is_sponsor: false, sponsor_id: null })
         .eq("event_id", eventId)
         .eq("user_id", user.id);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
 
       telemetry.trackAuthEvent("sponsor_deactivate", { userId: user.id });
 

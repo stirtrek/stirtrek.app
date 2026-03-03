@@ -29,7 +29,7 @@ const scannerItem = { path: "/leads/scan", label: "Scanner", icon: ScanLine };
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { eventId, eventPath, hasFeature } = useEvent();
   const [isSponsor, setIsSponsor] = useState(false);
 
@@ -48,7 +48,10 @@ export function BottomNav() {
       .then(({ data }) => {
         setIsSponsor(data?.is_sponsor ?? false);
       });
-  }, [user, eventId]);
+  // profile is included so that refreshProfile() (called after sponsor
+  // activate/deactivate) triggers a re-fetch of membership status.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, eventId, profile]);
 
   // Filter base nav items by feature flags
   const filteredNavItems = baseNavItems.filter((item) => {
