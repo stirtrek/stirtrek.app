@@ -11,7 +11,7 @@ const DEFAULT_EVENT_SLUG = "stirtrek";
 const PLATFORM_HOSTS = ["localhost", "127.0.0.1"];
 
 // Paths that are truly global (no event slug prefix)
-const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/super-admin", "/api/super-admin"];
+const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/api/apple-touch-icon", "/super-admin", "/api/super-admin"];
 
 // Paths within an event that don't require auth
 const PUBLIC_EVENT_PATHS = [

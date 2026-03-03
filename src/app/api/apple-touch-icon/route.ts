@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveEventByDomain } from "@/lib/events/resolve";
+import { resolveEvent, resolveEventByDomain } from "@/lib/events/resolve";
 
 /**
- * Dynamic apple-touch-icon handler.
+ * Dynamic event icon handler.
  *
- * iOS Safari fetches /apple-touch-icon.png when adding a PWA to the home
- * screen, ignoring <link> tags in some cases. This route resolves the
- * event from the request hostname (custom domain) and proxies the event's
- * logo so iOS always gets the correct icon.
+ * Resolves the event logo from either:
+ *   - ?slug=bacon  (used by <link> tags and manifest)
+ *   - hostname     (used by iOS well-known /apple-touch-icon.png discovery)
+ *
+ * Returns the proxied image so iOS always gets a same-origin response
+ * with no redirects.
  */
 export async function GET(request: NextRequest) {
+  const slug = request.nextUrl.searchParams.get("slug");
   const host = request.headers.get("host") || "";
-  const event = await resolveEventByDomain(host);
+
+  const event = slug
+    ? await resolveEvent(slug)
+    : await resolveEventByDomain(host);
 
   if (!event?.logo_url) {
     return new NextResponse(null, { status: 404 });
