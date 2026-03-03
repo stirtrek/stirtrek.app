@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveEvent } from "@/lib/events/resolve";
+import { notFound } from "next/navigation";
 import { ScheduleGrid } from "@/components/schedule/schedule-grid";
 import type { SessionWithDetails } from "@/lib/types";
 
@@ -7,7 +9,15 @@ export const metadata = {
   title: "Schedule",
 };
 
-export default async function SchedulePage() {
+export default async function SchedulePage({
+  params,
+}: {
+  params: Promise<{ eventSlug: string }>;
+}) {
+  const { eventSlug } = await params;
+  const event = await resolveEvent(eventSlug);
+  if (!event) notFound();
+
   const supabase = createAdminClient();
 
   const { data: sessions } = await supabase
@@ -20,6 +30,7 @@ export default async function SchedulePage() {
       categories:session_categories(category_item:category_items(*))
     `
     )
+    .eq("event_id", event.id)
     .order("starts_at", { ascending: true });
 
   const transformedSessions: SessionWithDetails[] = (sessions || []).map(
