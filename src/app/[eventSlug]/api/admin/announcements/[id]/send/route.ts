@@ -64,7 +64,7 @@ export async function POST(
           url: "/announcements",
         },
         eventId,
-      ).catch(() => {});
+      ).catch((err) => console.error("Announcement push failed:", err));
 
       return NextResponse.json({ success: true });
     },

@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
             url: "/announcements",
           },
           eventId,
-        ).catch(() => {});
+        ).catch((err) => console.error("Announcement push failed:", err));
       }
 
       return NextResponse.json(

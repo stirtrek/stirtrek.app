@@ -145,8 +145,15 @@ export async function sendPushToAll(
     query = query.eq("event_id", eventId);
   }
 
-  const { data: subscriptions } = await query;
-  if (!subscriptions || subscriptions.length === 0) return;
+  const { data: subscriptions, error } = await query;
+  if (error) {
+    console.error("sendPushToAll: failed to query subscriptions:", error.message);
+    return;
+  }
+  if (!subscriptions || subscriptions.length === 0) {
+    console.warn("sendPushToAll: no subscriptions found", eventId ? `for event ${eventId}` : "(all events)");
+    return;
+  }
 
   const message = JSON.stringify({
     title: payload.title,

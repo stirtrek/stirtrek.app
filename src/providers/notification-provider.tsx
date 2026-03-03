@@ -139,9 +139,19 @@ export function NotificationProvider({
     if (!pushSupported || !user) return;
 
     navigator.serviceWorker.ready.then(async (reg) => {
-      // Check if already subscribed
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) return;
+
+      // Check if already subscribed in the browser
       const existing = await reg.pushManager.getSubscription();
       if (existing) {
+        // Always sync with server in case the DB record was lost
+        const json = existing.toJSON();
+        fetch(`/${eventSlug}/api/push/subscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+        }).catch(() => {});
         setPushSubscribed(true);
         return;
       }
@@ -149,9 +159,6 @@ export function NotificationProvider({
       // Auto-request permission and subscribe
       const permission = await Notification.requestPermission();
       if (permission !== "granted") return;
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) return;
 
       try {
         const subscription = await reg.pushManager.subscribe({
