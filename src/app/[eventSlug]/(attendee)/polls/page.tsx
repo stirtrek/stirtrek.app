@@ -61,17 +61,18 @@ export default function PollsPage() {
 
     const pollIds = pollData.map((p) => p.id);
 
-    const { data: optionData } = await supabase
-      .from("poll_options")
-      .select("id, poll_id, text, sort_order")
-      .in("poll_id", pollIds)
-      .order("sort_order", { ascending: true });
-
-    const { data: responseData } = await supabase
-      .from("poll_responses")
-      .select("poll_id, option_id")
-      .eq("user_id", user.id)
-      .in("poll_id", pollIds);
+    const [{ data: optionData }, { data: responseData }] = await Promise.all([
+      supabase
+        .from("poll_options")
+        .select("id, poll_id, text, sort_order")
+        .in("poll_id", pollIds)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("poll_responses")
+        .select("poll_id, option_id")
+        .eq("user_id", user.id)
+        .in("poll_id", pollIds),
+    ]);
 
     const optionsByPoll: Record<
       string,
