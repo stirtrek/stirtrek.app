@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft,
   Loader2,
   Trash2,
@@ -18,6 +28,11 @@ import { toast } from "sonner";
 import { useEvent } from "@/providers/event-provider";
 import type { Announcement } from "@/lib/types";
 
+type ConfirmAction =
+  | { type: "send-now" }
+  | { type: "send-draft"; id: string }
+  | { type: "delete"; id: string };
+
 export default function AdminAnnouncementsPage() {
   const { eventSlug, eventPath } = useEvent();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -27,6 +42,7 @@ export default function AdminAnnouncementsPage() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
   const fetchAnnouncements = useCallback(async () => {
     const res = await fetch(`/${eventSlug}/api/admin/announcements`);
@@ -44,10 +60,7 @@ export default function AdminAnnouncementsPage() {
   const drafts = announcements.filter((a) => a.status === "draft");
   const sent = announcements.filter((a) => a.status === "sent");
 
-  const handleSendNow = async () => {
-    if (!message.trim()) return;
-    if (!window.confirm("Send this announcement to all users now?")) return;
-
+  const doSendNow = async () => {
     setSending(true);
     const res = await fetch(`/${eventSlug}/api/admin/announcements`, {
       method: "POST",
@@ -87,9 +100,7 @@ export default function AdminAnnouncementsPage() {
     setSavingDraft(false);
   };
 
-  const handleSendDraft = async (id: string) => {
-    if (!window.confirm("Send this announcement to all users now?")) return;
-
+  const doSendDraft = async (id: string) => {
     setSendingId(id);
     const res = await fetch(`/${eventSlug}/api/admin/announcements/${id}/send`, {
       method: "POST",
@@ -105,9 +116,7 @@ export default function AdminAnnouncementsPage() {
     setSendingId(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this announcement?")) return;
-
+  const doDelete = async (id: string) => {
     setDeletingId(id);
     const res = await fetch(`/${eventSlug}/api/admin/announcements/${id}`, {
       method: "DELETE",
@@ -118,10 +127,37 @@ export default function AdminAnnouncementsPage() {
       fetchAnnouncements();
     } else {
       const data = await res.json();
-      toast.error(data.error || "Failed to delete draft");
+      toast.error(data.error || "Failed to delete announcement");
     }
     setDeletingId(null);
   };
+
+  const handleConfirm = async () => {
+    if (!confirmAction) return;
+    setConfirmAction(null);
+
+    switch (confirmAction.type) {
+      case "send-now":
+        return doSendNow();
+      case "send-draft":
+        return doSendDraft(confirmAction.id);
+      case "delete":
+        return doDelete(confirmAction.id);
+    }
+  };
+
+  const confirmTitle =
+    confirmAction?.type === "delete"
+      ? "Delete announcement?"
+      : "Send announcement?";
+
+  const confirmDescription =
+    confirmAction?.type === "delete"
+      ? "This announcement will be permanently removed."
+      : "This will send a push notification to all users.";
+
+  const confirmButtonLabel =
+    confirmAction?.type === "delete" ? "Delete" : "Send";
 
   const busy = sending || savingDraft;
 
@@ -153,7 +189,9 @@ export default function AdminAnnouncementsPage() {
           <div className="flex gap-2">
             <Button
               size="sm"
-              onClick={handleSendNow}
+              onClick={() => {
+                if (message.trim()) setConfirmAction({ type: "send-now" });
+              }}
               disabled={busy || !message.trim()}
               className="flex-1"
             >
@@ -219,7 +257,9 @@ export default function AdminAnnouncementsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleSendDraft(draft.id)}
+                        onClick={() =>
+                          setConfirmAction({ type: "send-draft", id: draft.id })
+                        }
                         disabled={sendingId === draft.id}
                       >
                         {sendingId === draft.id ? (
@@ -233,7 +273,9 @@ export default function AdminAnnouncementsPage() {
                         size="sm"
                         variant="ghost"
                         className="text-destructive"
-                        onClick={() => handleDelete(draft.id)}
+                        onClick={() =>
+                          setConfirmAction({ type: "delete", id: draft.id })
+                        }
                         disabled={deletingId === draft.id}
                       >
                         {deletingId === draft.id ? (
@@ -280,7 +322,9 @@ export default function AdminAnnouncementsPage() {
                         size="sm"
                         variant="ghost"
                         className="text-destructive"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() =>
+                          setConfirmAction({ type: "delete", id: item.id })
+                        }
                         disabled={deletingId === item.id}
                       >
                         {deletingId === item.id ? (
@@ -308,6 +352,36 @@ export default function AdminAnnouncementsPage() {
           )}
         </>
       )}
+
+      {/* Confirmation modal */}
+      <AlertDialog
+        open={!!confirmAction}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDescription}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              className={
+                confirmAction?.type === "delete"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : ""
+              }
+            >
+              {confirmButtonLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
