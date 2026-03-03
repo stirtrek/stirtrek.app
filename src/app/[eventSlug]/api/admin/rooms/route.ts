@@ -48,19 +48,21 @@ export async function POST(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Get next sort order
+    // Get next sort order and next id
     const { data: existing } = await admin
       .from("rooms")
-      .select("sort_order")
+      .select("id, sort_order")
       .eq("event_id", eventId)
       .order("sort_order", { ascending: false })
       .limit(1);
 
     const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
+    const nextId = (existing?.[0]?.id ?? 0) + 1;
 
     const { data: room, error } = await admin
       .from("rooms")
       .insert({
+        id: nextId,
         event_id: eventId,
         name: name.trim(),
         sort_order: nextOrder,
