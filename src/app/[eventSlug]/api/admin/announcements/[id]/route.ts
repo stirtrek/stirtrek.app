@@ -23,34 +23,21 @@ export async function DELETE(
 
       const admin = createAdminClient();
 
-      const { data: announcement } = await admin
+      const { error, count } = await admin
         .from("announcements")
-        .select("status")
+        .delete()
         .eq("id", id)
-        .eq("event_id", eventId)
-        .single();
+        .eq("event_id", eventId);
 
-      if (!announcement) {
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      if (count === 0) {
         return NextResponse.json(
           { error: "Announcement not found" },
           { status: 404 },
         );
-      }
-
-      if (announcement.status !== "draft") {
-        return NextResponse.json(
-          { error: "Only draft announcements can be deleted" },
-          { status: 400 },
-        );
-      }
-
-      const { error } = await admin
-        .from("announcements")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
       return NextResponse.json({ success: true });

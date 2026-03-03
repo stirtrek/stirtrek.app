@@ -106,7 +106,7 @@ export default function AdminAnnouncementsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this draft?")) return;
+    if (!window.confirm("Delete this announcement?")) return;
 
     setDeletingId(id);
     const res = await fetch(`/${eventSlug}/api/admin/announcements/${id}`, {
@@ -114,7 +114,7 @@ export default function AdminAnnouncementsPage() {
     });
 
     if (res.ok) {
-      toast.success("Draft deleted");
+      toast.success("Announcement deleted");
       fetchAnnouncements();
     } else {
       const data = await res.json();
@@ -275,6 +275,22 @@ export default function AdminAnnouncementsPage() {
                           })
                         : "Unknown"}
                     </p>
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => handleDelete(item.id)}
+                        disabled={deletingId === item.id}
+                      >
+                        {deletingId === item.id ? (
+                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
