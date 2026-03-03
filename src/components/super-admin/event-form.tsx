@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Loader2, Upload, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,15 @@ const DEFAULT_FLAGS: EventFeatureFlags = {
   venue_map: false,
   passport: false,
 };
+
+const ACCENT_PRESETS = [
+  { color: "#FF3B3B", label: "Red" },
+  { color: "#0169AC", label: "Blue" },
+  { color: "#c48c2f", label: "Gold" },
+  { color: "#8e203a", label: "Dark Red" },
+  { color: "#22c55e", label: "Green" },
+  { color: "#8b5cf6", label: "Purple" },
+];
 
 const FLAG_LABELS: Record<keyof EventFeatureFlags, string> = {
   polls: "Polls",
@@ -51,12 +62,49 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
   const [sessionizeApiId, setSessionizeApiId] = useState(event?.sessionize_api_id ?? "");
   const [sponsorFeedUrl, setSponsorFeedUrl] = useState(event?.sponsor_feed_url ?? "");
   const [sponsorAccessCode, setSponsorAccessCode] = useState(event?.sponsor_access_code ?? "");
+  const [accentColor, setAccentColor] = useState(event?.accent_color ?? "#FF3B3B");
   const [domain, setDomain] = useState(event?.domain ?? "");
   const [logoUrl, setLogoUrl] = useState(event?.logo_url ?? "");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(event?.is_active ?? true);
   const [flags, setFlags] = useState<EventFeatureFlags>(
     event?.feature_flags ?? DEFAULT_FLAGS,
   );
+
+  async function handleLogoUpload(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2MB");
+      return;
+    }
+
+    setUploading(true);
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "png";
+    const fileName = `${slug || "event"}-${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("event-logos")
+      .upload(fileName, file, { upsert: true });
+
+    if (error) {
+      toast.error(`Upload failed: ${error.message}`);
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("event-logos")
+      .getPublicUrl(fileName);
+
+    setLogoUrl(urlData.publicUrl);
+    toast.success("Logo uploaded");
+    setUploading(false);
+  }
 
   function toggleFlag(key: keyof EventFeatureFlags) {
     setFlags((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -78,6 +126,7 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
       sessionize_api_id: sessionizeApiId || null,
       sponsor_feed_url: sponsorFeedUrl || null,
       sponsor_access_code: sponsorAccessCode || null,
+      accent_color: accentColor || "#FF3B3B",
       domain: domain || null,
       logo_url: logoUrl || null,
       is_active: isActive,
@@ -136,13 +185,93 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
             />
           </div>
           <div>
-            <Label htmlFor="logo_url">Logo URL</Label>
-            <Input
-              id="logo_url"
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://example.com/logo.png"
-            />
+            <Label>Event Logo</Label>
+            {logoUrl ? (
+              <div className="mt-1.5 flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoUrl}
+                  alt="Event logo"
+                  className="h-16 w-auto rounded border border-white/10 bg-white/5 object-contain p-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => setLogoUrl("")}
+                  className="text-muted-foreground hover:text-destructive flex items-center gap-1 text-xs"
+                >
+                  <X className="h-3 w-3" />
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="mt-1.5">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 rounded-md border border-dashed border-white/20 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-white/40 hover:text-white disabled:opacity-50"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {uploading ? "Uploading..." : "Upload logo"}
+                </button>
+              </div>
+            )}
+            <p className="text-muted-foreground mt-1 text-xs">
+              PNG or SVG recommended. Max 2MB.
+            </p>
+          </div>
+          <div>
+            <Label>Accent Color</Label>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              {ACCENT_PRESETS.map((preset) => (
+                <button
+                  key={preset.color}
+                  type="button"
+                  title={preset.label}
+                  onClick={() => setAccentColor(preset.color)}
+                  className="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+                  style={{
+                    backgroundColor: preset.color,
+                    borderColor:
+                      accentColor === preset.color
+                        ? "#F4F6F8"
+                        : "transparent",
+                    boxShadow:
+                      accentColor === preset.color
+                        ? "0 0 0 2px rgba(244,246,248,0.3)"
+                        : "none",
+                  }}
+                />
+              ))}
+              <Input
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="w-28 font-mono text-xs"
+                placeholder="#FF3B3B"
+              />
+              <div
+                className="h-8 w-8 rounded-full border border-white/20"
+                style={{ backgroundColor: accentColor }}
+              />
+            </div>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Used for buttons and highlights on the event&apos;s pages.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <input

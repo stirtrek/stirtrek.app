@@ -8,7 +8,7 @@ import { useEvent } from "@/providers/event-provider";
 
 export default function CompleteProfilePage() {
   const router = useRouter();
-  const { eventPath } = useEvent();
+  const { eventPath, accentColor } = useEvent();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -125,8 +125,9 @@ export default function CompleteProfilePage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center rounded-md bg-[#FF3B3B] px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-white transition-all hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center rounded-md px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-white transition-all hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
               style={{
+                backgroundColor: accentColor,
                 border: "2px solid #F4F6F8",
                 boxShadow: "4px 4px 0 rgba(0,0,0,0.35)",
               }}

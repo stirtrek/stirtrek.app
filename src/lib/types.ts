@@ -55,6 +55,7 @@ export interface Event {
   sponsor_feed_url: string | null;
   sponsor_access_code: string | null;
   feature_flags: EventFeatureFlags;
+  accent_color: string | null;
   domain: string | null;
   is_active: boolean;
   created_at: string;

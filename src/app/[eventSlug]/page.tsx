@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { AnimatedLogo, STAR_COLORS } from "@/components/layout/animated-logo";
+import { AnimatedLogo } from "@/components/layout/animated-logo";
 import { useEvent } from "@/providers/event-provider";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -11,17 +11,13 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function EventHomePage() {
-  const { event, eventPath } = useEvent();
+  const { event, eventPath, accentColor } = useEvent();
 
-  const [accentColor, setAccentColor] = useState(STAR_COLORS[0]);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(true);
 
   useEffect(() => {
-    setAccentColor(
-      STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)]
-    );
 
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||

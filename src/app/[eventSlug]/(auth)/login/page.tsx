@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { AnimatedLogo, STAR_COLORS } from "@/components/layout/animated-logo";
+import { AnimatedLogo } from "@/components/layout/animated-logo";
 import { LoginForm } from "@/components/auth/login-form";
+import { useEvent } from "@/providers/event-provider";
 
 export default function LoginPage() {
-  const [accentColor, setAccentColor] = useState(STAR_COLORS[0]);
-
-  useEffect(() => {
-    setAccentColor(
-      STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)]
-    );
-  }, []);
+  const { event, accentColor } = useEvent();
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#1B1D23] p-6 text-center">
@@ -25,9 +19,28 @@ export default function LoginPage() {
       />
 
       <div className="relative z-20 flex flex-col items-center gap-8">
-        <AnimatedLogo className="w-72" color={accentColor} />
+        {event.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.logo_url}
+            alt={event.name}
+            className="w-72 object-contain"
+          />
+        ) : event.slug === "stirtrek" ? (
+          <AnimatedLogo className="w-72" color={accentColor} />
+        ) : (
+          <h1
+            className="text-4xl font-bold uppercase tracking-wider text-[#F4F6F8]"
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+            }}
+          >
+            {event.name}
+          </h1>
+        )}
 
-        <LoginForm accentColor={accentColor} />
+        <LoginForm />
       </div>
     </div>
   );

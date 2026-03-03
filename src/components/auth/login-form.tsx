@@ -7,13 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useEvent } from "@/providers/event-provider";
 import { Mail, Loader2, KeyRound } from "lucide-react";
 
-interface LoginFormProps {
-  accentColor: string;
-}
-
-export function LoginForm({ accentColor }: LoginFormProps) {
+export function LoginForm() {
   const router = useRouter();
-  const { eventPath } = useEvent();
+  const { eventPath, accentColor } = useEvent();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);

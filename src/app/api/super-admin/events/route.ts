@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     sessionize_api_id,
     sponsor_feed_url,
     sponsor_access_code,
+    accent_color,
     domain,
     feature_flags,
   } = body;
@@ -101,6 +102,7 @@ export async function POST(request: NextRequest) {
       sessionize_api_id: sessionize_api_id || null,
       sponsor_feed_url: sponsor_feed_url || null,
       sponsor_access_code: sponsor_access_code || null,
+      accent_color: accent_color || "#FF3B3B",
       domain: domain || null,
       feature_flags: feature_flags || DEFAULT_FEATURE_FLAGS,
       is_active: true,

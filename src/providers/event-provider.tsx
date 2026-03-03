@@ -7,6 +7,8 @@ interface EventContextValue {
   event: Event;
   eventSlug: string;
   eventId: string;
+  /** The event's accent color (for buttons, highlights, etc.) */
+  accentColor: string;
   /** Check if a feature is enabled for this event */
   hasFeature: (feature: keyof EventFeatureFlags) => boolean;
   /** Prefix a path with the event slug, e.g. "/schedule" → "/stirtrek/schedule" */
@@ -33,6 +35,7 @@ export function EventProvider({
   event: Event;
   children: React.ReactNode;
 }) {
+  const accentColor = event.accent_color || "#FF3B3B";
   const flags = { ...DEFAULT_FEATURE_FLAGS, ...event.feature_flags };
 
   const hasFeature = (feature: keyof EventFeatureFlags): boolean => {
@@ -51,6 +54,7 @@ export function EventProvider({
         event,
         eventSlug: event.slug,
         eventId: event.id,
+        accentColor,
         hasFeature,
         eventPath,
       }}

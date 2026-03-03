@@ -48,6 +48,7 @@ export async function PUT(
     "sessionize_api_id",
     "sponsor_feed_url",
     "sponsor_access_code",
+    "accent_color",
     "domain",
     "feature_flags",
     "is_active",
