@@ -2,6 +2,20 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  rewrites: async () => ({
+    beforeFiles: [
+      {
+        source: "/apple-touch-icon.png",
+        destination: "/api/apple-touch-icon",
+      },
+      {
+        source: "/apple-touch-icon-precomposed.png",
+        destination: "/api/apple-touch-icon",
+      },
+    ],
+    afterFiles: [],
+    fallback: [],
+  }),
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "sessionize.com" },
