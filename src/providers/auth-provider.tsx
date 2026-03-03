@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const initialised = useRef(false);
+  const currentUserId = useRef<string | null>(null);
 
   // Only create the client if env vars exist (avoids build-time errors)
   const supabase = useMemo(() => {
@@ -52,18 +53,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+      const newUser = session?.user ?? null;
+      const newUserId = newUser?.id ?? null;
+      const identityChanged = newUserId !== currentUserId.current;
 
-      if (currentUser) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", currentUser.id)
-          .single();
-        setProfile(profileData);
-      } else {
-        setProfile(null);
+      if (identityChanged) {
+        currentUserId.current = newUserId;
+        setUser(newUser);
+
+        if (newUser) {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", newUser.id)
+            .single();
+          setProfile(profileData);
+        } else {
+          setProfile(null);
+        }
       }
 
       // Resolve loading on the very first event (INITIAL_SESSION)
