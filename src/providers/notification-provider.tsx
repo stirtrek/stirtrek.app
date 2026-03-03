@@ -134,18 +134,14 @@ export function NotificationProvider({
     refreshCount().then(() => setLoading(false));
   }, [user, refreshCount]);
 
-  // Auto-subscribe to push when user is logged in and push is supported
+  // Sync existing push subscription with server (no permission prompt)
   useEffect(() => {
     if (!pushSupported || !user) return;
 
     navigator.serviceWorker.ready.then(async (reg) => {
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) return;
-
-      // Check if already subscribed in the browser
       const existing = await reg.pushManager.getSubscription();
       if (existing) {
-        // Always sync with server in case the DB record was lost
+        // Sync with server in case the DB record was lost
         const json = existing.toJSON();
         fetch(`/${eventSlug}/api/push/subscribe`, {
           method: "POST",
@@ -153,33 +149,10 @@ export function NotificationProvider({
           body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
         }).catch(() => {});
         setPushSubscribed(true);
-        return;
       }
-
-      // Auto-request permission and subscribe
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") return;
-
-      try {
-        const subscription = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey).buffer as ArrayBuffer,
-        });
-
-        const json = subscription.toJSON();
-        await fetch(`/${eventSlug}/api/push/subscribe`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            endpoint: json.endpoint,
-            keys: json.keys,
-          }),
-        });
-
-        setPushSubscribed(true);
-      } catch {
-        // Silently fail — user denied or browser doesn't support
-      }
+      // If no existing subscription, don't auto-request.
+      // iOS requires a user gesture to call Notification.requestPermission().
+      // The subscribeToPush() function handles this via UI button tap.
     });
   }, [pushSupported, user, eventSlug]);
 
