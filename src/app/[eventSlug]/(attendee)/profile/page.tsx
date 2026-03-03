@@ -25,7 +25,6 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [memberRole, setMemberRole] = useState<UserRole>("attendee");
   const [memberIsSponsor, setMemberIsSponsor] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
@@ -60,24 +59,6 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, eventId, supabase, profile]);
 
-  // Check super admin status
-  useEffect(() => {
-    if (!user) return;
-    async function checkSuperAdmin() {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("is_super_admin")
-        .eq("id", user!.id)
-        .single();
-      if (error) {
-        console.error("Super admin check error:", error);
-        return;
-      }
-      if (data?.is_super_admin) setIsSuperAdmin(true);
-    }
-    checkSuperAdmin();
-  }, [user, supabase]);
-
   // Redirect to login once auth has resolved (or timed out) with no user
   useEffect(() => {
     if (!loading && !user) {
@@ -93,7 +74,7 @@ export default function ProfilePage() {
     );
   }
 
-  const isAdmin = isSuperAdmin || memberRole === "admin" || memberRole === "staff";
+  const isAdmin = profile?.is_super_admin || memberRole === "admin" || memberRole === "staff";
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

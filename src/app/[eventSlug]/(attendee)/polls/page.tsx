@@ -40,11 +40,15 @@ export default function PollsPage() {
   const fetchPolls = useCallback(async () => {
     if (!user) return;
 
+    // Single query: polls + nested options + current user's responses
     const { data: pollData, error: pollError } = await supabase
       .from("polls")
-      .select("id, question, description, status, allow_multiple")
+      .select(
+        "id, question, description, status, allow_multiple, poll_options(id, text, sort_order), poll_responses(poll_id, option_id)",
+      )
       .eq("event_id", eventId)
       .eq("status", "active")
+      .eq("poll_responses.user_id", user.id)
       .order("opened_at", { ascending: false });
 
     if (pollError) {
@@ -59,56 +63,43 @@ export default function PollsPage() {
       return;
     }
 
-    const pollIds = pollData.map((p) => p.id);
-
-    const [{ data: optionData }, { data: responseData }] = await Promise.all([
-      supabase
-        .from("poll_options")
-        .select("id, poll_id, text, sort_order")
-        .in("poll_id", pollIds)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("poll_responses")
-        .select("poll_id, option_id")
-        .eq("user_id", user.id)
-        .in("poll_id", pollIds),
-    ]);
-
-    const optionsByPoll: Record<
-      string,
-      { id: string; text: string; sort_order: number }[]
-    > = {};
-    for (const o of optionData ?? []) {
-      if (!optionsByPoll[o.poll_id]) optionsByPoll[o.poll_id] = [];
-      optionsByPoll[o.poll_id].push(o);
-    }
-
     const votes: Record<string, string> = {};
-    for (const r of responseData ?? []) {
-      votes[r.poll_id] = r.option_id;
-    }
+    const enrichedPolls: PollWithOptions[] = pollData.map((p) => {
+      const response = p.poll_responses?.[0];
+      if (response) votes[p.id] = response.option_id;
+      return {
+        id: p.id,
+        question: p.question,
+        description: p.description,
+        status: p.status,
+        allow_multiple: p.allow_multiple,
+        options: (p.poll_options ?? []).sort(
+          (a, b) => a.sort_order - b.sort_order,
+        ),
+      };
+    });
 
-    setPolls(
-      pollData.map((p) => ({
-        ...p,
-        options: optionsByPoll[p.id] ?? [],
-      })),
-    );
+    setPolls(enrichedPolls);
     setMyVotes(votes);
 
-    // Fetch results for polls the user already voted on
+    // Single batch RPC for results of all voted polls
     const votedPollIds = Object.keys(votes);
     if (votedPollIds.length > 0) {
-      const resultMap: Record<string, PollResult[]> = {};
-      await Promise.all(
-        votedPollIds.map(async (pollId) => {
-          const { data } = await supabase.rpc("get_poll_results", {
-            p_poll_id: pollId,
+      const { data } = await supabase.rpc("get_poll_results_batch", {
+        p_poll_ids: votedPollIds,
+      });
+      if (data) {
+        const resultMap: Record<string, PollResult[]> = {};
+        for (const row of data) {
+          if (!resultMap[row.poll_id]) resultMap[row.poll_id] = [];
+          resultMap[row.poll_id].push({
+            option_id: row.option_id,
+            option_text: row.option_text,
+            vote_count: row.vote_count,
           });
-          if (data) resultMap[pollId] = data;
-        }),
-      );
-      setResults(resultMap);
+        }
+        setResults(resultMap);
+      }
     }
 
     setLoading(false);
@@ -168,11 +159,18 @@ export default function PollsPage() {
       });
 
       // Fetch results for this poll
-      const { data } = await supabase.rpc("get_poll_results", {
-        p_poll_id: pollId,
+      const { data } = await supabase.rpc("get_poll_results_batch", {
+        p_poll_ids: [pollId],
       });
       if (data) {
-        setResults((prev) => ({ ...prev, [pollId]: data }));
+        setResults((prev) => ({
+          ...prev,
+          [pollId]: data.map((r: { option_id: string; option_text: string; vote_count: number }) => ({
+            option_id: r.option_id,
+            option_text: r.option_text,
+            vote_count: r.vote_count,
+          })),
+        }));
       }
 
       toast.success(existingVote ? "Vote changed!" : "Vote submitted!");
