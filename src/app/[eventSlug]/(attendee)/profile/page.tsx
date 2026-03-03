@@ -103,10 +103,14 @@ export default function ProfilePage() {
     setSaving(false);
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    // Hard navigation to fully clear cookies and server-side session
-    window.location.href = eventPath("/login");
+  const handleSignOut = () => {
+    // Fire sign-out but don't wait for it — navigate immediately.
+    // This prevents a hanging network call from blocking the redirect.
+    signOut().catch((err) => console.error("Sign out error:", err));
+    // Small delay to let Supabase clear session cookies before navigation
+    setTimeout(() => {
+      window.location.href = eventPath("/login");
+    }, 100);
   };
 
   return (
