@@ -108,7 +108,7 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await signOut();
     // Hard navigation to fully clear cookies and server-side session
-    window.location.href = "/";
+    window.location.href = eventPath("/login");
   };
 
   return (
