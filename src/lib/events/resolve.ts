@@ -52,13 +52,22 @@ export async function resolveEventByDomain(
     return cached.event;
   }
 
+  console.log("[resolveEventByDomain] Looking up domain:", domain);
   const admin = createAdminClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("events")
     .select("*")
     .eq("domain", domain)
     .eq("is_active", true)
     .single();
+
+  console.log("[resolveEventByDomain] Result:", {
+    domain,
+    found: !!data,
+    slug: data?.slug,
+    error: error?.message ?? null,
+    errorCode: error?.code ?? null,
+  });
 
   const event = (data as Event) ?? null;
   domainCache.set(domain, {
