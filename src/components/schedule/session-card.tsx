@@ -74,10 +74,10 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
             <div className="flex items-center gap-2">
               <div className="flex -space-x-1.5 shrink-0">
                 {session.speakers.map((speaker) =>
-                  speaker.profile_picture ? (
+                  (speaker.photo_override || speaker.profile_picture) ? (
                     <Image
                       key={speaker.id}
-                      src={speaker.profile_picture}
+                      src={speaker.photo_override || speaker.profile_picture!}
                       alt={speaker.full_name}
                       width={24}
                       height={24}

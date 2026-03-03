@@ -19,7 +19,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { first_name, last_name, bio, tag_line, profile_picture, links } = body;
+    const { first_name, last_name, bio, tag_line, profile_picture, photo_override, links } = body;
 
     const updates: Record<string, unknown> = {};
     if (first_name !== undefined) updates.first_name = first_name.trim();
@@ -32,6 +32,7 @@ export async function PUT(
     if (bio !== undefined) updates.bio = bio?.trim() || null;
     if (tag_line !== undefined) updates.tag_line = tag_line?.trim() || null;
     if (profile_picture !== undefined) updates.profile_picture = profile_picture?.trim() || null;
+    if (photo_override !== undefined) updates.photo_override = photo_override?.trim() || null;
     if (links !== undefined) updates.links = links;
 
     const admin = createAdminClient();

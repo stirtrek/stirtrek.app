@@ -137,6 +137,7 @@ export interface Speaker {
   bio: string | null;
   tag_line: string | null;
   profile_picture: string | null;
+  photo_override: string | null;
   is_top_speaker: boolean;
   links: SpeakerLink[];
   sessionize_data: Record<string, unknown> | null;

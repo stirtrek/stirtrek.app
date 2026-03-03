@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (isErrorResponse(auth)) return auth;
 
     const body = await request.json();
-    const { first_name, last_name, bio, tag_line, profile_picture, links } = body;
+    const { first_name, last_name, bio, tag_line, profile_picture, photo_override, links } = body;
 
     if (!first_name?.trim() || !last_name?.trim()) {
       return NextResponse.json(
@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
         bio: bio?.trim() || null,
         tag_line: tag_line?.trim() || null,
         profile_picture: profile_picture?.trim() || null,
+        photo_override: photo_override?.trim() || null,
         is_top_speaker: false,
         links: links ?? [],
         sessionize_data: null,

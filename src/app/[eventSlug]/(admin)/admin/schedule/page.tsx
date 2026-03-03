@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useEvent } from "@/providers/event-provider";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import {
   Edit2,
   ArrowLeft,
   ChevronDown,
+  Upload,
+  X,
 } from "lucide-react";
 import type { SessionizeSyncLog, Speaker, Room } from "@/lib/types";
 import { toast } from "sonner";
@@ -426,6 +428,7 @@ function SpeakersTab({
   eventSlug: string;
   onRefresh: () => void;
 }) {
+  const { event } = useEvent();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
@@ -433,7 +436,10 @@ function SpeakersTab({
   const [bio, setBio] = useState("");
   const [tagLine, setTagLine] = useState("");
   const [pictureUrl, setPictureUrl] = useState("");
+  const [photoOverride, setPhotoOverride] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function resetForm() {
     setFirstName("");
@@ -441,6 +447,7 @@ function SpeakersTab({
     setBio("");
     setTagLine("");
     setPictureUrl("");
+    setPhotoOverride("");
     setEditId(null);
     setShowForm(false);
   }
@@ -451,8 +458,43 @@ function SpeakersTab({
     setBio(speaker.bio ?? "");
     setTagLine(speaker.tag_line ?? "");
     setPictureUrl(speaker.profile_picture ?? "");
+    setPhotoOverride(speaker.photo_override ?? "");
     setEditId(speaker.id);
     setShowForm(true);
+  }
+
+  async function handlePhotoUpload(file: File) {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2MB");
+      return;
+    }
+
+    setUploading(true);
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "png";
+    const fileName = `${event.id}/${crypto.randomUUID()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("speaker-photos")
+      .upload(fileName, file, { upsert: true });
+
+    if (error) {
+      toast.error(`Upload failed: ${error.message}`);
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("speaker-photos")
+      .getPublicUrl(fileName);
+
+    setPhotoOverride(urlData.publicUrl);
+    toast.success("Photo uploaded");
+    setUploading(false);
   }
 
   async function handleSubmit() {
@@ -465,6 +507,7 @@ function SpeakersTab({
       bio: bio || null,
       tag_line: tagLine || null,
       profile_picture: pictureUrl || null,
+      photo_override: photoOverride || null,
     };
 
     const url = editId
@@ -500,6 +543,8 @@ function SpeakersTab({
       toast.error(err.error);
     }
   }
+
+  const previewPhoto = photoOverride || pictureUrl;
 
   return (
     <div className="space-y-3">
@@ -557,7 +602,61 @@ function SpeakersTab({
               />
             </div>
             <div>
-              <Label className="text-xs">Photo URL</Label>
+              <Label className="text-xs">Photo</Label>
+              {previewPhoto ? (
+                <div className="mt-1.5 flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewPhoto}
+                    alt="Speaker photo"
+                    className="h-16 w-16 rounded-full border border-white/10 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhotoOverride("");
+                      setPictureUrl("");
+                    }}
+                    className="text-muted-foreground hover:text-destructive flex items-center gap-1 text-xs"
+                  >
+                    <X className="h-3 w-3" />
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-1.5">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePhotoUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-2 rounded-md border border-dashed border-white/20 px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-white/40 hover:text-white disabled:opacity-50"
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    {uploading ? "Uploading..." : "Upload photo"}
+                  </button>
+                </div>
+              )}
+              <p className="text-muted-foreground mt-1 text-xs">
+                Max 2MB. Or enter a URL below.
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs">Photo URL (fallback)</Label>
               <Input
                 value={pictureUrl}
                 onChange={(e) => setPictureUrl(e.target.value)}

@@ -110,9 +110,9 @@ export default async function SpeakerDetailPage({ params }: PageProps) {
       </div>
 
       <div className="flex items-start gap-4">
-        {s.profile_picture ? (
+        {(s.photo_override || s.profile_picture) ? (
           <Image
-            src={s.profile_picture}
+            src={s.photo_override || s.profile_picture!}
             alt={s.full_name}
             width={80}
             height={80}

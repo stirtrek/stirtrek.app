@@ -18,9 +18,9 @@ export function SpeakerCard({ speaker }: SpeakerCardProps) {
     <Link href={eventPath(`/speakers/${speaker.id}`)}>
       <Card className="py-0 transition-colors hover:bg-accent">
         <CardContent className="flex items-center gap-4 p-4">
-          {speaker.profile_picture ? (
+          {(speaker.photo_override || speaker.profile_picture) ? (
             <Image
-              src={speaker.profile_picture}
+              src={speaker.photo_override || speaker.profile_picture!}
               alt={speaker.full_name}
               width={80}
               height={80}
