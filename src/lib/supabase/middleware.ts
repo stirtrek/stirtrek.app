@@ -75,11 +75,15 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isCustomDomain && event) {
-    return handleCustomDomain(request, event, pathname);
+    const response = await handleCustomDomain(request, event, pathname);
+    response.headers.set("x-debug-mw", `custom:${event.slug}:${pathname}`);
+    return response;
   }
 
   // ── 3. Platform domain: slug-based routing ──
-  return handlePlatformDomain(request, pathname);
+  const response = await handlePlatformDomain(request, pathname);
+  response.headers.set("x-debug-mw", `platform:${hostname}:${pathname}:isPlatform=${isPlatformHost}:foundEvent=${!!event}`);
+  return response;
 }
 
 // ─────────────────────────────────────────────────────
