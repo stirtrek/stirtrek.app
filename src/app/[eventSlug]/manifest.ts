@@ -25,17 +25,17 @@ export default async function manifest({
     icons: event?.logo_url
       ? [
           {
-            src: `/api/apple-touch-icon?slug=${eventSlug}`,
+            src: event.logo_url,
             sizes: "192x192",
             type: "image/png",
           },
           {
-            src: `/api/apple-touch-icon?slug=${eventSlug}`,
+            src: event.logo_url,
             sizes: "512x512",
             type: "image/png",
           },
           {
-            src: `/api/apple-touch-icon?slug=${eventSlug}`,
+            src: event.logo_url,
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",

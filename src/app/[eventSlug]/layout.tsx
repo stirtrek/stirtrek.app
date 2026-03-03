@@ -25,9 +25,9 @@ export async function generateMetadata({
     },
     ...(event.logo_url && {
       icons: {
-        icon: `/api/apple-touch-icon?slug=${eventSlug}`,
+        icon: event.logo_url,
         apple: [
-          { url: `/api/apple-touch-icon?slug=${eventSlug}`, sizes: "180x180", type: "image/png" },
+          { url: event.logo_url },
         ],
       },
     }),
