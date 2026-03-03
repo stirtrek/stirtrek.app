@@ -9,7 +9,7 @@ import { Mail, Loader2, KeyRound } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
-  const { eventPath, accentColor } = useEvent();
+  const { eventSlug, eventPath, accentColor } = useEvent();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -63,6 +63,9 @@ export function LoginForm() {
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
       return;
     }
+
+    // Auto-join the user to this event
+    await fetch(`/${eventSlug}/api/join`, { method: "POST" }).catch(() => {});
 
     // Check if profile is complete (has first/last name)
     const { data: { user } } = await supabase.auth.getUser();
