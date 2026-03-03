@@ -25,17 +25,17 @@ export default async function manifest({
     icons: event?.logo_url
       ? [
           {
-            src: event.logo_url,
+            src: `/${eventSlug}/api/icon`,
             sizes: "192x192",
             type: "image/png",
           },
           {
-            src: event.logo_url,
+            src: `/${eventSlug}/api/icon`,
             sizes: "512x512",
             type: "image/png",
           },
           {
-            src: event.logo_url,
+            src: `/${eventSlug}/api/icon`,
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
