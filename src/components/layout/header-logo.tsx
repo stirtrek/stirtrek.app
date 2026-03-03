@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-
-const STAR_COLORS = ["#c48c2f", "#0169AC", "#8e203a"];
+import { useEventOptional } from "@/providers/event-provider";
 
 const ANIMATIONS = [
   "spin-pop",
@@ -41,23 +40,25 @@ const KEYFRAMES = `
 `;
 
 export function HeaderLogo({ className }: { className?: string }) {
-  const [starColor, setStarColor] = useState(STAR_COLORS[0]);
+  const eventCtx = useEventOptional();
+  const color = eventCtx?.accentColor ?? "#FF3B3B";
+  const [starColor, setStarColor] = useState(color);
   const [anim, setAnim] = useState<string | null>(null);
 
   const triggerAnimation = useCallback(() => {
-    const newColor = STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)];
     const newAnim = ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)];
-    setStarColor(newColor);
     setAnim(newAnim);
-    // Clear animation after it finishes so it can retrigger
     setTimeout(() => setAnim(null), 800);
   }, []);
 
+  // Keep star color in sync with event accent color
   useEffect(() => {
-    // Animate on mount
+    setStarColor(color);
+  }, [color]);
+
+  useEffect(() => {
     triggerAnimation();
 
-    // Then occasionally animate (every 8–15 seconds)
     const schedule = () => {
       const delay = 8000 + Math.random() * 7000;
       return setTimeout(() => {

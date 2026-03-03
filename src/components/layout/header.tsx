@@ -66,7 +66,16 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-md items-center justify-between px-4">
         <Link href={eventPath("/schedule")} aria-label={event.name}>
-          <HeaderLogo className="h-10" />
+          {event.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.logo_url}
+              alt={event.name}
+              className="h-10 w-auto object-contain"
+            />
+          ) : (
+            <HeaderLogo className="h-10" />
+          )}
         </Link>
 
         {pageTitle && (
