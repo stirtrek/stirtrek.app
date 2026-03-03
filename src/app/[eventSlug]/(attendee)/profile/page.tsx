@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [memberRole, setMemberRole] = useState<UserRole>("attendee");
   const [memberIsSponsor, setMemberIsSponsor] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
@@ -51,6 +52,19 @@ export default function ProfilePage() {
       });
   }, [user, eventId, supabase]);
 
+  // Check super admin status
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("is_super_admin")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.is_super_admin) setIsSuperAdmin(true);
+      });
+  }, [user, supabase]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -64,7 +78,7 @@ export default function ProfilePage() {
     return null;
   }
 
-  const isAdmin = memberRole === "admin" || memberRole === "staff";
+  const isAdmin = isSuperAdmin || memberRole === "admin" || memberRole === "staff";
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

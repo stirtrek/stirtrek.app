@@ -33,6 +33,7 @@ export function Header() {
   const { event, eventPath, eventId, hasFeature } = useEvent();
   const pathname = usePathname();
   const [memberRole, setMemberRole] = useState<UserRole>("attendee");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
@@ -48,7 +49,19 @@ export function Header() {
       });
   }, [user, eventId, supabase]);
 
-  const isAdmin = ["admin", "staff"].includes(memberRole);
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("is_super_admin")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.is_super_admin) setIsSuperAdmin(true);
+      });
+  }, [user, supabase]);
+
+  const isAdmin = isSuperAdmin || ["admin", "staff"].includes(memberRole);
   const emergencyHref = isAdmin
     ? eventPath("/admin/emergency")
     : eventPath("/emergency");

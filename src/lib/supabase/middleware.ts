@@ -207,9 +207,18 @@ async function handleCustomDomain(
 
       if (eventPath.startsWith("/admin")) {
         if (!membership || !["admin", "staff"].includes(membership.role)) {
-          const url = request.nextUrl.clone();
-          url.pathname = "/schedule";
-          return NextResponse.redirect(url);
+          // Super admins bypass event membership checks
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_super_admin")
+            .eq("id", user.id)
+            .single();
+
+          if (!profile?.is_super_admin) {
+            const url = request.nextUrl.clone();
+            url.pathname = "/schedule";
+            return NextResponse.redirect(url);
+          }
         }
       }
 
@@ -350,9 +359,18 @@ async function handlePlatformDomain(
 
       if (eventPath.startsWith("/admin")) {
         if (!membership || !["admin", "staff"].includes(membership.role)) {
-          const url = request.nextUrl.clone();
-          url.pathname = `/${eventSlug}/schedule`;
-          return NextResponse.redirect(url);
+          // Super admins bypass event membership checks
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_super_admin")
+            .eq("id", user.id)
+            .single();
+
+          if (!profile?.is_super_admin) {
+            const url = request.nextUrl.clone();
+            url.pathname = `/${eventSlug}/schedule`;
+            return NextResponse.redirect(url);
+          }
         }
       }
 

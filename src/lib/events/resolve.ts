@@ -118,13 +118,32 @@ export async function checkEventAdmin(
     .single();
 
   if (
-    !membership ||
-    !["admin", "staff"].includes(membership.role)
+    membership &&
+    ["admin", "staff"].includes(membership.role)
   ) {
-    return null;
+    return membership as EventMembership;
   }
 
-  return membership as EventMembership;
+  // Super admins have admin access to every event
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.is_super_admin) {
+    return {
+      id: `super-admin-${user.id}`,
+      event_id: eventId,
+      user_id: user.id,
+      role: "admin",
+      is_sponsor: false,
+      sponsor_id: null,
+      joined_at: new Date().toISOString(),
+    } as EventMembership;
+  }
+
+  return null;
 }
 
 /**
@@ -160,6 +179,32 @@ export async function getAuthenticatedUserId(): Promise<string | null> {
     data: { user },
   } = await supabase.auth.getUser();
   return user?.id ?? null;
+}
+
+/**
+ * Ensure the user has an event_memberships row for the given event.
+ * Creates an "attendee" membership if one doesn't already exist.
+ * Called after successful auth to auto-join the user to the event.
+ */
+export async function ensureEventMembership(
+  eventId: string,
+  userId: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("event_memberships")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!existing) {
+    await admin.from("event_memberships").insert({
+      event_id: eventId,
+      user_id: userId,
+      role: "attendee",
+    });
+  }
 }
 
 /**

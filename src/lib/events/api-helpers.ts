@@ -107,11 +107,31 @@ export async function requireEventAdmin(
     .eq("user_id", user.id)
     .single();
 
-  if (!membership || !["admin", "staff"].includes(membership.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (membership && ["admin", "staff"].includes(membership.role)) {
+    return { userId: user.id, membership: membership as EventMembership, event };
   }
 
-  return { userId: user.id, membership: membership as EventMembership, event };
+  // Super admins have admin access to every event
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.is_super_admin) {
+    const syntheticMembership: EventMembership = {
+      id: `super-admin-${user.id}`,
+      event_id: eventId,
+      user_id: user.id,
+      role: "admin",
+      is_sponsor: false,
+      sponsor_id: null,
+      joined_at: new Date().toISOString(),
+    };
+    return { userId: user.id, membership: syntheticMembership, event };
+  }
+
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }
 
 /**
