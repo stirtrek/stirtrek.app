@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     const { data: speaker, error } = await admin
       .from("speakers")
       .insert({
+        id: crypto.randomUUID(),
         event_id: eventId,
         first_name: first_name.trim(),
         last_name: last_name.trim(),
