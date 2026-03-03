@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import type { Profile } from "@/lib/types";
@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialised = useRef(false);
 
   // Only create the client if env vars exist (avoids build-time errors)
   const supabase = useMemo(() => {
@@ -44,48 +45,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const getUser = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setUser(user);
-
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single();
-          setProfile(profile);
-        }
-      } catch (err) {
-        console.error("Auth initialization error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getUser();
-
+    // onAuthStateChange fires INITIAL_SESSION synchronously from local
+    // cookie/storage state — no network call required. This resolves the
+    // loading state immediately so the UI never hangs waiting for a remote
+    // auth check.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
 
-      if (session?.user) {
-        const { data: profile } = await supabase
+      if (currentUser) {
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", session.user.id)
+          .eq("id", currentUser.id)
           .single();
-        setProfile(profile);
+        setProfile(profileData);
       } else {
         setProfile(null);
       }
+
+      // Resolve loading on the very first event (INITIAL_SESSION)
+      if (!initialised.current) {
+        initialised.current = true;
+        setLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout: if auth state hasn't resolved in 5 s, unblock the UI
+    const timeout = setTimeout(() => {
+      if (!initialised.current) {
+        initialised.current = true;
+        console.warn("Auth: INITIAL_SESSION did not fire within 5 s — unblocking UI");
+        setLoading(false);
+      }
+    }, 5000);
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [supabase]);
 
   const signOut = async () => {

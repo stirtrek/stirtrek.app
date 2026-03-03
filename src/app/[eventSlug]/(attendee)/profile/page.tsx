@@ -78,17 +78,19 @@ export default function ProfilePage() {
     checkSuperAdmin();
   }, [user, supabase]);
 
-  if (loading) {
+  // Redirect to login once auth has resolved (or timed out) with no user
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push(eventPath("/login"));
+    }
+  }, [loading, user, router, eventPath]);
+
+  if (loading || !user || !profile) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
-  }
-
-  if (!user || !profile) {
-    router.push(eventPath("/login"));
-    return null;
   }
 
   const isAdmin = isSuperAdmin || memberRole === "admin" || memberRole === "staff";

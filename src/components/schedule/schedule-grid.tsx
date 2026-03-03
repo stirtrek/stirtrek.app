@@ -107,15 +107,6 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
     return counts;
   }, [sessions, bookmarkedIds]);
 
-  // Wait for auth to resolve before rendering the schedule
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   if (sessions.length === 0) {
     return (
       <div className="py-8 text-center">
