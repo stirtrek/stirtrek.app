@@ -1,55 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveEventByDomain } from "@/lib/events/resolve";
 
 /**
- * Diagnostic endpoint: GET /api/debug/domain?d=tkotrivia.com
- * Returns the events table domain column values so you can verify
- * what's stored in the database. Remove this route after debugging.
+ * Diagnostic endpoint that runs in EDGE RUNTIME (same as middleware).
+ * GET /api/debug/domain?d=tkotrivia.com
+ * Remove this route after debugging.
  */
+export const runtime = "edge";
+
 export async function GET(request: NextRequest) {
-  const admin = createAdminClient();
-
-  // Show all events with their domain values
-  const { data: events, error } = await admin
-    .from("events")
-    .select("id, slug, name, domain, is_active");
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  // Also try to resolve a specific domain if provided
-  const testDomain = request.nextUrl.searchParams.get("d");
-  let resolution = null;
-  if (testDomain) {
-    const { data, error: resError } = await admin
-      .from("events")
-      .select("id, slug, name, domain, is_active")
-      .eq("domain", testDomain)
-      .eq("is_active", true)
-      .single();
-    resolution = {
-      queriedDomain: testDomain,
-      found: !!data,
-      event: data,
-      error: resError?.message ?? null,
-      errorCode: resError?.code ?? null,
-    };
-  }
-
-  // Also show the request host header for comparison
+  const testDomain = request.nextUrl.searchParams.get("d") || "tkotrivia.com";
   const host = request.headers.get("host") || "(none)";
 
+  // Check env vars availability in Edge Runtime
+  const hasSupabaseUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const hasSecretKey = !!process.env.SUPABASE_SECRET_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "(not set)";
+
+  // Test direct fetch (same as queryEvents uses)
+  let directFetchResult: unknown = null;
+  let directFetchError: string | null = null;
+  try {
+    const key = process.env.SUPABASE_SECRET_KEY!;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const fetchUrl = `${url}/rest/v1/events?domain=eq.${encodeURIComponent(testDomain)}&is_active=eq.true&limit=1`;
+
+    const res = await fetch(fetchUrl, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      directFetchError = `HTTP ${res.status}: ${await res.text()}`;
+    } else {
+      directFetchResult = await res.json();
+    }
+  } catch (err) {
+    directFetchError = err instanceof Error ? err.message : String(err);
+  }
+
+  // Test resolveEventByDomain (the actual function middleware uses)
+  let resolveResult: unknown = null;
+  let resolveError: string | null = null;
+  try {
+    const event = await resolveEventByDomain(testDomain);
+    resolveResult = event ? { slug: event.slug, domain: event.domain, id: event.id } : null;
+  } catch (err) {
+    resolveError = err instanceof Error ? err.message : String(err);
+  }
+
   return NextResponse.json({
+    runtime: "edge",
     host,
-    events: events?.map((e) => ({
-      slug: e.slug,
-      domain: e.domain,
-      is_active: e.is_active,
-      domainType: typeof e.domain,
-      domainLength: e.domain?.length ?? 0,
-      domainChars: e.domain ? [...e.domain].map(c => c.charCodeAt(0)) : [],
-    })),
-    resolution,
+    testDomain,
+    envVars: { hasSupabaseUrl, hasSecretKey, supabaseUrl },
+    directFetch: { result: directFetchResult, error: directFetchError },
+    resolveEventByDomain: { result: resolveResult, error: resolveError },
   });
 }
