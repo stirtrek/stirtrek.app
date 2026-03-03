@@ -474,27 +474,32 @@ function SpeakersTab({
     }
 
     setUploading(true);
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() || "png";
-    const fileName = `${event.id}/${crypto.randomUUID()}.${ext}`;
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() || "png";
+      const fileName = `${event.id}/${crypto.randomUUID()}.${ext}`;
 
-    const { error } = await supabase.storage
-      .from("speaker-photos")
-      .upload(fileName, file, { upsert: true });
+      const { error } = await supabase.storage
+        .from("speaker-photos")
+        .upload(fileName, file, { upsert: true });
 
-    if (error) {
-      toast.error(`Upload failed: ${error.message}`);
+      if (error) {
+        toast.error(`Upload failed: ${error.message}`);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("speaker-photos")
+        .getPublicUrl(fileName);
+
+      setPhotoOverride(urlData.publicUrl);
+      toast.success("Photo uploaded");
+    } catch (err) {
+      console.error("Photo upload error:", err);
+      toast.error(`Upload failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
       setUploading(false);
-      return;
     }
-
-    const { data: urlData } = supabase.storage
-      .from("speaker-photos")
-      .getPublicUrl(fileName);
-
-    setPhotoOverride(urlData.publicUrl);
-    toast.success("Photo uploaded");
-    setUploading(false);
   }
 
   async function handleSubmit() {

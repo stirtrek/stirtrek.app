@@ -83,27 +83,32 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
     }
 
     setUploading(true);
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() || "png";
-    const fileName = `${slug || "event"}-${Date.now()}.${ext}`;
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() || "png";
+      const fileName = `${slug || "event"}-${Date.now()}.${ext}`;
 
-    const { error } = await supabase.storage
-      .from("event-logos")
-      .upload(fileName, file, { upsert: true });
+      const { error } = await supabase.storage
+        .from("event-logos")
+        .upload(fileName, file, { upsert: true });
 
-    if (error) {
-      toast.error(`Upload failed: ${error.message}`);
+      if (error) {
+        toast.error(`Upload failed: ${error.message}`);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("event-logos")
+        .getPublicUrl(fileName);
+
+      setLogoUrl(urlData.publicUrl);
+      toast.success("Logo uploaded");
+    } catch (err) {
+      console.error("Logo upload error:", err);
+      toast.error(`Upload failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
       setUploading(false);
-      return;
     }
-
-    const { data: urlData } = supabase.storage
-      .from("event-logos")
-      .getPublicUrl(fileName);
-
-    setLogoUrl(urlData.publicUrl);
-    toast.success("Logo uploaded");
-    setUploading(false);
   }
 
   function toggleFlag(key: keyof EventFeatureFlags) {
