@@ -120,7 +120,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const hasBookmarks = bookmarkedIds.size > 0;
 
   // Logged-out: show read-only schedule with time chips, no tabs
-  if (!user) {
+  if (!authLoading && !user) {
     return (
       <div className="space-y-0">
         <div className="sticky top-14 z-20 -mx-4 bg-background/95 px-4 pb-2 pt-2 backdrop-blur">

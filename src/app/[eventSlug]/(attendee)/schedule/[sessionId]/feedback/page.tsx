@@ -19,7 +19,7 @@ export default function FeedbackPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
   const { event, eventPath } = useEvent();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const supabase = createClient();
 
   const { getNow } = useSimulatedTime();
@@ -83,6 +83,14 @@ export default function FeedbackPage() {
     }
     setSubmitting(false);
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (

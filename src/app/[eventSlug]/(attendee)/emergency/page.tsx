@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import type { EmergencyMessageWithReplies } from "@/lib/types";
 
 export default function EmergencyPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { eventSlug } = useEvent();
   const { markRepliesRead, refreshCount } = useNotifications();
   const [messages, setMessages] = useState<EmergencyMessageWithReplies[]>([]);
@@ -136,6 +136,15 @@ export default function EmergencyPage() {
       supabase.removeChannel(channel);
     };
   }, [user, supabase, fetchMessages, refreshCount]);
+
+  if (authLoading) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">Feedback & Concerns</h1>
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
