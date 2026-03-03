@@ -93,8 +93,8 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push(eventPath("/"));
-    router.refresh();
+    // Hard navigation to fully clear cookies and server-side session
+    window.location.href = "/";
   };
 
   return (
