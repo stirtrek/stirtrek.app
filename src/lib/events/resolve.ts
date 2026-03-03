@@ -9,6 +9,38 @@ const domainCache = new Map<string, { event: Event | null; expiresAt: number }>(
 const CACHE_TTL_MS = 60_000; // 1 minute
 
 /**
+ * Query the events table via Supabase REST API using fetch directly.
+ * This is used by resolveEvent and resolveEventByDomain which run in
+ * Next.js middleware (Edge Runtime). The @supabase/supabase-js client
+ * can fail silently in Edge Runtime, so we use raw fetch instead.
+ */
+async function queryEvents(
+  filter: string,
+): Promise<Event | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SECRET_KEY!;
+
+  const res = await fetch(
+    `${url}/rest/v1/events?${filter}&is_active=eq.true&limit=1`,
+    {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        Accept: "application/json",
+      },
+    },
+  );
+
+  if (!res.ok) {
+    console.error("[queryEvents] HTTP error:", res.status, await res.text());
+    return null;
+  }
+
+  const rows = await res.json();
+  return rows.length > 0 ? (rows[0] as Event) : null;
+}
+
+/**
  * Resolve an event by its slug. Uses a short-lived in-memory cache.
  * Returns null if not found or inactive.
  */
@@ -18,22 +50,16 @@ export async function resolveEvent(slug: string): Promise<Event | null> {
     return cached.event;
   }
 
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("events")
-    .select("*")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .single();
+  const event = await queryEvents(`slug=eq.${encodeURIComponent(slug)}`);
 
-  if (data) {
+  if (event) {
     eventCache.set(slug, {
-      event: data as Event,
+      event,
       expiresAt: Date.now() + CACHE_TTL_MS,
     });
   }
 
-  return (data as Event) ?? null;
+  return event;
 }
 
 /**
@@ -52,24 +78,8 @@ export async function resolveEventByDomain(
     return cached.event;
   }
 
-  console.log("[resolveEventByDomain] Looking up domain:", domain);
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("events")
-    .select("*")
-    .eq("domain", domain)
-    .eq("is_active", true)
-    .single();
+  const event = await queryEvents(`domain=eq.${encodeURIComponent(domain)}`);
 
-  console.log("[resolveEventByDomain] Result:", {
-    domain,
-    found: !!data,
-    slug: data?.slug,
-    error: error?.message ?? null,
-    errorCode: error?.code ?? null,
-  });
-
-  const event = (data as Event) ?? null;
   domainCache.set(domain, {
     event,
     expiresAt: Date.now() + CACHE_TTL_MS,

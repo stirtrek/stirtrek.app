@@ -69,7 +69,6 @@ export async function updateSession(request: NextRequest) {
 
   if (!isPlatformHost) {
     event = await resolveEventByDomain(host);
-    console.log("[middleware] Domain resolution:", { host, hostname, isPlatformHost, foundEvent: !!event, eventSlug: event?.slug });
     if (event) {
       isCustomDomain = true;
     }
