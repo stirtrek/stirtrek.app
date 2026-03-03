@@ -36,24 +36,28 @@ export default function CompleteProfilePage() {
     setLoading(true);
     setError(null);
 
-    const res = await fetch("/api/profile/complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        first_name: firstName,
-        last_name: lastName,
-      }),
-    });
+    try {
+      const res = await fetch("/api/profile/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+        }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || "Something went wrong");
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Something went wrong");
+        setLoading(false);
+        return;
+      }
+
+      router.replace(eventPath("/schedule"));
+    } catch {
+      setError("Something went wrong");
       setLoading(false);
-      return;
     }
-
-    router.push(eventPath("/schedule"));
-    router.refresh();
   };
 
   return (

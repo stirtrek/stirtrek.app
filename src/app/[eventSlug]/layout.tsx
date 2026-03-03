@@ -18,6 +18,12 @@ export async function generateMetadata({
       template: `%s | ${event.name}`,
     },
     description: event.description ?? `${event.name} - Conference App`,
+    ...(event.logo_url && {
+      icons: {
+        icon: event.logo_url,
+        apple: event.logo_url,
+      },
+    }),
   };
 }
 
