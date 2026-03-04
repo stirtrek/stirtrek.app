@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import { Loader2, Upload, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,24 +82,23 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
 
     setUploading(true);
     try {
-      const supabase = createClient();
-      const ext = file.name.split(".").pop() || "png";
-      const fileName = `${slug || "event"}-${Date.now()}.${ext}`;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("slug", slug || "event");
 
-      const { error } = await supabase.storage
-        .from("event-logos")
-        .upload(fileName, file, { upsert: true });
+      const res = await fetch("/api/super-admin/upload-logo", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (error) {
-        toast.error(`Upload failed: ${error.message}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(`Upload failed: ${data.error}`);
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from("event-logos")
-        .getPublicUrl(fileName);
-
-      setLogoUrl(urlData.publicUrl);
+      setLogoUrl(data.url);
       toast.success("Logo uploaded");
     } catch (err) {
       console.error("Logo upload error:", err);
