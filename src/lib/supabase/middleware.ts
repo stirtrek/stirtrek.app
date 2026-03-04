@@ -392,7 +392,7 @@ async function handlePlatformDomain(
 async function handleGlobalRoute(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  createServerClient(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
@@ -412,6 +412,9 @@ async function handleGlobalRoute(request: NextRequest) {
       },
     }
   );
+
+  // Must call getUser() to trigger session refresh and cookie update
+  await supabase.auth.getUser();
 
   return supabaseResponse;
 }

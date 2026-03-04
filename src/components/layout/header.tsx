@@ -112,15 +112,11 @@ export function Header() {
               </Button>
             </Link>
           )}
-          {user ? (
-            <Link href={eventPath("/profile")}>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
-          ) : (
-            <div className="h-8 w-8" />
-          )}
+          <Link href={user ? eventPath("/profile") : eventPath("/login")}>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <User className="h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </div>
     </header>

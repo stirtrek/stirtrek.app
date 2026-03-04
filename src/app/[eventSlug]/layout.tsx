@@ -23,14 +23,12 @@ export async function generateMetadata({
       statusBarStyle: "default",
       title: event.short_name ?? event.name,
     },
-    ...(event.logo_url && {
-      icons: {
-        icon: event.logo_url,
-        apple: [
-          { url: event.logo_url },
-        ],
-      },
-    }),
+    icons: {
+      icon: event.logo_url || "/icons/icon-192x192.png",
+      apple: [
+        { url: event.logo_url || "/icons/icon-192x192.png" },
+      ],
+    },
   };
 }
 

@@ -27,17 +27,17 @@ export default async function manifest({
           {
             src: event.logo_url,
             sizes: "192x192",
-            type: "image/png",
+            type: event.logo_url.endsWith(".svg") ? "image/svg+xml" : "image/png",
           },
           {
             src: event.logo_url,
             sizes: "512x512",
-            type: "image/png",
+            type: event.logo_url.endsWith(".svg") ? "image/svg+xml" : "image/png",
           },
           {
             src: event.logo_url,
             sizes: "512x512",
-            type: "image/png",
+            type: event.logo_url.endsWith(".svg") ? "image/svg+xml" : "image/png",
             purpose: "maskable",
           },
         ]
