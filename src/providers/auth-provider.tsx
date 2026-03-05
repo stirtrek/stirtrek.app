@@ -70,6 +70,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
           profileRef.current = profileData;
           setProfile(profileData);
+
+          // If profile fetch failed (e.g. token mid-refresh), retry in background
+          if (!profileData) {
+            (async () => {
+              for (const delay of [500, 2000]) {
+                await new Promise((r) => setTimeout(r, delay));
+                if (profileRef.current || currentUserId.current !== newUser.id) return;
+                const { data } = await supabase
+                  .from("profiles")
+                  .select("*")
+                  .eq("id", newUser.id)
+                  .single();
+                if (data) {
+                  profileRef.current = data;
+                  setProfile(data);
+                  return;
+                }
+              }
+            })();
+          }
         } else {
           profileRef.current = null;
           setProfile(null);

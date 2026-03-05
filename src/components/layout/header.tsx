@@ -42,7 +42,7 @@ export function Header() {
       .select("role")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         if (data) setMemberRole(data.role);
       });

@@ -41,16 +41,12 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user || !eventId) return;
     async function fetchMembership() {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("event_memberships")
         .select("role, is_sponsor, sponsor_id")
         .eq("event_id", eventId)
         .eq("user_id", user!.id)
-        .single();
-      if (error) {
-        console.error("Membership fetch error:", error);
-        return;
-      }
+        .maybeSingle();
       if (data) {
         setMemberRole(data.role);
         setMemberIsSponsor(data.is_sponsor);
