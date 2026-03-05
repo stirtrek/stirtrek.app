@@ -351,6 +351,8 @@ function RoomsTab({
 }) {
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
 
   async function addRoom() {
     if (!newName.trim()) return;
@@ -369,6 +371,23 @@ function RoomsTab({
       toast.error(err.error);
     }
     setSaving(false);
+  }
+
+  async function renameRoom(id: number) {
+    if (!editName.trim()) return;
+    const res = await fetch(`/${eventSlug}/api/admin/rooms/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName.trim() }),
+    });
+    if (res.ok) {
+      toast.success("Room renamed");
+      setEditingId(null);
+      onRefresh();
+    } else {
+      const err = await res.json();
+      toast.error(err.error);
+    }
   }
 
   async function deleteRoom(id: number) {
@@ -408,13 +427,61 @@ function RoomsTab({
               key={room.id}
               className="flex items-center justify-between rounded-md border px-3 py-2"
             >
-              <span className="text-sm">{room.name}</span>
-              <button
-                onClick={() => deleteRoom(room.id)}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {editingId === room.id ? (
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") renameRoom(room.id);
+                    if (e.key === "Escape") setEditingId(null);
+                  }}
+                  autoFocus
+                  className="mr-2 h-7 text-sm"
+                />
+              ) : (
+                <span className="text-sm">{room.name}</span>
+              )}
+              <div className="flex gap-1">
+                {editingId === room.id ? (
+                  <>
+                    <Button
+                      onClick={() => renameRoom(room.id)}
+                      disabled={!editName.trim()}
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      onClick={() => setEditingId(null)}
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditingId(room.id);
+                        setEditName(room.name);
+                      }}
+                      className="text-muted-foreground hover:text-foreground p-1"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => deleteRoom(room.id)}
+                      className="text-muted-foreground hover:text-destructive p-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
