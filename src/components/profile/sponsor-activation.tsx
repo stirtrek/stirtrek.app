@@ -19,7 +19,7 @@ import type { Sponsor } from "@/lib/types";
 
 export function SponsorActivation() {
   const { refreshProfile } = useAuth();
-  const { eventSlug } = useEvent();
+  const { event, eventSlug } = useEvent();
   const [expanded, setExpanded] = useState(false);
   const [code, setCode] = useState("");
   const [sponsorId, setSponsorId] = useState<string | undefined>(undefined);
@@ -79,8 +79,8 @@ export function SponsorActivation() {
         {expanded && (
           <form onSubmit={handleActivate} className="mt-4 space-y-3">
             <p className="text-xs text-muted-foreground">
-              Select your company and enter the access code provided by the Stir
-              Trek team to unlock badge scanning.
+              Select your company and enter the access code provided by the{" "}
+              {event.name} team to unlock badge scanning.
             </p>
             <Select
               value={sponsorId}

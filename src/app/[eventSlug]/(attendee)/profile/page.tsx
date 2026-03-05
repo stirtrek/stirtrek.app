@@ -35,6 +35,22 @@ export default function ProfilePage() {
     }
   }, [profile]);
 
+  // Fallback: if auth provider didn't load the profile, fetch it directly
+  useEffect(() => {
+    if (profile || loading || !user) return;
+    supabase
+      .from("profiles")
+      .select("first_name, last_name")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setFirstName(data.first_name || "");
+          setLastName(data.last_name || "");
+        }
+      });
+  }, [profile, loading, user, supabase]);
+
   // Fetch event membership for role / is_sponsor
   // profile is included so refreshProfile() (called after sponsor
   // activate/deactivate) triggers a re-fetch of membership status.
