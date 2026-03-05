@@ -556,7 +556,7 @@ function SpeakersTab({
 
       const { error } = await supabase.storage
         .from("speaker-photos")
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file);
 
       if (error) {
         toast.error(`Upload failed: ${error.message}`);
