@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const initialised = useRef(false);
   const currentUserId = useRef<string | null>(null);
+  const profileRef = useRef<Profile | null>(null);
 
   // Only create the client if env vars exist (avoids build-time errors)
   const supabase = useMemo(() => {
@@ -67,9 +68,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .select("*")
             .eq("id", newUser.id)
             .single();
+          profileRef.current = profileData;
           setProfile(profileData);
         } else {
+          profileRef.current = null;
           setProfile(null);
+        }
+      } else if (newUser && !profileRef.current) {
+        // Profile fetch failed earlier (e.g. token was mid-refresh) — retry
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", newUser.id)
+          .single();
+        if (profileData) {
+          profileRef.current = profileData;
+          setProfile(profileData);
         }
       }
 
@@ -100,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase.auth.signOut();
     }
     setUser(null);
+    profileRef.current = null;
     setProfile(null);
   };
 
@@ -110,7 +125,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select("*")
       .eq("id", user.id)
       .single();
-    if (data) setProfile(data);
+    if (data) {
+      profileRef.current = data;
+      setProfile(data);
+    }
   };
 
   return (

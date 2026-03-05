@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToUser, sendPushToAdmins } from "@/lib/push";
 import { getTelemetryService } from "@/lib/telemetry/service";
 import {
@@ -38,8 +39,11 @@ export async function POST(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      // Verify the message exists and the user is either admin/staff or the message owner
-      const { data: message } = await supabase
+      // Use admin client for lookup — auth is already verified by
+      // requireEventAdmin above, and the user-scoped client's RLS
+      // doesn't account for super-admins without an event_memberships row.
+      const admin = createAdminClient();
+      const { data: message } = await admin
         .from("emergency_messages")
         .select("id, user_id")
         .eq("id", messageId)
@@ -76,7 +80,7 @@ export async function POST(
         );
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await admin
         .from("emergency_replies")
         .insert({
           message_id: messageId,

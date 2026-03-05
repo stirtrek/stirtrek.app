@@ -5,6 +5,7 @@ import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/providers/notification-provider";
 import { useAuth } from "@/providers/auth-provider";
+import { toast } from "sonner";
 
 const DISMISSED_KEY = "push-prompt-dismissed";
 
@@ -25,9 +26,25 @@ export function PushPrompt() {
   const handleEnable = async () => {
     setSubscribing(true);
     try {
-      await subscribeToPush();
+      const result = await subscribeToPush();
+      switch (result) {
+        case "subscribed":
+          toast.success("Notifications enabled!");
+          break;
+        case "denied":
+          toast.error(
+            "Notifications are blocked. Please enable them in your browser or device settings, then try again."
+          );
+          break;
+        case "dismissed":
+          toast.info("You need to allow notifications when prompted.");
+          break;
+        case "error":
+          toast.error("Something went wrong. Please try again.");
+          break;
+      }
     } catch {
-      // Permission denied or failed
+      toast.error("Failed to enable notifications. Please try again.");
     }
     setSubscribing(false);
   };

@@ -28,12 +28,11 @@ const PAGE_TITLE_MAP: Record<string, string> = {
 };
 
 export function Header() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { unreadCount } = useNotifications();
   const { event, eventPath, eventId, hasFeature } = useEvent();
   const pathname = usePathname();
   const [memberRole, setMemberRole] = useState<UserRole>("attendee");
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
@@ -47,21 +46,9 @@ export function Header() {
       .then(({ data }) => {
         if (data) setMemberRole(data.role);
       });
-  }, [user, eventId, supabase]);
+  }, [user, eventId, supabase, profile]);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("is_super_admin")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.is_super_admin) setIsSuperAdmin(true);
-      });
-  }, [user, supabase]);
-
-  const isAdmin = isSuperAdmin || ["admin", "staff"].includes(memberRole);
+  const isAdmin = profile?.is_super_admin || ["admin", "staff"].includes(memberRole);
   const emergencyHref = isAdmin
     ? eventPath("/admin/emergency")
     : eventPath("/emergency");

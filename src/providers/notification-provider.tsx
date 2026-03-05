@@ -18,7 +18,7 @@ interface NotificationContextValue {
   loading: boolean;
   pushSupported: boolean;
   pushSubscribed: boolean;
-  subscribeToPush: () => Promise<void>;
+  subscribeToPush: () => Promise<"subscribed" | "denied" | "dismissed" | "unsupported" | "error">;
   updateMessageStatus: (messageId: string, status: EmergencyMessageStatus) => Promise<void>;
   markRepliesRead: (replyIds: string[]) => Promise<void>;
   refreshCount: () => Promise<void>;
@@ -29,7 +29,7 @@ const NotificationContext = createContext<NotificationContextValue>({
   loading: true,
   pushSupported: false,
   pushSubscribed: false,
-  subscribeToPush: async () => {},
+  subscribeToPush: async () => "unsupported" as const,
   updateMessageStatus: async () => {},
   markRepliesRead: async () => {},
   refreshCount: async () => {},
@@ -156,16 +156,25 @@ export function NotificationProvider({
     });
   }, [pushSupported, user, eventSlug]);
 
-  // Subscribe to push notifications
-  const subscribeToPush = useCallback(async () => {
-    if (!pushSupported) return;
+  // Subscribe to push notifications.
+  // Returns a status string so the UI can give appropriate feedback.
+  const subscribeToPush = useCallback(async (): Promise<
+    "subscribed" | "denied" | "dismissed" | "unsupported" | "error"
+  > => {
+    if (!pushSupported) return "unsupported";
+
+    // Check if permission was previously hard-denied (browser/OS level).
+    // In this state requestPermission() returns "denied" instantly with
+    // no dialog, so the user has no idea what went wrong.
+    if (Notification.permission === "denied") return "denied";
 
     const permission = await Notification.requestPermission();
-    if (permission !== "granted") return;
+    if (permission === "denied") return "denied";
+    if (permission !== "granted") return "dismissed";
 
     const reg = await navigator.serviceWorker.ready;
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidKey) return;
+    if (!vapidKey) return "error";
 
     const subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
@@ -183,6 +192,7 @@ export function NotificationProvider({
     });
 
     setPushSubscribed(true);
+    return "subscribed";
   }, [pushSupported, eventSlug]);
 
   // Realtime subscriptions
