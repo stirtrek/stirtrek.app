@@ -236,7 +236,7 @@ function SponsorsTab({
 
       const { error } = await supabase.storage
         .from("sponsor-logos")
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file);
 
       if (error) {
         toast.error(`Upload failed: ${error.message}`);

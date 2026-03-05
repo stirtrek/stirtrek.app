@@ -125,6 +125,10 @@ export default function AdminEmergencyPage() {
         <h1 className="text-lg font-semibold">Feedback & Concerns</h1>
       </div>
 
+      <p className="text-sm text-muted-foreground">
+        Users can only see messages they send, and replies to those messages.
+      </p>
+
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg bg-muted p-1">
         <button
