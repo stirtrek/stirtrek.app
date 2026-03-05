@@ -44,15 +44,13 @@ function getSenderName(message: EmergencyMessageWithReplies) {
 
 function getReplySenderLabel(reply: EmergencyMessageWithReplies["replies"][0]) {
   const s = reply.reply_sender;
-  if (!s) return "Staff";
+  if (!s) return "Unknown";
   const isStaff = s.role === "admin" || s.role === "staff";
-  if (s.first_name && s.last_name) {
-    return isStaff ? `${s.first_name} ${s.last_name} (Staff)` : "You";
-  }
-  if (s.display_name) {
-    return isStaff ? `${s.display_name} (Staff)` : "You";
-  }
-  return isStaff ? "Staff" : "You";
+  const name =
+    s.first_name && s.last_name
+      ? `${s.first_name} ${s.last_name}`
+      : s.display_name || s.email;
+  return isStaff ? `${name} (Staff)` : name;
 }
 
 // ─── Admin view ────────────────────────────────────────────────
