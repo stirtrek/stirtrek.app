@@ -54,17 +54,37 @@ export async function GET(request: NextRequest) {
       const replySenderIds = [
         ...new Set((replies ?? []).map((r) => r.sender_id)),
       ];
-      const { data: replySenderProfiles } =
+      const [{ data: replySenderProfiles }, { data: replySenderMemberships }] =
         replySenderIds.length > 0
-          ? await admin
-              .from("profiles")
-              .select("id, display_name, first_name, last_name, email, role")
-              .in("id", replySenderIds)
-          : { data: [] };
+          ? await Promise.all([
+              admin
+                .from("profiles")
+                .select("id, display_name, first_name, last_name, email, is_super_admin")
+                .in("id", replySenderIds),
+              admin
+                .from("event_memberships")
+                .select("user_id, role")
+                .eq("event_id", eventId)
+                .in("user_id", replySenderIds),
+            ])
+          : [{ data: [] }, { data: [] }];
+
+      const membershipRoleMap = new Map(
+        (replySenderMemberships ?? []).map((m) => [m.user_id, m.role]),
+      );
 
       const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
       const replySenderMap = new Map(
-        (replySenderProfiles ?? []).map((p) => [p.id, p]),
+        (replySenderProfiles ?? []).map((p) => [
+          p.id,
+          {
+            display_name: p.display_name,
+            first_name: p.first_name,
+            last_name: p.last_name,
+            email: p.email,
+            role: membershipRoleMap.get(p.id) ?? (p.is_super_admin ? "admin" : "attendee"),
+          },
+        ]),
       );
 
       const enriched = (messages ?? []).map((m) => {
@@ -128,16 +148,36 @@ export async function GET(request: NextRequest) {
     const replySenderIds = [
       ...new Set((replies ?? []).map((r) => r.sender_id)),
     ];
-    const { data: replySenderProfiles } =
+    const [{ data: replySenderProfiles }, { data: replySenderMemberships }] =
       replySenderIds.length > 0
-        ? await admin
-            .from("profiles")
-            .select("id, display_name, first_name, last_name, email, role")
-            .in("id", replySenderIds)
-        : { data: [] };
+        ? await Promise.all([
+            admin
+              .from("profiles")
+              .select("id, display_name, first_name, last_name, email, is_super_admin")
+              .in("id", replySenderIds),
+            admin
+              .from("event_memberships")
+              .select("user_id, role")
+              .eq("event_id", eventId)
+              .in("user_id", replySenderIds),
+          ])
+        : [{ data: [] }, { data: [] }];
+
+    const membershipRoleMap = new Map(
+      (replySenderMemberships ?? []).map((m) => [m.user_id, m.role]),
+    );
 
     const replySenderMap = new Map(
-      (replySenderProfiles ?? []).map((p) => [p.id, p]),
+      (replySenderProfiles ?? []).map((p) => [
+        p.id,
+        {
+          display_name: p.display_name,
+          first_name: p.first_name,
+          last_name: p.last_name,
+          email: p.email,
+          role: membershipRoleMap.get(p.id) ?? (p.is_super_admin ? "admin" : "attendee"),
+        },
+      ]),
     );
 
     const enriched = (messages ?? []).map((m) => ({
