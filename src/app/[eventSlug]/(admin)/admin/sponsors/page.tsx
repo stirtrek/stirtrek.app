@@ -357,6 +357,17 @@ function SponsorsTab({
             </div>
             <div>
               <Label className="text-xs">Logo</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleLogoUpload(file);
+                  e.target.value = "";
+                }}
+              />
               {logoUrl ? (
                 <div className="mt-1.5 flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -365,28 +376,32 @@ function SponsorsTab({
                     alt="Sponsor logo"
                     className="h-16 w-16 rounded border border-white/10 bg-white object-contain p-1"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setLogoUrl("")}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                    Remove
-                  </button>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Upload className="h-3 w-3" />
+                      )}
+                      {uploading ? "Uploading..." : "Replace"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl("")}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-1.5">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleLogoUpload(file);
-                      e.target.value = "";
-                    }}
-                  />
                   <button
                     type="button"
                     disabled={uploading}

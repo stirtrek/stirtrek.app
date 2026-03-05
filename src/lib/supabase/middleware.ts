@@ -48,6 +48,24 @@ const LEGACY_PATHS = [
   "/profile/complete",
 ];
 
+/**
+ * Create a redirect that preserves any auth cookies set during this
+ * middleware run (e.g. refreshed access/refresh tokens). Without this,
+ * a token refresh followed by a redirect would drop the new cookies,
+ * and the browser would follow the redirect with stale tokens —
+ * causing the user to appear logged-out.
+ */
+function redirectWithCookies(
+  url: URL,
+  supabaseResponse: NextResponse,
+): NextResponse {
+  const redirect = NextResponse.redirect(url);
+  for (const cookie of supabaseResponse.cookies.getAll()) {
+    redirect.cookies.set(cookie);
+  }
+  return redirect;
+}
+
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -160,13 +178,13 @@ async function handleCustomDomain(
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, supabaseResponse);
   }
 
   if (user && (eventPath === "/" || eventPath === "/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/schedule";
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, supabaseResponse);
   }
 
   // Profile + role checks
@@ -193,7 +211,7 @@ async function handleCustomDomain(
     ) {
       const url = request.nextUrl.clone();
       url.pathname = "/profile/complete";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, supabaseResponse);
     }
 
     if (eventPath.startsWith("/admin") || eventPath.startsWith("/leads")) {
@@ -216,7 +234,7 @@ async function handleCustomDomain(
           if (!profile?.is_super_admin) {
             const url = request.nextUrl.clone();
             url.pathname = "/schedule";
-            return NextResponse.redirect(url);
+            return redirectWithCookies(url, supabaseResponse);
           }
         }
       }
@@ -225,7 +243,7 @@ async function handleCustomDomain(
         if (!membership?.is_sponsor) {
           const url = request.nextUrl.clone();
           url.pathname = "/schedule";
-          return NextResponse.redirect(url);
+          return redirectWithCookies(url, supabaseResponse);
         }
       }
     }
@@ -313,13 +331,13 @@ async function handlePlatformDomain(
     const url = request.nextUrl.clone();
     url.pathname = `/${eventSlug}/login`;
     url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, supabaseResponse);
   }
 
   if (user && (eventPath === "" || eventPath === "/" || eventPath === "/login")) {
     const url = request.nextUrl.clone();
     url.pathname = `/${eventSlug}/schedule`;
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, supabaseResponse);
   }
 
   if (
@@ -345,7 +363,7 @@ async function handlePlatformDomain(
     ) {
       const url = request.nextUrl.clone();
       url.pathname = `/${eventSlug}/profile/complete`;
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, supabaseResponse);
     }
 
     if (event && (eventPath.startsWith("/admin") || eventPath.startsWith("/leads"))) {
@@ -368,7 +386,7 @@ async function handlePlatformDomain(
           if (!profile?.is_super_admin) {
             const url = request.nextUrl.clone();
             url.pathname = `/${eventSlug}/schedule`;
-            return NextResponse.redirect(url);
+            return redirectWithCookies(url, supabaseResponse);
           }
         }
       }
@@ -377,7 +395,7 @@ async function handlePlatformDomain(
         if (!membership?.is_sponsor) {
           const url = request.nextUrl.clone();
           url.pathname = `/${eventSlug}/schedule`;
-          return NextResponse.redirect(url);
+          return redirectWithCookies(url, supabaseResponse);
         }
       }
     }
