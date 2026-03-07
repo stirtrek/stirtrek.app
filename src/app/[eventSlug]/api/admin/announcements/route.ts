@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
       const { data: announcements, error } = await admin
         .from("announcements")
-        .select("id, message, status, created_by, sent_at, created_at")
+        .select("id, message, status, created_by, sent_at, scheduled_for, created_at")
         .eq("event_id", eventId)
         .order("created_at", { ascending: false });
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       if (isErrorResponse(auth)) return auth;
 
       const body = await request.json();
-      const { message, send_now } = body;
+      const { message, send_now, scheduled_for } = body;
 
       if (!message?.trim()) {
         return NextResponse.json(
@@ -62,11 +62,15 @@ export async function POST(request: NextRequest) {
         event_id: eventId,
         message: message.trim(),
         created_by: auth.userId,
-        status: send_now ? "sent" : "draft",
+        status: send_now ? "sent" : scheduled_for ? "scheduled" : "draft",
       };
 
       if (send_now) {
         insertData.sent_at = now;
+      }
+
+      if (scheduled_for && !send_now) {
+        insertData.scheduled_for = scheduled_for;
       }
 
       const { data: announcement, error } = await admin

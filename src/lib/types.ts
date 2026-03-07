@@ -22,7 +22,7 @@ export interface SponsorTierConfig {
 }
 export type PollStatus = "draft" | "active" | "closed";
 export type FeedbackRating = "red" | "yellow" | "green";
-export type AnnouncementStatus = "draft" | "sent";
+export type AnnouncementStatus = "draft" | "scheduled" | "sent";
 export type SyncStatus = "pending" | "in_progress" | "completed" | "failed";
 
 // ============================================================
@@ -334,6 +334,7 @@ export interface Announcement {
   status: AnnouncementStatus;
   created_by: string;
   sent_at: string | null;
+  scheduled_for: string | null;
   created_at: string;
   updated_at: string;
 }

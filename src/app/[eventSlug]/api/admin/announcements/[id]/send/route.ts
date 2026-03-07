@@ -38,7 +38,7 @@ export async function POST(
         );
       }
 
-      if (announcement.status !== "draft") {
+      if (announcement.status === "sent") {
         return NextResponse.json(
           { error: "Announcement has already been sent" },
           { status: 400 },
@@ -47,7 +47,7 @@ export async function POST(
 
       const { error } = await admin
         .from("announcements")
-        .update({ status: "sent", sent_at: new Date().toISOString() })
+        .update({ status: "sent", sent_at: new Date().toISOString(), scheduled_for: null })
         .eq("id", id);
 
       if (error) {
