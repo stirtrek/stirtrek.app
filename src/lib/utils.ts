@@ -126,20 +126,18 @@ export function findCurrentSlot(
 
 /**
  * Returns true if feedback should be available for a session.
- * Requires: it's event day AND the session's start time has passed.
+ * Requires: the session has started AND we are within 48 hours of the session start.
  *
  * @param startsAt - Session start time (UTC ISO string) or null
  * @param now - Current time (real UTC Date)
- * @param eventDate - The event date string in "YYYY-MM-DD" format
- * @param timezone - IANA timezone identifier
  */
 export function isFeedbackAvailable(
   startsAt: string | null,
   now: Date,
-  eventDate: string,
-  timezone: string,
 ): boolean {
   if (!startsAt) return false;
-  if (!eventDate || !isEventDay(now, eventDate, timezone)) return false;
-  return new Date(startsAt) <= now;
+  const start = new Date(startsAt);
+  if (start > now) return false;
+  const hoursSinceStart = (now.getTime() - start.getTime()) / (1000 * 60 * 60);
+  return hoursSinceStart <= 48;
 }

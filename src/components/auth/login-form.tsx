@@ -152,7 +152,7 @@ export function LoginForm() {
             Don&apos;t see it? Check your spam or junk folder.
           </p>
 
-          <div className="mt-6 flex justify-center gap-2" onPaste={handlePaste}>
+          <div className="mt-6 flex justify-center gap-2">
             {code.map((digit, i) => (
               <input
                 key={i}
@@ -163,6 +163,7 @@ export function LoginForm() {
                 value={digit}
                 onChange={(e) => handleCodeChange(i, e.target.value)}
                 onKeyDown={(e) => handleCodeKeyDown(i, e)}
+                onPaste={handlePaste}
                 disabled={loading}
                 className="h-12 w-10 rounded-md border border-white/10 bg-white/5 text-center text-lg font-bold text-[#F4F6F8] focus:border-white/30 focus:outline-none focus:ring-0 disabled:opacity-50"
               />

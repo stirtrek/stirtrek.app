@@ -15,9 +15,9 @@ interface FeedbackButtonProps {
 /** Only renders the "Leave Feedback" button if the session has started on event day. */
 export function FeedbackButton({ sessionId, startsAt }: FeedbackButtonProps) {
   const { getNow } = useSimulatedTime();
-  const { event, eventPath } = useEvent();
+  const { eventPath } = useEvent();
 
-  if (!isFeedbackAvailable(startsAt, getNow(), event.event_date ?? "", event.timezone)) return null;
+  if (!isFeedbackAvailable(startsAt, getNow())) return null;
 
   return (
     <Link href={eventPath(`/schedule/${sessionId}/feedback`)}>

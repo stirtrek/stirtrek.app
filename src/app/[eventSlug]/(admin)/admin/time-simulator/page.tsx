@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useEvent } from "@/providers/event-provider";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,13 @@ export default function TimeSimulatorPage() {
   const [customDate, setCustomDate] = useState("2026-05-01");
   const [customTime, setCustomTime] = useState("10:00");
   const [loading, setLoading] = useState(false);
+  const skipNextPoll = useRef(false);
 
   const fetchStatus = useCallback(async () => {
+    if (skipNextPoll.current) {
+      skipNextPoll.current = false;
+      return;
+    }
     const res = await fetch(`/${eventSlug}/api/admin/simulated-time`);
     if (res.ok) {
       const data = await res.json();
@@ -49,6 +54,7 @@ export default function TimeSimulatorPage() {
 
   async function setTime(time: string | null) {
     setLoading(true);
+    skipNextPoll.current = true;
     try {
       const res = await fetch(`/${eventSlug}/api/admin/simulated-time`, {
         method: "PUT",

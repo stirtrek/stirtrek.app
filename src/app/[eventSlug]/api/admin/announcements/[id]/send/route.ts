@@ -62,6 +62,7 @@ export async function POST(
               ? announcement.message.slice(0, 97) + "..."
               : announcement.message,
           url: "/announcements",
+          icon: auth.event.logo_url || undefined,
         },
         eventId,
       ).catch((err) => console.error("Announcement push failed:", err));

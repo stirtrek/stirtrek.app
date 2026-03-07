@@ -93,7 +93,8 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
           .from("personal_schedule")
           .delete()
           .eq("user_id", user.id)
-          .eq("session_id", sessionId);
+          .eq("session_id", sessionId)
+          .eq("event_id", eventId);
 
         if (error) {
           setBookmarkedIds((prev) => new Set(prev).add(sessionId));

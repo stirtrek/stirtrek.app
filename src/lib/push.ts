@@ -12,6 +12,7 @@ interface PushPayload {
   title: string;
   body: string;
   url?: string;
+  icon?: string;
 }
 
 /**
@@ -85,6 +86,7 @@ export async function sendPushToUser(
   const message = JSON.stringify({
     title: payload.title,
     body: payload.body,
+    ...(payload.icon && { icon: payload.icon }),
     data: { url: payload.url || "/emergency" },
   });
 
@@ -120,6 +122,7 @@ export async function sendPushToAdmins(
   const message = JSON.stringify({
     title: payload.title,
     body: payload.body,
+    ...(payload.icon && { icon: payload.icon }),
     data: { url: payload.url || "/emergency" },
   });
 
@@ -158,6 +161,7 @@ export async function sendPushToAll(
   const message = JSON.stringify({
     title: payload.title,
     body: payload.body,
+    ...(payload.icon && { icon: payload.icon }),
     data: { url: payload.url || "/announcements", tag: "announcement" },
   });
 

@@ -99,12 +99,19 @@ export async function POST(
 
       // Send push notification (fire-and-forget)
       const preview = reply.length > 80 ? reply.slice(0, 80) + "\u2026" : reply;
+      const { data: eventRow } = await admin
+        .from("events")
+        .select("logo_url")
+        .eq("id", eventId)
+        .single();
+      const eventIcon = eventRow?.logo_url || undefined;
       if (isAdmin) {
         // Admin replied → notify the message owner
         sendPushToUser(message.user_id, {
           title: "Staff replied to your message",
           body: preview,
           url: "/emergency",
+          icon: eventIcon,
         }, eventId).catch(() => {});
       } else {
         // User added context → notify admins
@@ -112,6 +119,7 @@ export async function POST(
           title: "Attendee update",
           body: preview,
           url: "/admin/emergency",
+          icon: eventIcon,
         }, eventId).catch(() => {});
       }
 

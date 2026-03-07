@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
                 ? message.trim().slice(0, 97) + "..."
                 : message.trim(),
             url: "/announcements",
+            icon: auth.event.logo_url || undefined,
           },
           eventId,
         ).catch((err) => console.error("Announcement push failed:", err));

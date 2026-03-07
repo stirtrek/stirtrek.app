@@ -36,7 +36,7 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
   const showFeedback =
     !!user &&
     !session.is_service_session &&
-    isFeedbackAvailable(session.starts_at, getNow(), event.event_date ?? "", event.timezone);
+    isFeedbackAvailable(session.starts_at, getNow());
 
   return (
     <Card
@@ -111,10 +111,13 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
 
           <div className="flex items-center gap-2 flex-wrap">
             {session.room && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Link
+                href={eventPath(`/schedule/room/${session.room.id}`)}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
                 <MapPin className="h-3 w-3" />
                 {session.room.name}
-              </span>
+              </Link>
             )}
 
             {startTime && (

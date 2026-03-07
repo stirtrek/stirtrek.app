@@ -242,10 +242,16 @@ export async function POST(request: NextRequest) {
       // Send push notification to all admins (fire-and-forget)
       const preview =
         message.length > 80 ? message.slice(0, 80) + "\u2026" : message;
+      const { data: eventRow } = await supabase
+        .from("events")
+        .select("logo_url")
+        .eq("id", eventId)
+        .single();
       sendPushToAdmins({
         title: "New Attendee Message",
         body: preview,
         url: "/admin/emergency",
+        icon: eventRow?.logo_url || undefined,
       }, eventId).catch(() => {});
 
       return NextResponse.json(data, { status: 201 });
