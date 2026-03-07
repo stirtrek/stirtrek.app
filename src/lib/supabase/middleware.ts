@@ -10,8 +10,11 @@ const DEFAULT_EVENT_SLUG = "stirtrek";
 // Custom domains NOT in this list trigger domain-based resolution
 const PLATFORM_HOSTS = ["localhost", "127.0.0.1"];
 
+// Domains that serve the marketing homepage (not an event app)
+const MARKETING_HOSTS = ["conferenceday.app", "www.conferenceday.app"];
+
 // Paths that are truly global (no event slug prefix)
-const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/api/apple-touch-icon", "/super-admin", "/api/super-admin"];
+const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/api/apple-touch-icon", "/api/public", "/super-admin", "/api/super-admin"];
 
 // Paths within an event that don't require auth
 const PUBLIC_EVENT_PATHS = [
@@ -74,9 +77,17 @@ export async function updateSession(request: NextRequest) {
     return handleGlobalRoute(request);
   }
 
-  // ── 2. Check for custom domain ──
+  // ── 2. Check for marketing domain ──
   const host = request.headers.get("host") || "";
   const hostname = host.split(":")[0].toLowerCase();
+
+  if (MARKETING_HOSTS.includes(hostname)) {
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = `/marketing${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(rewriteUrl, { request });
+  }
+
+  // ── 3. Check for custom domain ──
   const isPlatformHost =
     PLATFORM_HOSTS.includes(hostname) ||
     hostname.endsWith(".vercel.app");

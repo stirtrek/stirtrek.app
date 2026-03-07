@@ -52,6 +52,7 @@ export async function PUT(
     "domain",
     "feature_flags",
     "is_active",
+    "show_on_marketing",
     "logo_url",
   ];
 

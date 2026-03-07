@@ -66,6 +66,7 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isActive, setIsActive] = useState(event?.is_active ?? true);
+  const [showOnMarketing, setShowOnMarketing] = useState(event?.show_on_marketing ?? false);
   const [flags, setFlags] = useState<EventFeatureFlags>(
     event?.feature_flags ?? DEFAULT_FLAGS,
   );
@@ -133,6 +134,7 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
       domain: domain || null,
       logo_url: logoUrl || null,
       is_active: isActive,
+      show_on_marketing: showOnMarketing,
       feature_flags: flags,
     });
   }
@@ -286,6 +288,18 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
             />
             <Label htmlFor="is_active" className="text-sm font-normal">
               Event is active
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="show_on_marketing"
+              checked={showOnMarketing}
+              onChange={(e) => setShowOnMarketing(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-600 bg-gray-800"
+            />
+            <Label htmlFor="show_on_marketing" className="text-sm font-normal">
+              Show on marketing site
             </Label>
           </div>
         </CardContent>

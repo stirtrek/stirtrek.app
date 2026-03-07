@@ -61,6 +61,7 @@ export interface Event {
   accent_color: string | null;
   domain: string | null;
   is_active: boolean;
+  show_on_marketing: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     domain,
     logo_url,
     feature_flags,
+    show_on_marketing,
   } = body;
 
   if (!name || !slug) {
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
       logo_url: logo_url || null,
       feature_flags: feature_flags || DEFAULT_FEATURE_FLAGS,
       is_active: true,
+      show_on_marketing: show_on_marketing ?? false,
     })
     .select()
     .single();
