@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useFeedback } from "@/providers/feedback-provider";
 import { FEEDBACK_RATINGS } from "@/lib/constants";
 import { CheckCircle, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
 import type { FeedbackRating } from "@/lib/types";
 
 interface InlineFeedbackProps {
@@ -44,6 +45,7 @@ export function InlineFeedback({ sessionId, autoExpand }: InlineFeedbackProps) {
     if (!rating) return;
     await submitFeedback(sessionId, rating, comment.trim() || null);
     setSaved(true);
+    toast.success("Feedback saved!");
     setTimeout(() => setSaved(false), 2000);
   };
 

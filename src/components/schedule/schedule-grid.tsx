@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TimeSlotChips } from "./time-slot-chips";
 import { TimeSlotGroup } from "./time-slot-group";
@@ -53,7 +53,9 @@ function groupByTimeSlot(sessions: SessionWithDetails[]) {
 
 export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const searchParams = useSearchParams();
-  const defaultTab =
+  const router = useRouter();
+  const pathname = usePathname();
+  const activeTab =
     searchParams.get("tab") === "my-schedule" ? "my-schedule" : "full-schedule";
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
@@ -147,9 +149,19 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
     );
   }
 
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "my-schedule") {
+      params.set("tab", "my-schedule");
+    } else {
+      params.delete("tab");
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
   // Logged-in: show tabs with Full Schedule + My Schedule
   return (
-    <Tabs defaultValue={defaultTab} className="space-y-0">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0">
       <div className="sticky top-14 z-20 -mx-4 bg-background/95 px-4 pb-2 pt-2 backdrop-blur">
         <TabsList className="w-full">
           <TabsTrigger value="full-schedule">Full Schedule</TabsTrigger>
