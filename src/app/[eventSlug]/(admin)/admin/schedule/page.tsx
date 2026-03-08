@@ -11,6 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +41,7 @@ import {
   Link2,
   Unlink,
   Search,
+  AlertTriangle,
 } from "lucide-react";
 import type { SessionizeSyncLog, Speaker, Room } from "@/lib/types";
 import { toast } from "sonner";
@@ -54,38 +65,47 @@ export default function AdminSchedulePage() {
   const { event, eventSlug, eventPath } = useEvent();
   const isSessionize = !!event.sessionize_api_id;
 
-  if (isSessionize) {
-    return <SessionizeSyncView eventSlug={eventSlug} eventPath={eventPath} />;
-  }
-
-  return <ManualEntryView eventSlug={eventSlug} eventPath={eventPath} />;
+  return (
+    <ManualEntryView
+      eventSlug={eventSlug}
+      eventPath={eventPath}
+      isSessionize={isSessionize}
+    />
+  );
 }
 
 // ──────────────────────────────────────────
-// SESSIONIZE SYNC VIEW (existing functionality)
+// SCHEDULE VIEW (sync + edit)
 // ──────────────────────────────────────────
 
-function SessionizeSyncView({
+function ManualEntryView({
   eventSlug,
   eventPath,
+  isSessionize,
 }: {
   eventSlug: string;
   eventPath: (p: string) => string;
+  isSessionize: boolean;
 }) {
   const { event } = useEvent();
+
+  // Sessionize sync state
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [syncLogs, setSyncLogs] = useState<SessionizeSyncLog[]>([]);
+  const [showSyncHistory, setShowSyncHistory] = useState(false);
+  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
   const supabase = createClient();
 
   const fetchLogs = useCallback(async () => {
+    if (!isSessionize) return;
     const { data } = await supabase
       .from("sessionize_sync_log")
       .select("*")
       .order("started_at", { ascending: false })
       .limit(10);
     if (data) setSyncLogs(data);
-  }, [supabase]);
+  }, [supabase, isSessionize]);
 
   useEffect(() => {
     fetchLogs();
@@ -107,6 +127,7 @@ function SessionizeSyncView({
         setSyncResult(
           `Synced ${data.sessions} sessions, ${data.speakers} speakers, ${data.rooms} rooms, ${data.categories} categories`,
         );
+        fetchAll();
       }
     } catch {
       setSyncResult("Network error during sync");
@@ -128,115 +149,6 @@ function SessionizeSyncView({
         return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Link
-          href={eventPath("/admin")}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-xl font-bold">Schedule Sync</h1>
-      </div>
-
-      <Button onClick={handleSync} disabled={syncing} className="w-full">
-        {syncing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Syncing...
-          </>
-        ) : (
-          <>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Sync Now
-          </>
-        )}
-      </Button>
-
-      {syncResult && (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm">{syncResult}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Sync History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {syncLogs.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              No syncs yet. Click &quot;Sync Now&quot; to pull data from
-              Sessionize.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {syncLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-3 rounded-md border p-3"
-                >
-                  <div className="mt-0.5">{statusIcon(log.status)}</div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          log.status === "completed"
-                            ? "default"
-                            : log.status === "failed"
-                              ? "destructive"
-                              : "secondary"
-                        }
-                      >
-                        {log.status}
-                      </Badge>
-                      <span className="text-muted-foreground text-xs">
-                        {new Date(log.started_at).toLocaleString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                          timeZone: event.timezone,
-                        })}
-                      </span>
-                    </div>
-                    {log.status === "completed" && (
-                      <p className="text-muted-foreground text-xs">
-                        {log.sessions_synced} sessions, {log.speakers_synced}{" "}
-                        speakers, {log.rooms_synced} rooms
-                      </p>
-                    )}
-                    {log.error_message && (
-                      <p className="text-destructive text-xs">
-                        {log.error_message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────
-// MANUAL ENTRY VIEW
-// ──────────────────────────────────────────
-
-function ManualEntryView({
-  eventSlug,
-  eventPath,
-}: {
-  eventSlug: string;
-  eventPath: (p: string) => string;
-}) {
   const [tab, setTab] = useState<Tab>("sessions");
   const [sessions, setSessions] = useState<SessionEntry[]>([]);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
@@ -286,6 +198,137 @@ function ManualEntryView({
         </Link>
         <h1 className="text-xl font-bold">Schedule</h1>
       </div>
+
+      {/* Sessionize sync controls */}
+      {isSessionize && (
+        <>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowSyncConfirm(true)}
+              disabled={syncing}
+              className="flex-1"
+              size="sm"
+            >
+              {syncing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Sync from Sessionize
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSyncHistory(!showSyncHistory)}
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <AlertDialog open={showSyncConfirm} onOpenChange={setShowSyncConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Sync from Sessionize?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will overwrite any manual edits you&apos;ve made to sessions, speakers, and rooms with the latest data from Sessionize.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    handleSync();
+                  }}
+                >
+                  Sync Now
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {syncResult && (
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm">{syncResult}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {showSyncHistory && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Sync History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {syncLogs.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    No syncs yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {syncLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-start gap-2 rounded-md border p-2"
+                      >
+                        <div className="mt-0.5">{statusIcon(log.status)}</div>
+                        <div className="flex-1 space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={
+                                log.status === "completed"
+                                  ? "default"
+                                  : log.status === "failed"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
+                              className="text-[10px]"
+                            >
+                              {log.status}
+                            </Badge>
+                            <span className="text-muted-foreground text-[11px]">
+                              {new Date(log.started_at).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "numeric",
+                                minute: "2-digit",
+                                timeZone: event.timezone,
+                              })}
+                            </span>
+                          </div>
+                          {log.status === "completed" && (
+                            <p className="text-muted-foreground text-[11px]">
+                              {log.sessions_synced} sessions, {log.speakers_synced}{" "}
+                              speakers, {log.rooms_synced} rooms
+                            </p>
+                          )}
+                          {log.error_message && (
+                            <p className="text-destructive text-[11px]">
+                              {log.error_message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500" />
+            <p className="text-xs text-yellow-200">
+              Editing is enabled below. Any changes you make will be overwritten the next time you sync from Sessionize.
+            </p>
+          </div>
+        </>
+      )}
 
       {/* Tab bar */}
       <div className="flex gap-1 rounded-lg border p-1">
