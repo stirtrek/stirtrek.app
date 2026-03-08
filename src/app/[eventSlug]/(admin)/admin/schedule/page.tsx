@@ -149,6 +149,36 @@ function ManualEntryView({
         return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
+  // Delete all state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAll = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/${eventSlug}/api/admin/schedule/clear`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to delete schedule data");
+      } else {
+        toast.success("All schedule data has been deleted");
+        fetchAll();
+        if (isSessionize) fetchLogs();
+      }
+    } catch {
+      toast.error("Network error during deletion");
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText("");
+    }
+  };
+
   const [tab, setTab] = useState<Tab>("sessions");
   const [sessions, setSessions] = useState<SessionEntry[]>([]);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
@@ -378,6 +408,85 @@ function ManualEntryView({
           )}
         </>
       )}
+
+      {/* Delete all schedule data */}
+      <div className="border-t border-destructive/20 pt-6 mt-8">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete All Schedule Data
+        </Button>
+      </div>
+
+      <AlertDialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDeleteConfirm(false);
+            setDeleteConfirmText("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              Delete All Schedule Data
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  This will permanently delete <strong>all</strong> of the following for this event:
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  <li>All sessions</li>
+                  <li>All speakers</li>
+                  <li>All rooms</li>
+                  <li>All categories</li>
+                  <li>All attendee bookmarks</li>
+                  <li>All session feedback</li>
+                  <li>Sync history</li>
+                </ul>
+                <p className="font-medium text-destructive">
+                  This action cannot be undone.
+                </p>
+                <div className="pt-2">
+                  <p className="text-sm mb-2">
+                    Type <strong>{event.name}</strong> to confirm:
+                  </p>
+                  <Input
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder={event.name}
+                    className="text-sm"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={deleting || deleteConfirmText !== event.name}
+              onClick={handleDeleteAll}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Everything"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
