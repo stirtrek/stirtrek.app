@@ -171,8 +171,15 @@ async function upsertData(
     }
   }
 
-  // 3. Upsert speakers
+  // 3. Upsert speakers (preserve user_id links across syncs)
   if (data.speakers.length > 0) {
+    // Save existing user_id mappings before upsert overwrites them
+    const { data: existingLinks } = await supabase
+      .from("speakers")
+      .select("id, user_id")
+      .eq("event_id", eventId)
+      .not("user_id", "is", null);
+
     const speakers = data.speakers.map((s) => ({
       id: s.id,
       event_id: eventId,
@@ -192,6 +199,17 @@ async function upsertData(
       .upsert(speakers, { onConflict: "id" });
     if (error)
       throw new Error(`Failed to upsert speakers: ${error.message}`);
+
+    // Restore user_id links that may have been cleared by the upsert
+    if (existingLinks && existingLinks.length > 0) {
+      for (const link of existingLinks) {
+        await supabase
+          .from("speakers")
+          .update({ user_id: link.user_id })
+          .eq("id", link.id)
+          .eq("event_id", eventId);
+      }
+    }
   }
 
   // 4. Upsert sessions

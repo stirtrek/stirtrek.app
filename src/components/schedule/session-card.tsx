@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Bookmark, BookmarkCheck, User } from "lucide-react";
-import { cn, formatTime, isFeedbackAvailable } from "@/lib/utils";
+import { cn, formatTime, isHappeningNow, isFeedbackAvailable } from "@/lib/utils";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
@@ -31,6 +31,7 @@ export const SessionCard = memo(function SessionCard({ session, highlightBookmar
   const startTime = session.starts_at ? formatTime(session.starts_at, event.timezone) : "";
   const endTime = session.ends_at ? formatTime(session.ends_at, event.timezone) : "";
 
+  const happeningNow = isHappeningNow(session.starts_at, session.ends_at, getNow());
   const showBookmark = !session.is_service_session && !!user;
 
   // Show inline feedback for non-service sessions that have started on event day
@@ -124,6 +125,16 @@ export const SessionCard = memo(function SessionCard({ session, highlightBookmar
             {startTime && (
               <span className="text-xs text-muted-foreground">
                 {startTime} - {endTime}
+              </span>
+            )}
+
+            {happeningNow && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-500">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                </span>
+                Now
               </span>
             )}
 

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/schedule/bookmark-button";
 import { FeedbackButton } from "@/components/schedule/feedback-button";
 import { SpeakerCard } from "@/components/speakers/speaker-card";
+import { AddToCalendarButton } from "@/components/schedule/add-to-calendar-button";
+import { HappeningNowBadge } from "@/components/schedule/happening-now-badge";
 import { MapPin, Clock, ArrowLeft } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import type { SessionWithDetails } from "@/lib/types";
@@ -82,6 +84,9 @@ export default async function SessionDetailPage({ params }: PageProps) {
             Back
           </Button>
         </Link>
+        {!s.is_service_session && s.starts_at && s.ends_at && (
+          <AddToCalendarButton sessions={[s]} />
+        )}
       </div>
 
       <div className="space-y-4">
@@ -97,6 +102,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
               {startTime} - {endTime}
             </span>
           )}
+          <HappeningNowBadge startsAt={s.starts_at} endsAt={s.ends_at} />
           {s.room && (
             <span className="inline-flex items-center gap-1">
               <MapPin className="h-4 w-4" />

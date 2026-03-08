@@ -21,7 +21,7 @@ export async function PUT(
     const { id } = await params;
     const body = await safeParseBody(request);
     if (body instanceof NextResponse) return body;
-    const { first_name, last_name, bio, tag_line, profile_picture, photo_override, links } = body;
+    const { first_name, last_name, bio, tag_line, profile_picture, photo_override, links, user_id } = body;
 
     const updates: Record<string, unknown> = {};
     if (first_name !== undefined) updates.first_name = first_name.trim();
@@ -36,6 +36,7 @@ export async function PUT(
     if (profile_picture !== undefined) updates.profile_picture = profile_picture?.trim() || null;
     if (photo_override !== undefined) updates.photo_override = photo_override?.trim() || null;
     if (links !== undefined) updates.links = links;
+    if (user_id !== undefined) updates.user_id = user_id;
 
     const admin = createAdminClient();
     const { data: speaker, error } = await admin

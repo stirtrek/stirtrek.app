@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { sendPushToAll } from "@/lib/push";
+import { sendPushToSegment } from "@/lib/push";
 import {
   getEventId,
   requireEventAdmin,
@@ -26,7 +26,7 @@ export async function POST(
 
       const { data: announcement } = await admin
         .from("announcements")
-        .select("id, message, status")
+        .select("id, message, status, target_type, target_criteria")
         .eq("id", id)
         .eq("event_id", eventId)
         .single();
@@ -54,7 +54,7 @@ export async function POST(
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      sendPushToAll(
+      sendPushToSegment(
         {
           title: `${auth.event.short_name || auth.event.name} Announcement`,
           body:
@@ -65,6 +65,8 @@ export async function POST(
           icon: auth.event.logo_url || undefined,
         },
         eventId,
+        announcement.target_type || "all",
+        announcement.target_criteria || null,
       ).catch((err) => console.error("Announcement push failed:", err));
 
       return NextResponse.json({ success: true });

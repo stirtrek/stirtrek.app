@@ -1,7 +1,10 @@
+"use client";
+
 import { SessionCard } from "./session-card";
-import { formatTime } from "@/lib/utils";
+import { formatTime, isHappeningNow } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle } from "lucide-react";
+import { useSimulatedTime } from "@/providers/simulated-time-provider";
 import type { SessionWithDetails } from "@/lib/types";
 
 interface TimeSlotGroupProps {
@@ -23,6 +26,9 @@ export function TimeSlotGroup({
   variant,
   timezone,
 }: TimeSlotGroupProps) {
+  const { getNow } = useSimulatedTime();
+  const isLive = isHappeningNow(time, endTime, getNow());
+
   return (
     <div id={`slot-${time}`} className="space-y-2">
       <div className="py-2">
@@ -30,6 +36,18 @@ export function TimeSlotGroup({
           <h2 className="text-sm font-semibold text-muted-foreground">
             {formatTime(time, timezone)} - {formatTime(endTime, timezone)}
           </h2>
+          {isLive && (
+            <Badge
+              variant="outline"
+              className="border-green-500 text-green-500 text-[10px] px-1.5 py-0"
+            >
+              <span className="relative mr-1 flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+              </span>
+              Live
+            </Badge>
+          )}
           {conflictCount && conflictCount > 1 && (
             <Badge
               variant="outline"

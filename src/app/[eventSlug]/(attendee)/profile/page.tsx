@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LogOut, Shield } from "lucide-react";
+import { Loader2, LogOut, Shield, MessageSquare, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { SponsorActivation } from "@/components/profile/sponsor-activation";
@@ -18,12 +18,13 @@ import { SponsorCompanySelector } from "@/components/profile/sponsor-company-sel
 
 export default function ProfilePage() {
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
-  const { eventPath, eventId } = useEvent();
+  const { eventPath, eventId, eventSlug } = useEvent();
   const { isAdmin, isSponsor: memberIsSponsor, sponsorId: memberSponsorId } = useMembership();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isSpeaker, setIsSpeaker] = useState(false);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
@@ -48,6 +49,15 @@ export default function ProfilePage() {
         }
       });
   }, [profile, loading, user, supabase]);
+
+  // Check if user is a linked speaker
+  useEffect(() => {
+    if (!user) return;
+    fetch(`/${eventSlug}/api/speaker-feedback`)
+      .then((res) => (res.ok ? res.json() : { is_speaker: false }))
+      .then((data) => setIsSpeaker(data.is_speaker ?? false))
+      .catch(() => {});
+  }, [user, eventSlug]);
 
   // Redirect to login once auth has resolved (or timed out) with no user
   useEffect(() => {
@@ -168,6 +178,28 @@ export default function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      {isSpeaker && (
+        <Card>
+          <CardContent className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Session Feedback</p>
+                <p className="text-xs text-muted-foreground">
+                  View feedback for your sessions
+                </p>
+              </div>
+            </div>
+            <Link href={eventPath("/my-feedback")}>
+              <Button variant="outline" size="sm">
+                View
+                <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {memberIsSponsor && (
         <SponsorCompanySelector initialSponsorId={memberSponsorId} />

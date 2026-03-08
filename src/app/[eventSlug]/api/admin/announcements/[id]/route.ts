@@ -74,6 +74,13 @@ export async function PATCH(
         updateData.scheduled_for = null;
       }
 
+      if (body.target_type !== undefined) {
+        updateData.target_type = body.target_type;
+      }
+      if (body.target_criteria !== undefined) {
+        updateData.target_criteria = body.target_criteria;
+      }
+
       if (Object.keys(updateData).length === 0) {
         return NextResponse.json({ error: "No changes" }, { status: 400 });
       }

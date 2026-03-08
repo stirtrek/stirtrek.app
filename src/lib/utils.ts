@@ -131,6 +131,20 @@ export function findCurrentSlot(
  * @param startsAt - Session start time (UTC ISO string) or null
  * @param now - Current time (real UTC Date)
  */
+/**
+ * Returns true if a session is currently in progress.
+ */
+export function isHappeningNow(
+  startsAt: string | null,
+  endsAt: string | null,
+  now: Date,
+): boolean {
+  if (!startsAt || !endsAt) return false;
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  return start <= now && now < end;
+}
+
 export function isFeedbackAvailable(
   startsAt: string | null,
   now: Date,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { sendPushToAll } from "@/lib/push";
+import { sendPushToSegment } from "@/lib/push";
 
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       // Find all scheduled announcements whose time has arrived
       const { data: announcements, error } = await admin
         .from("announcements")
-        .select("id, event_id, message")
+        .select("id, event_id, message, target_type, target_criteria")
         .eq("status", "scheduled")
         .lte("scheduled_for", now);
 
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
           ? `${event.short_name || event.name} Announcement`
           : "Announcement";
 
-        sendPushToAll(
+        sendPushToSegment(
           {
             title,
             body:
@@ -80,6 +80,8 @@ export async function GET(request: NextRequest) {
             icon: event?.logo_url || undefined,
           },
           announcement.event_id,
+          announcement.target_type || "all",
+          announcement.target_criteria || null,
         ).catch((err) =>
           console.error(
             `Scheduled announcement push failed (${announcement.id}):`,

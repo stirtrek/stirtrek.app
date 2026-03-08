@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { sendPushToAll } from "@/lib/push";
+import { sendPushToSegment } from "@/lib/push";
 import {
   getEventId,
   requireEventAdmin,
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
       const { data: announcements, error } = await admin
         .from("announcements")
-        .select("id, message, status, created_by, sent_at, scheduled_for, created_at")
+        .select("id, message, status, created_by, sent_at, scheduled_for, target_type, target_criteria, created_at")
         .eq("event_id", eventId)
         .order("created_at", { ascending: false });
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
       const body = await safeParseBody(request);
       if (body instanceof NextResponse) return body;
-      const { message, send_now, scheduled_for } = body;
+      const { message, send_now, scheduled_for, target_type, target_criteria } = body;
 
       if (!message?.trim()) {
         return NextResponse.json(
@@ -60,11 +60,14 @@ export async function POST(request: NextRequest) {
       const admin = createAdminClient();
       const now = new Date().toISOString();
 
+      const resolvedTargetType = target_type || "all";
       const insertData: Record<string, unknown> = {
         event_id: eventId,
         message: message.trim(),
         created_by: auth.userId,
         status: send_now ? "sent" : scheduled_for ? "scheduled" : "draft",
+        target_type: resolvedTargetType,
+        target_criteria: target_criteria || null,
       };
 
       if (send_now) {
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (send_now) {
-        sendPushToAll(
+        sendPushToSegment(
           {
             title: `${auth.event.short_name || auth.event.name} Announcement`,
             body:
@@ -97,6 +100,8 @@ export async function POST(request: NextRequest) {
             icon: auth.event.logo_url || undefined,
           },
           eventId,
+          resolvedTargetType,
+          target_criteria || null,
         ).catch((err) => console.error("Announcement push failed:", err));
       }
 

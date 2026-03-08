@@ -23,6 +23,11 @@ export interface SponsorTierConfig {
 export type PollStatus = "draft" | "active" | "closed";
 export type FeedbackRating = "red" | "yellow" | "green";
 export type AnnouncementStatus = "draft" | "scheduled" | "sent";
+export type AnnouncementTargetType = "all" | "roles" | "speakers" | "sponsors" | "track";
+export interface AnnouncementTargetCriteria {
+  roles?: UserRole[];
+  category_item_ids?: number[];
+}
 export type SyncStatus = "pending" | "in_progress" | "completed" | "failed";
 
 // ============================================================
@@ -136,6 +141,7 @@ export interface CategoryItem {
 export interface Speaker {
   id: string;
   event_id: string;
+  user_id: string | null;
   first_name: string;
   last_name: string;
   full_name: string;
@@ -336,6 +342,8 @@ export interface Announcement {
   created_by: string;
   sent_at: string | null;
   scheduled_for: string | null;
+  target_type: AnnouncementTargetType;
+  target_criteria: AnnouncementTargetCriteria | null;
   created_at: string;
   updated_at: string;
 }

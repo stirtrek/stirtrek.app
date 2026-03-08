@@ -9,6 +9,7 @@ import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
 import { useEvent } from "@/providers/event-provider";
+import { AddToCalendarButton } from "./add-to-calendar-button";
 import ReactMarkdown from "react-markdown";
 import { Bookmark, Info, Loader2 } from "lucide-react";
 import { findCurrentSlot } from "@/lib/utils";
@@ -121,6 +122,12 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
 
   const hasBookmarks = bookmarkedIds.size > 0;
 
+  // Bookmarked non-service sessions for calendar export
+  const bookmarkedSessions = useMemo(
+    () => sessions.filter((s) => !s.is_service_session && bookmarkedIds.has(s.id)),
+    [sessions, bookmarkedIds],
+  );
+
   // Logged-out: show read-only schedule with time chips, no tabs
   if (!authLoading && !user) {
     return (
@@ -228,6 +235,12 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
             </div>
           ) : (
             <div className="space-y-6">
+              <div className="flex justify-end">
+                <AddToCalendarButton
+                  sessions={bookmarkedSessions}
+                  label="Export All"
+                />
+              </div>
               {myTimeSlots.map((slot) => {
                 const conflict = conflictCounts.get(slot.time);
                 return (

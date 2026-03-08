@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
+import type { AnnouncementTargetType, AnnouncementTargetCriteria } from "@/lib/types";
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -175,4 +176,122 @@ export async function sendPushToAll(
   });
 
   await sendAndCleanup(subscriptions, message, "all");
+}
+
+/**
+ * Resolve user IDs for a given audience segment.
+ * Exported so the preview-count endpoint can reuse the same logic.
+ */
+export async function getSegmentUserIds(
+  eventId: string,
+  targetType: AnnouncementTargetType,
+  targetCriteria: AnnouncementTargetCriteria | null,
+): Promise<string[]> {
+  const admin = createAdminClient();
+
+  switch (targetType) {
+    case "all": {
+      const { data } = await admin
+        .from("push_subscriptions")
+        .select("user_id")
+        .eq("event_id", eventId);
+      return [...new Set((data ?? []).map((r) => r.user_id))];
+    }
+
+    case "roles": {
+      const roles = targetCriteria?.roles;
+      if (!roles || roles.length === 0) return [];
+      const { data } = await admin
+        .from("event_memberships")
+        .select("user_id")
+        .eq("event_id", eventId)
+        .in("role", roles);
+      return [...new Set((data ?? []).map((r) => r.user_id))];
+    }
+
+    case "speakers": {
+      const { data } = await admin
+        .from("speakers")
+        .select("user_id")
+        .eq("event_id", eventId)
+        .not("user_id", "is", null);
+      return [...new Set((data ?? []).map((r) => r.user_id!))];
+    }
+
+    case "sponsors": {
+      const { data } = await admin
+        .from("event_memberships")
+        .select("user_id")
+        .eq("event_id", eventId)
+        .eq("is_sponsor", true);
+      return [...new Set((data ?? []).map((r) => r.user_id))];
+    }
+
+    case "track": {
+      const ids = targetCriteria?.category_item_ids;
+      if (!ids || ids.length === 0) return [];
+
+      // Find sessions in these categories
+      const { data: sessionCats } = await admin
+        .from("session_categories")
+        .select("session_id")
+        .eq("event_id", eventId)
+        .in("category_item_id", ids);
+
+      if (!sessionCats || sessionCats.length === 0) return [];
+      const sessionIds = [...new Set(sessionCats.map((sc) => sc.session_id))];
+
+      // Find users who bookmarked those sessions
+      const { data: bookmarks } = await admin
+        .from("personal_schedule")
+        .select("user_id")
+        .eq("event_id", eventId)
+        .in("session_id", sessionIds);
+
+      return [...new Set((bookmarks ?? []).map((b) => b.user_id))];
+    }
+
+    default:
+      return [];
+  }
+}
+
+/**
+ * Send a push notification to a specific audience segment.
+ * For "all", delegates to sendPushToAll for backwards compatibility.
+ */
+export async function sendPushToSegment(
+  payload: PushPayload,
+  eventId: string,
+  targetType: AnnouncementTargetType,
+  targetCriteria: AnnouncementTargetCriteria | null,
+) {
+  // Fast path: "all" uses the existing broadcast function
+  if (targetType === "all") {
+    return sendPushToAll(payload, eventId);
+  }
+
+  const userIds = await getSegmentUserIds(eventId, targetType, targetCriteria);
+  if (userIds.length === 0) return;
+
+  const admin = createAdminClient();
+  const { data: subscriptions } = await admin
+    .from("push_subscriptions")
+    .select("id, endpoint, keys")
+    .in("user_id", userIds)
+    .eq("event_id", eventId);
+
+  if (!subscriptions || subscriptions.length === 0) return;
+
+  const message = JSON.stringify({
+    title: payload.title,
+    body: payload.body,
+    ...(payload.icon && { icon: payload.icon }),
+    data: { url: payload.url || "/announcements", tag: "announcement" },
+  });
+
+  await sendAndCleanup(subscriptions, message, "all", {
+    targetType,
+    recipientCount: String(userIds.length),
+  });
 }
