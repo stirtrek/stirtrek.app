@@ -220,6 +220,7 @@ async function upsertData(
   }
 
   // 5. Sync session_speakers junction table (scoped to this event)
+  // Uses upsert-then-cleanup to prevent data loss on partial failure
   const sessionSpeakers: {
     session_id: string;
     speaker_id: string;
@@ -235,20 +236,39 @@ async function upsertData(
     }
   }
 
-  // Clear only this event's junction rows and re-insert
-  await supabase
-    .from("session_speakers")
-    .delete()
-    .eq("event_id", eventId);
+  // Upsert all desired rows first (safe — adds/updates without deleting)
   if (sessionSpeakers.length > 0) {
     const { error } = await supabase
       .from("session_speakers")
-      .insert(sessionSpeakers);
+      .upsert(sessionSpeakers, { onConflict: "session_id,speaker_id" });
     if (error)
-      throw new Error(`Failed to sync session_speakers: ${error.message}`);
+      throw new Error(`Failed to upsert session_speakers: ${error.message}`);
+  }
+
+  // Remove stale rows: delete rows for this event that aren't in the new set
+  const validSpeakerPairs = sessionSpeakers.map(
+    (ss) => `${ss.session_id}|${ss.speaker_id}`,
+  );
+  const { data: existingSpeakerRows } = await supabase
+    .from("session_speakers")
+    .select("session_id, speaker_id")
+    .eq("event_id", eventId);
+  if (existingSpeakerRows) {
+    const staleSpeakerRows = existingSpeakerRows.filter(
+      (row: { session_id: string; speaker_id: string }) =>
+        !validSpeakerPairs.includes(`${row.session_id}|${row.speaker_id}`),
+    );
+    for (const row of staleSpeakerRows) {
+      await supabase
+        .from("session_speakers")
+        .delete()
+        .eq("session_id", row.session_id)
+        .eq("speaker_id", row.speaker_id);
+    }
   }
 
   // 6. Sync session_categories junction table (scoped to this event)
+  // Uses upsert-then-cleanup to prevent data loss on partial failure
   const sessionCategories: {
     session_id: string;
     category_item_id: number;
@@ -264,18 +284,41 @@ async function upsertData(
     }
   }
 
-  await supabase
-    .from("session_categories")
-    .delete()
-    .eq("event_id", eventId);
+  // Upsert all desired rows first (safe — adds/updates without deleting)
   if (sessionCategories.length > 0) {
     const { error } = await supabase
       .from("session_categories")
-      .insert(sessionCategories);
+      .upsert(sessionCategories, {
+        onConflict: "session_id,category_item_id",
+      });
     if (error)
       throw new Error(
-        `Failed to sync session_categories: ${error.message}`,
+        `Failed to upsert session_categories: ${error.message}`,
       );
+  }
+
+  // Remove stale rows: delete rows for this event that aren't in the new set
+  const validCategoryPairs = sessionCategories.map(
+    (sc) => `${sc.session_id}|${sc.category_item_id}`,
+  );
+  const { data: existingCategoryRows } = await supabase
+    .from("session_categories")
+    .select("session_id, category_item_id")
+    .eq("event_id", eventId);
+  if (existingCategoryRows) {
+    const staleCategoryRows = existingCategoryRows.filter(
+      (row: { session_id: string; category_item_id: number }) =>
+        !validCategoryPairs.includes(
+          `${row.session_id}|${row.category_item_id}`,
+        ),
+    );
+    for (const row of staleCategoryRows) {
+      await supabase
+        .from("session_categories")
+        .delete()
+        .eq("session_id", row.session_id)
+        .eq("category_item_id", row.category_item_id);
+    }
   }
 
   return {

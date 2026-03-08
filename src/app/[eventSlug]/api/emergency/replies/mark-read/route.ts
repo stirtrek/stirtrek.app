@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId } from "@/lib/events/api-helpers";
+import { getEventId, safeParseBody } from "@/lib/events/api-helpers";
 
 export async function PATCH(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -19,7 +19,8 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const replyIds: string[] = body.reply_ids;
 
       if (!Array.isArray(replyIds) || replyIds.length === 0) {

@@ -6,7 +6,16 @@ import {
   requireEventAdmin,
   requireEventAdminOnly,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
+
+function getPagination(request: Request, defaultLimit = 50) {
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || String(defaultLimit), 10)));
+  const offset = (page - 1) * limit;
+  return { page, limit, offset };
+}
 
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -26,7 +35,10 @@ export async function GET(request: NextRequest) {
       .eq("event_id", eventId);
 
     if (!memberships || memberships.length === 0) {
-      return NextResponse.json({ users: [] });
+      return NextResponse.json({
+        users: [],
+        pagination: { page: 1, limit: 50, total: 0 },
+      });
     }
 
     const memberIds = memberships.map((m) => m.user_id);
@@ -34,10 +46,13 @@ export async function GET(request: NextRequest) {
       memberships.map((m) => [m.user_id, { role: m.role, is_sponsor: m.is_sponsor }]),
     );
 
+    const { page, limit, offset } = getPagination(request);
+
     let query = admin
       .from("profiles")
       .select(
         "id, email, display_name, first_name, last_name, created_at",
+        { count: "exact" },
       )
       .in("id", memberIds)
       .order("created_at", { ascending: false });
@@ -48,7 +63,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: profiles, error } = await query;
+    const { data: profiles, error, count } = await query.range(offset, offset + limit - 1);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -61,7 +76,10 @@ export async function GET(request: NextRequest) {
       is_sponsor: memberMap.get(p.id)?.is_sponsor ?? false,
     }));
 
-    return NextResponse.json({ users });
+    return NextResponse.json({
+      users,
+      pagination: { page, limit, total: count ?? 0 },
+    });
   });
 }
 
@@ -72,7 +90,8 @@ export async function PUT(request: NextRequest) {
     const auth = await requireEventAdminOnly(eventId);
     if (isErrorResponse(auth)) return auth;
 
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const { profile_id, role } = body;
 
     if (!profile_id || !["attendee", "admin"].includes(role)) {

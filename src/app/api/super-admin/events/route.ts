@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireSuperAdmin, isErrorResponse } from "@/lib/events/api-helpers";
+import { requireSuperAdmin, isErrorResponse, safeParseBody } from "@/lib/events/api-helpers";
 import type { EventFeatureFlags } from "@/lib/types";
 
 const DEFAULT_FEATURE_FLAGS: EventFeatureFlags = {
@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
   const auth = await requireSuperAdmin();
   if (isErrorResponse(auth)) return auth;
 
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
   const {
     name,
     slug,
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
     logo_url,
     feature_flags,
     show_on_marketing,
+    about_content,
   } = body;
 
   if (!name || !slug) {
@@ -109,6 +111,7 @@ export async function POST(request: NextRequest) {
       feature_flags: feature_flags || DEFAULT_FEATURE_FLAGS,
       is_active: true,
       show_on_marketing: show_on_marketing ?? false,
+      about_content: about_content || null,
     })
     .select()
     .single();

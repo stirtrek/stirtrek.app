@@ -4,6 +4,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 import type { SponsorTierConfig } from "@/lib/types";
 
@@ -25,7 +26,8 @@ export async function PUT(request: NextRequest) {
   const auth = await requireEventAdmin(eventId);
   if (isErrorResponse(auth)) return auth;
 
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
   const { tiers } = body;
 
   if (!Array.isArray(tiers) || tiers.length === 0) {

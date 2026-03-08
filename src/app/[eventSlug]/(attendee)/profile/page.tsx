@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
+import { useMembership } from "@/providers/membership-provider";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,18 +15,15 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { SponsorActivation } from "@/components/profile/sponsor-activation";
 import { SponsorCompanySelector } from "@/components/profile/sponsor-company-selector";
-import type { UserRole } from "@/lib/types";
 
 export default function ProfilePage() {
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const { eventPath, eventId } = useEvent();
+  const { isAdmin, isSponsor: memberIsSponsor, sponsorId: memberSponsorId } = useMembership();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [memberRole, setMemberRole] = useState<UserRole>("attendee");
-  const [memberIsSponsor, setMemberIsSponsor] = useState(false);
-  const [memberSponsorId, setMemberSponsorId] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
@@ -51,28 +49,6 @@ export default function ProfilePage() {
       });
   }, [profile, loading, user, supabase]);
 
-  // Fetch event membership for role / is_sponsor
-  // profile is included so refreshProfile() (called after sponsor
-  // activate/deactivate) triggers a re-fetch of membership status.
-  useEffect(() => {
-    if (!user || !eventId) return;
-    async function fetchMembership() {
-      const { data } = await supabase
-        .from("event_memberships")
-        .select("role, is_sponsor, sponsor_id")
-        .eq("event_id", eventId)
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (data) {
-        setMemberRole(data.role);
-        setMemberIsSponsor(data.is_sponsor);
-        setMemberSponsorId(data.sponsor_id ?? null);
-      }
-    }
-    fetchMembership();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, eventId, supabase, profile]);
-
   // Redirect to login once auth has resolved (or timed out) with no user
   useEffect(() => {
     if (!loading && !user) {
@@ -87,8 +63,6 @@ export default function ProfilePage() {
       </div>
     );
   }
-
-  const isAdmin = profile?.is_super_admin || memberRole === "admin" || memberRole === "staff";
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

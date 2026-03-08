@@ -5,6 +5,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 
 export async function PATCH(
@@ -44,7 +45,8 @@ export async function PATCH(
         );
       }
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const updateData: Record<string, unknown> = {};
 
       if (body.message !== undefined) {

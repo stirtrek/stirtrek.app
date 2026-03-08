@@ -3,7 +3,12 @@
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useEvent } from "@/providers/event-provider";
-import { QrScanner } from "@/components/leads/qr-scanner";
+import dynamic from "next/dynamic";
+
+const QrScanner = dynamic(
+  () => import("@/components/leads/qr-scanner").then((m) => m.QrScanner),
+  { ssr: false, loading: () => <div className="flex items-center justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div> },
+);
 import { parseVCard } from "@/lib/vcard";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";

@@ -65,7 +65,7 @@ export function QrScanner({ onScan, onError, autoStart = false }: QrScannerProps
           scanner
             .stop()
             .then(() => scanner.clear())
-            .catch(() => {});
+            .catch((err) => console.error("Failed to stop QR scanner:", err));
         }
         scannerRef.current = null;
         runningRef.current = false;

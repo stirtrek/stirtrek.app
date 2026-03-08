@@ -9,23 +9,19 @@ import { createBrowserClient } from "@supabase/ssr";
  * result with useMemo to avoid re-creating on every render.
  */
 export function createClient(eventId?: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
+
   if (eventId) {
-    return createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {
-        isSingleton: false,
-        global: {
-          headers: {
-            "x-event-id": eventId,
-          },
+    return createBrowserClient(url, key, {
+      isSingleton: false,
+      global: {
+        headers: {
+          "x-event-id": eventId,
         },
-      }
-    );
+      },
+    });
   }
 
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  );
+  return createBrowserClient(url, key);
 }

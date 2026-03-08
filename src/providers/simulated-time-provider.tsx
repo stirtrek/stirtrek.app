@@ -53,8 +53,8 @@ export function SimulatedTimeProvider({
             }
           }
         }
-      } catch {
-        // Silently fail — use real time
+      } catch (err) {
+        console.error("Failed to fetch simulated time:", err);
       } finally {
         if (mounted) setLoading(false);
       }

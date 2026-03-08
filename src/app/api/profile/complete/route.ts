@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTelemetryService } from "@/lib/telemetry/service";
+import { safeParseBody } from "@/lib/events/api-helpers";
 
 export async function POST(request: Request) {
   const telemetry = getTelemetryService();
@@ -15,7 +16,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const firstName = (body.first_name || "").trim();
     const lastName = (body.last_name || "").trim();
 

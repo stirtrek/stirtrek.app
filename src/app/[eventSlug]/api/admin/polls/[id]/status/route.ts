@@ -5,6 +5,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 
 export async function PUT(
@@ -21,7 +22,8 @@ export async function PUT(
       const auth = await requireEventAdmin(eventId);
       if (isErrorResponse(auth)) return auth;
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const { status: newStatus } = body;
 
       const admin = createAdminClient();

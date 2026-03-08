@@ -7,7 +7,9 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -200,6 +202,15 @@ export async function POST(request: NextRequest) {
     "/api/emergency/messages",
     "POST",
     async () => {
+      const rlKey = getRateLimitKey(request) + ":emergency-messages";
+      const rl = rateLimit(rlKey, 10, 60_000);
+      if (!rl.success) {
+        return NextResponse.json(
+          { error: "Too many requests. Please try again later." },
+          { status: 429 },
+        );
+      }
+
       const eventId = getEventId(request);
       const supabase = await createClient();
       const {
@@ -210,7 +221,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const message = (body.message || "").trim();
 
       if (!message) {
@@ -252,7 +264,7 @@ export async function POST(request: NextRequest) {
         body: preview,
         url: "/admin/emergency",
         icon: eventRow?.logo_url || undefined,
-      }, eventId).catch(() => {});
+      }, eventId).catch((err) => console.error("Failed to push emergency notification to admins:", err));
 
       return NextResponse.json(data, { status: 201 });
     },

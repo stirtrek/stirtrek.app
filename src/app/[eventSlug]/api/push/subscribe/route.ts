@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId } from "@/lib/events/api-helpers";
+import { getEventId, safeParseBody } from "@/lib/events/api-helpers";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const telemetry = getTelemetryService();
   return telemetry.trackAPIRoute("/api/push/subscribe", "POST", async () => {
+    const rlKey = getRateLimitKey(request) + ":push-subscribe";
+    const rl = rateLimit(rlKey, 20, 60_000);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 },
+      );
+    }
+
     const eventId = getEventId(request);
     const supabase = await createClient();
     const {
@@ -16,7 +26,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const { endpoint, keys } = body;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
@@ -64,7 +75,8 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const { endpoint } = body;
 
       if (!endpoint) {

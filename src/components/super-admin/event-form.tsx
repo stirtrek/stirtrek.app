@@ -62,6 +62,7 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
   const [accentColor, setAccentColor] = useState(event?.accent_color ?? "#FF3B3B");
   const [domain, setDomain] = useState(event?.domain ?? "");
   const [scheduleMessage, setScheduleMessage] = useState(event?.schedule_message ?? "");
+  const [aboutContent, setAboutContent] = useState(event?.about_content ?? "");
   const [logoUrl, setLogoUrl] = useState(event?.logo_url ?? "");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -131,6 +132,7 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
       sponsor_access_code: sponsorAccessCode || null,
       accent_color: accentColor || "#FF3B3B",
       schedule_message: scheduleMessage || null,
+      about_content: aboutContent || null,
       domain: domain || null,
       logo_url: logoUrl || null,
       is_active: isActive,
@@ -424,6 +426,19 @@ export function EventForm({ event, onSubmit, saving }: EventFormProps) {
             />
             <p className="text-muted-foreground mt-1 text-xs">
               Shown on the My Schedule tab. Supports markdown links: [text](url). Leave blank to hide.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="about_content">About Page Content</Label>
+            <Textarea
+              id="about_content"
+              value={aboutContent}
+              onChange={(e) => setAboutContent(e.target.value)}
+              placeholder="Welcome to our event! Visit [our website](https://example.com) for more info."
+              rows={5}
+            />
+            <p className="text-muted-foreground mt-1 text-xs">
+              Shown on the About page below the event logo. Supports markdown. Leave blank to hide.
             </p>
           </div>
         </CardContent>

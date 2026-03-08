@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId } from "@/lib/events/api-helpers";
+import { getEventId, safeParseBody } from "@/lib/events/api-helpers";
+import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
+
+function getPagination(request: Request, defaultLimit = 50) {
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || String(defaultLimit), 10)));
+  const offset = (page - 1) * limit;
+  return { page, limit, offset };
+}
 
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -30,24 +39,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data, error } = await supabase
+    const { page, limit, offset } = getPagination(request);
+
+    const { data, error, count } = await supabase
       .from("leads")
-      .select("*")
+      .select("*", { count: "exact" })
       .eq("event_id", eventId)
       .eq("sponsor_profile_id", user.id)
-      .order("scanned_at", { ascending: false });
+      .order("scanned_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      data: data ?? [],
+      pagination: { page, limit, total: count ?? 0 },
+    });
   });
 }
 
 export async function POST(request: NextRequest) {
   const telemetry = getTelemetryService();
   return telemetry.trackAPIRoute("/api/leads", "POST", async () => {
+    const rlKey = getRateLimitKey(request) + ":leads";
+    const rl = rateLimit(rlKey, 30, 60_000);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 },
+      );
+    }
+
     const eventId = getEventId(request);
     const supabase = await createClient();
 
@@ -71,7 +95,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const attendeeEmail = (body.attendee_email || "").trim();
     const attendeeFirstName = (body.attendee_first_name || "").trim() || null;
     const attendeeLastName = (body.attendee_last_name || "").trim() || null;

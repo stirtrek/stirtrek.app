@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useNotifications } from "@/providers/notification-provider";
+import { useMembership } from "@/providers/membership-provider";
 import { useEvent } from "@/providers/event-provider";
-import { createClient } from "@/lib/supabase/client";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { User, MessageCircle } from "lucide-react";
+import { User, MessageCircle, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { HeaderLogo } from "./header-logo";
 import { AnimatedBaconLogo } from "./animated-bacon-logo";
-import type { UserRole } from "@/lib/types";
 
 /** Relative paths within the event — resolved via eventPath() at render time */
 const PAGE_TITLE_MAP: Record<string, string> = {
@@ -22,33 +20,17 @@ const PAGE_TITLE_MAP: Record<string, string> = {
   "/announcements": "ANNOUNCEMENTS",
   "/emergency": "FEEDBACK",
   "/venue-map": "VENUE MAP",
-  "/more": "MORE",
+  "/more": "ABOUT",
   "/profile": "PROFILE",
   "/leads": "LEADS",
 };
 
 export function Header() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { unreadCount } = useNotifications();
-  const { event, eventPath, eventId, hasFeature } = useEvent();
+  const { isAdmin } = useMembership();
+  const { event, eventPath, hasFeature } = useEvent();
   const pathname = usePathname();
-  const [memberRole, setMemberRole] = useState<UserRole>("attendee");
-  const supabase = useMemo(() => createClient(eventId), [eventId]);
-
-  useEffect(() => {
-    if (!user || !eventId) return;
-    supabase
-      .from("event_memberships")
-      .select("role")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setMemberRole(data.role);
-      });
-  }, [user, eventId, supabase, profile]);
-
-  const isAdmin = profile?.is_super_admin || ["admin", "staff"].includes(memberRole);
   const emergencyHref = isAdmin
     ? eventPath("/admin/emergency")
     : eventPath("/emergency");
@@ -87,6 +69,13 @@ export function Header() {
         )}
 
         <div className="flex items-center gap-0.5">
+          {hasFeature("announcements") && (
+            <Link href={eventPath("/announcements")}>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Megaphone className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
           {showEmergencyLink && (
             <Link href={emergencyHref}>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">

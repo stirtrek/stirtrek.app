@@ -65,7 +65,9 @@ export function LoginForm() {
     }
 
     // Auto-join the user to this event
-    await fetch(`/${eventSlug}/api/join`, { method: "POST" }).catch(() => {});
+    await fetch(`/${eventSlug}/api/join`, { method: "POST" }).catch((err) =>
+      console.error("Failed to auto-join event:", err)
+    );
 
     // Check if profile is complete (has first/last name)
     const { data: { user } } = await supabase.auth.getUser();

@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
@@ -79,6 +80,9 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     [feedbackMap]
   );
 
+  // Prevent rapid double-submissions for the same session
+  const inflight = useRef(new Set<string>());
+
   const submitFeedback = useCallback(
     async (
       sessionId: string,
@@ -86,36 +90,47 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
       comment: string | null
     ) => {
       if (!user) return;
+      if (inflight.current.has(sessionId)) return;
+      inflight.current.add(sessionId);
 
       // Optimistic update
+      const previous = feedbackMap.get(sessionId) ?? null;
       setFeedbackMap((prev) => {
         const next = new Map(prev);
         next.set(sessionId, { rating, comment });
         return next;
       });
 
-      const { error } = await supabase.from("session_feedback").upsert(
-        {
-          user_id: user.id,
-          session_id: sessionId,
-          event_id: eventId,
-          rating,
-          comment: comment?.trim() || null,
-        },
-        { onConflict: "user_id,session_id" }
-      );
+      try {
+        const { error } = await supabase.from("session_feedback").upsert(
+          {
+            user_id: user.id,
+            session_id: sessionId,
+            event_id: eventId,
+            rating,
+            comment: comment?.trim() || null,
+          },
+          { onConflict: "user_id,session_id" }
+        );
 
-      if (error) {
-        // Roll back
-        setFeedbackMap((prev) => {
-          const next = new Map(prev);
-          next.delete(sessionId);
-          return next;
-        });
-        toast.error("Failed to save feedback");
+        if (error) {
+          // Roll back to previous value
+          setFeedbackMap((prev) => {
+            const next = new Map(prev);
+            if (previous) {
+              next.set(sessionId, previous);
+            } else {
+              next.delete(sessionId);
+            }
+            return next;
+          });
+          toast.error("Failed to save feedback");
+        }
+      } finally {
+        inflight.current.delete(sessionId);
       }
     },
-    [user, supabase, eventId]
+    [user, supabase, eventId, feedbackMap]
   );
 
   return (

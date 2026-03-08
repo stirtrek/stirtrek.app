@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +21,7 @@ interface SessionCardProps {
   variant?: "full-schedule" | "my-schedule";
 }
 
-export function SessionCard({ session, highlightBookmark, variant = "full-schedule" }: SessionCardProps) {
+export const SessionCard = memo(function SessionCard({ session, highlightBookmark, variant = "full-schedule" }: SessionCardProps) {
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { getNow } = useSimulatedTime();
@@ -143,4 +144,4 @@ export function SessionCard({ session, highlightBookmark, variant = "full-schedu
       </CardContent>
     </Card>
   );
-}
+});

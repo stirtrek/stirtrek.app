@@ -5,6 +5,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 
 const VALID_STATUSES = ["unresponded", "acknowledged", "closed"];
@@ -24,7 +25,8 @@ export async function PATCH(
 
       const { messageId } = await params;
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const newStatus = body.status;
 
       if (!VALID_STATUSES.includes(newStatus)) {

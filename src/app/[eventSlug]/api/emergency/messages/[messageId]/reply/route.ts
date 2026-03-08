@@ -7,6 +7,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 
 export async function POST(
@@ -63,7 +64,8 @@ export async function POST(
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const reply = (body.reply || "").trim();
 
       if (!reply) {
@@ -112,7 +114,7 @@ export async function POST(
           body: preview,
           url: "/emergency",
           icon: eventIcon,
-        }, eventId).catch(() => {});
+        }, eventId).catch((err) => console.error("Failed to push reply notification to user:", err));
       } else {
         // User added context → notify admins
         sendPushToAdmins({
@@ -120,7 +122,7 @@ export async function POST(
           body: preview,
           url: "/admin/emergency",
           icon: eventIcon,
-        }, eventId).catch(() => {});
+        }, eventId).catch((err) => console.error("Failed to push update notification to admins:", err));
       }
 
       return NextResponse.json(data, { status: 201 });

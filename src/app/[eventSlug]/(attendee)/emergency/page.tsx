@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { enqueueMutation } from "@/lib/offline-queue";
 import type { EmergencyMessageWithReplies } from "@/lib/types";
 
 export default function EmergencyPage() {
@@ -55,12 +56,15 @@ export default function EmergencyPage() {
 
   const handleSend = async (message: string) => {
     setSending(true);
+    const url = `/${eventSlug}/api/emergency/messages`;
+    const init: RequestInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    };
+
     try {
-      const res = await fetch(`/${eventSlug}/api/emergency/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
+      const res = await fetch(url, init);
 
       if (!res.ok) {
         const err = await res.json();
@@ -72,22 +76,24 @@ export default function EmergencyPage() {
       setMessages((prev) => [{ ...newMessage, replies: [] }, ...prev]);
       toast.success("Message sent to event staff");
     } catch {
-      toast.error("Failed to send message");
+      // Network error — queue for retry when back online
+      enqueueMutation(url, init);
+      toast.error("You appear to be offline. Your message will be sent when connectivity returns.");
     } finally {
       setSending(false);
     }
   };
 
   const handleReply = async (messageId: string, reply: string) => {
+    const url = `/${eventSlug}/api/emergency/messages/${messageId}/reply`;
+    const init: RequestInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reply }),
+    };
+
     try {
-      const res = await fetch(
-        `/${eventSlug}/api/emergency/messages/${messageId}/reply`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reply }),
-        }
-      );
+      const res = await fetch(url, init);
 
       if (!res.ok) {
         const err = await res.json();
@@ -97,7 +103,8 @@ export default function EmergencyPage() {
 
       await fetchMessages();
     } catch {
-      toast.error("Failed to send");
+      enqueueMutation(url, init);
+      toast.error("You appear to be offline. Your reply will be sent when connectivity returns.");
     }
   };
 

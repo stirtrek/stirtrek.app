@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { timingSafeEqual } from "crypto";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId } from "@/lib/events/api-helpers";
+import { getEventId, safeParseBody } from "@/lib/events/api-helpers";
 
 export async function POST(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const code = (body.code || "").trim();
       const sponsorId = (body.sponsor_id || "").trim();
 

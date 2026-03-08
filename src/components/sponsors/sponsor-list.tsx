@@ -34,7 +34,7 @@ export function SponsorList({ sponsorsByTier, totalCount }: SponsorListProps) {
           setVisitedNames(new Set(data.visitedSponsorNames));
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("Failed to load passport data:", err));
   }, [profile, eventSlug]);
 
   // Count booth sponsors and visited for progress

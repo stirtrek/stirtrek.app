@@ -1,31 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
-import { createClient } from "@/lib/supabase/client";
+import { useMembership } from "@/providers/membership-provider";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScanLine } from "lucide-react";
 
 export function SponsorLeadsLink() {
-  const { user } = useAuth();
-  const { eventPath, eventId } = useEvent();
-  const [isSponsor, setIsSponsor] = useState(false);
-  const supabase = useMemo(() => createClient(eventId), [eventId]);
-
-  useEffect(() => {
-    if (!user || !eventId) return;
-    supabase
-      .from("event_memberships")
-      .select("is_sponsor")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) setIsSponsor(data.is_sponsor);
-      });
-  }, [user, eventId, supabase]);
+  const { eventPath } = useEvent();
+  const { isSponsor } = useMembership();
 
   if (!isSponsor) return null;
 

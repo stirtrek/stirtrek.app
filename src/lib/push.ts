@@ -2,11 +2,20 @@ import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL || "mailto:admin@stirtrek.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+if (!vapidPublicKey || !vapidPrivateKey) {
+  console.warn(
+    "VAPID keys not configured: NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set for push notifications",
+  );
+}
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(
+    process.env.VAPID_EMAIL || "mailto:admin@stirtrek.com",
+    vapidPublicKey,
+    vapidPrivateKey,
+  );
+}
 
 interface PushPayload {
   title: string;

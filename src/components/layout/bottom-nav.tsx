@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
-import { createClient } from "@/lib/supabase/client";
+import { useMembership } from "@/providers/membership-provider";
 import {
   Calendar,
   Users,
   Building2,
   BarChart3,
-  Menu,
+  Info,
   ScanLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,36 +20,15 @@ const baseNavItems = [
   { path: "/speakers", label: "Speakers", icon: Users },
   { path: "/sponsors", label: "Sponsors", icon: Building2 },
   { path: "/polls", label: "Polls", icon: BarChart3 },
-  { path: "/more", label: "More", icon: Menu },
+  { path: "/more", label: "About", icon: Info },
 ];
 
 const scannerItem = { path: "/leads/scan", label: "Scanner", icon: ScanLine };
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user, profile } = useAuth();
-  const { eventId, eventPath, hasFeature } = useEvent();
-  const [isSponsor, setIsSponsor] = useState(false);
-
-  useEffect(() => {
-    if (!user || !eventId) {
-      setIsSponsor(false);
-      return;
-    }
-    const supabase = createClient(eventId);
-    supabase
-      .from("event_memberships")
-      .select("is_sponsor")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        setIsSponsor(data?.is_sponsor ?? false);
-      });
-  // profile is included so that refreshProfile() (called after sponsor
-  // activate/deactivate) triggers a re-fetch of membership status.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, eventId, profile]);
+  const { eventPath, hasFeature } = useEvent();
+  const { isSponsor } = useMembership();
 
   // Filter base nav items by feature flags
   const filteredNavItems = baseNavItems.filter((item) => {

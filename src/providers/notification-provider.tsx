@@ -11,6 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
 import { useEvent } from "./event-provider";
+import { useMembership } from "./membership-provider";
 import type { EmergencyMessageStatus } from "@/lib/types";
 
 interface NotificationContextValue {
@@ -55,9 +56,9 @@ function setBadge(count: number) {
       clearAppBadge: () => Promise<void>;
     };
     if (count > 0) {
-      nav.setAppBadge(count).catch(() => {});
+      nav.setAppBadge(count).catch(() => { /* Badge API not supported on all platforms */ });
     } else {
-      nav.clearAppBadge().catch(() => {});
+      nav.clearAppBadge().catch(() => { /* Badge API not supported on all platforms */ });
     }
   }
 
@@ -76,28 +77,11 @@ export function NotificationProvider({
 }) {
   const { user } = useAuth();
   const { eventSlug, eventId } = useEvent();
+  const { isAdmin } = useMembership();
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [pushSubscribed, setPushSubscribed] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
-
-  // Fetch event membership for admin check
-  useEffect(() => {
-    if (!user || !eventId) {
-      setIsAdmin(false);
-      return;
-    }
-    supabase
-      .from("event_memberships")
-      .select("role")
-      .eq("event_id", eventId)
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        setIsAdmin(data ? ["admin", "staff"].includes(data.role) : false);
-      });
-  }, [user, eventId, supabase]);
 
   const [pushSupported, setPushSupported] = useState(false);
 
@@ -118,8 +102,8 @@ export function NotificationProvider({
         const data = await res.json();
         setUnreadCount(data.count);
       }
-    } catch {
-      // Silently fail
+    } catch (err) {
+      console.error("Failed to fetch unread count:", err);
     }
   }, [user, eventSlug]);
 
@@ -147,7 +131,7 @@ export function NotificationProvider({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
-        }).catch(() => {});
+        }).catch((err) => console.error("Failed to sync push subscription:", err));
         setPushSubscribed(true);
       }
       // If no existing subscription, don't auto-request.
@@ -268,8 +252,8 @@ export function NotificationProvider({
         if (res.ok) {
           await refreshCount();
         }
-      } catch {
-        // Silently fail
+      } catch (err) {
+        console.error("Failed to update message status:", err);
       }
     },
     [refreshCount, eventSlug]
@@ -288,8 +272,8 @@ export function NotificationProvider({
         if (res.ok) {
           setUnreadCount((prev) => Math.max(0, prev - replyIds.length));
         }
-      } catch {
-        // Silently fail
+      } catch (err) {
+        console.error("Failed to mark replies as read:", err);
       }
     },
     [eventSlug]

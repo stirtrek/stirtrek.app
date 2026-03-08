@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId } from "@/lib/events/api-helpers";
+import { getEventId, safeParseBody } from "@/lib/events/api-helpers";
 
 export async function PUT(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -30,7 +30,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const sponsorId = (body.sponsor_id || "").trim();
 
     if (!sponsorId) {

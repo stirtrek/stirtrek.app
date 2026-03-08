@@ -5,6 +5,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 
 export async function GET(request: NextRequest) {
@@ -36,7 +37,8 @@ export async function POST(request: NextRequest) {
     const auth = await requireEventAdmin(eventId);
     if (isErrorResponse(auth)) return auth;
 
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const { first_name, last_name, bio, tag_line, profile_picture, photo_override, links } = body;
 
     if (!first_name?.trim() || !last_name?.trim()) {

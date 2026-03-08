@@ -17,8 +17,12 @@ const CACHE_TTL_MS = 60_000; // 1 minute
 async function queryEvents(
   filter: string,
 ): Promise<Event | null> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SECRET_KEY!;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) {
+    console.error("Missing Supabase env vars in queryEvents");
+    return null;
+  }
 
   const res = await fetch(
     `${url}/rest/v1/events?${filter}&is_active=eq.true&limit=1`,

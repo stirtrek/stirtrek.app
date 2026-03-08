@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireSuperAdmin, isErrorResponse } from "@/lib/events/api-helpers";
+import { requireSuperAdmin, isErrorResponse, safeParseBody } from "@/lib/events/api-helpers";
 
 export async function GET(
   _request: NextRequest,
@@ -32,7 +32,8 @@ export async function PUT(
   if (isErrorResponse(auth)) return auth;
 
   const { eventId } = await params;
-  const body = await request.json();
+  const body = await safeParseBody(request);
+  if (body instanceof NextResponse) return body;
 
   const allowedFields = [
     "name",
@@ -54,6 +55,8 @@ export async function PUT(
     "is_active",
     "show_on_marketing",
     "logo_url",
+    "schedule_message",
+    "about_content",
   ];
 
   const updates: Record<string, unknown> = {};

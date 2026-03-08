@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { WifiOff } from "lucide-react";
+import { startOfflineQueueListener } from "@/lib/offline-queue";
+import { toast } from "sonner";
 
 export function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(true);
@@ -14,6 +16,11 @@ export function OfflineIndicator() {
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+
+    // Auto-retry queued mutations when connectivity returns
+    startOfflineQueueListener((count) => {
+      toast.success(`Synced ${count} pending ${count === 1 ? "action" : "actions"}`);
+    });
 
     return () => {
       window.removeEventListener("online", handleOnline);

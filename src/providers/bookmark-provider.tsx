@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
@@ -72,9 +73,14 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     [bookmarkedIds],
   );
 
+  // Prevent rapid double-taps from firing concurrent requests for the same session
+  const inflight = useRef(new Set<string>());
+
   const toggleBookmark = useCallback(
     async (sessionId: string) => {
       if (!user) return;
+      if (inflight.current.has(sessionId)) return;
+      inflight.current.add(sessionId);
 
       let wasBookmarked = false;
       setBookmarkedIds((prev) => {
@@ -88,34 +94,38 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
         return next;
       });
 
-      if (wasBookmarked) {
-        const { error } = await supabase
-          .from("personal_schedule")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("session_id", sessionId)
-          .eq("event_id", eventId);
+      try {
+        if (wasBookmarked) {
+          const { error } = await supabase
+            .from("personal_schedule")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("session_id", sessionId)
+            .eq("event_id", eventId);
 
-        if (error) {
-          setBookmarkedIds((prev) => new Set(prev).add(sessionId));
-          toast.error("Failed to remove bookmark");
-        }
-      } else {
-        const { error } = await supabase
-          .from("personal_schedule")
-          .upsert(
-            { user_id: user.id, session_id: sessionId, event_id: eventId },
-            { onConflict: "user_id,session_id" },
-          );
+          if (error) {
+            setBookmarkedIds((prev) => new Set(prev).add(sessionId));
+            toast.error("Failed to remove bookmark");
+          }
+        } else {
+          const { error } = await supabase
+            .from("personal_schedule")
+            .upsert(
+              { user_id: user.id, session_id: sessionId, event_id: eventId },
+              { onConflict: "user_id,session_id" },
+            );
 
-        if (error) {
-          setBookmarkedIds((prev) => {
-            const next = new Set(prev);
-            next.delete(sessionId);
-            return next;
-          });
-          toast.error("Failed to save bookmark");
+          if (error) {
+            setBookmarkedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(sessionId);
+              return next;
+            });
+            toast.error("Failed to save bookmark");
+          }
         }
+      } finally {
+        inflight.current.delete(sessionId);
       }
     },
     [user, supabase, eventId],

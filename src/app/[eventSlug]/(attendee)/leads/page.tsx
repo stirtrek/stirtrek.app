@@ -21,8 +21,8 @@ export default function LeadsPage() {
   const fetchLeads = useCallback(async () => {
     const res = await fetch(`/${eventSlug}/api/leads`);
     if (res.ok) {
-      const data = await res.json();
-      setLeads(data);
+      const json = await res.json();
+      setLeads(json.data ?? json);
     }
     setLoading(false);
   }, [eventSlug]);

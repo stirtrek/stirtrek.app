@@ -58,6 +58,7 @@ export interface Event {
   feature_flags: EventFeatureFlags;
   sponsor_tiers: SponsorTierConfig[];
   schedule_message: string | null;
+  about_content: string | null;
   accent_color: string | null;
   domain: string | null;
   is_active: boolean;

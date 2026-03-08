@@ -5,7 +5,16 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
+
+function getPagination(request: Request, defaultLimit = 50) {
+  const url = new URL(request.url);
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || String(defaultLimit), 10)));
+  const offset = (page - 1) * limit;
+  return { page, limit, offset };
+}
 
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -35,7 +44,11 @@ export async function GET(request: NextRequest) {
           .eq("is_active", true)
           .order("sort_order");
 
-        return NextResponse.json({ accounts: [], sponsors: sponsors ?? [] });
+        return NextResponse.json({
+          accounts: [],
+          sponsors: sponsors ?? [],
+          pagination: { page: 1, limit: 50, total: 0 },
+        });
       }
 
       const memberIds = sponsorMemberships.map((m) => m.user_id);
@@ -43,12 +56,15 @@ export async function GET(request: NextRequest) {
         sponsorMemberships.map((m) => [m.user_id, m.sponsor_id]),
       );
 
+      const { page, limit, offset } = getPagination(request);
+
       // Get profiles for these sponsor users
-      const { data: sponsorProfiles, error: profilesError } = await admin
+      const { data: sponsorProfiles, error: profilesError, count } = await admin
         .from("profiles")
-        .select("id, email, first_name, last_name")
+        .select("id, email, first_name, last_name", { count: "exact" })
         .in("id", memberIds)
-        .order("email");
+        .order("email")
+        .range(offset, offset + limit - 1);
 
       if (profilesError) {
         return NextResponse.json(
@@ -100,7 +116,11 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      return NextResponse.json({ accounts, sponsors: sponsors ?? [] });
+      return NextResponse.json({
+        accounts,
+        sponsors: sponsors ?? [],
+        pagination: { page, limit, total: count ?? 0 },
+      });
     },
   );
 }
@@ -115,7 +135,8 @@ export async function PUT(request: NextRequest) {
       const auth = await requireEventAdmin(eventId);
       if (isErrorResponse(auth)) return auth;
 
-      const body = await request.json();
+      const body = await safeParseBody(request);
+      if (body instanceof NextResponse) return body;
       const { profile_id, sponsor_id } = body;
 
       if (!profile_id) {

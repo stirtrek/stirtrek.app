@@ -5,6 +5,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 import { DEFAULT_SPONSOR_TIERS } from "@/lib/constants";
 import type { SponsorTierConfig } from "@/lib/types";
@@ -50,7 +51,8 @@ export async function POST(request: NextRequest) {
     const auth = await requireEventAdmin(eventId);
     if (isErrorResponse(auth)) return auth;
 
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const {
       name,
       tier,

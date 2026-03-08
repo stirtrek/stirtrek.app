@@ -5,6 +5,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 
 export async function GET(
@@ -76,7 +77,8 @@ export async function PUT(
       );
     }
 
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const { question, description, allow_multiple, options } = body;
 
     if (!question?.trim()) {

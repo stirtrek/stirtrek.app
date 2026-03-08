@@ -5,6 +5,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  safeParseBody,
 } from "@/lib/events/api-helpers";
 
 export async function PUT(
@@ -18,7 +19,8 @@ export async function PUT(
     if (isErrorResponse(auth)) return auth;
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await safeParseBody(request);
+    if (body instanceof NextResponse) return body;
     const { name, sort_order } = body;
 
     const updates: Record<string, unknown> = {};
