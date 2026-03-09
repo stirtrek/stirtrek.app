@@ -11,7 +11,6 @@ import {
   ScanLine,
   Smartphone,
   Globe,
-  Sun,
 } from "lucide-react";
 
 interface PublicEvent {
@@ -179,7 +178,8 @@ export default async function MarketingPage() {
       <nav className="sticky top-0 z-50 border-b border-sky-200/60 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-2">
-            <Sun className="h-6 w-6 text-amber-500" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="" className="h-7 w-7" aria-hidden="true" />
             <span className="text-lg font-bold tracking-tight text-slate-800">
               Conference Day
             </span>
@@ -235,16 +235,16 @@ export default async function MarketingPage() {
           }}
         />
 
-        {/* Sun — rendered BEFORE clouds so clouds drift in front */}
+        {/* Logo sun — rendered BEFORE clouds so clouds drift in front */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/images/noun-sun-3671767.svg"
+            src="/logo.png"
             alt=""
             aria-hidden="true"
             className="absolute"
             style={{
-              width: "160px",
+              width: "140px",
               right: "12%",
               top: "2%",
               filter: "drop-shadow(0 0 30px rgba(251,191,36,0.5))",
@@ -338,7 +338,8 @@ export default async function MarketingPage() {
 
         <div className="relative z-10 mx-auto max-w-3xl">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 text-sm font-medium text-sky-700 shadow-sm backdrop-blur-sm">
-            <Sun className="h-4 w-4 text-amber-500" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="" className="h-5 w-5" aria-hidden="true" />
             Smooth sailing for your next event
           </div>
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-slate-900 md:text-6xl">

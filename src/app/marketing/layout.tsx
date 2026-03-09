@@ -30,9 +30,9 @@ export const metadata: Metadata = {
       "The day-of mobile app for conferences and events. Schedules, live polls, push notifications, sponsor tools — everything your attendees need.",
     images: [
       {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
+        url: "/logo.png",
+        width: 800,
+        height: 800,
         alt: "Conference Day — day-of attendee app for conferences",
       },
     ],
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     title: "Conference Day | Day-Of Attendee App for Conferences & Events",
     description:
       "The day-of mobile app for conferences and events. Schedules, live polls, push notifications, sponsor tools — no app store required.",
-    images: ["/og-image.png"],
+    images: ["/logo.png"],
   },
   robots: {
     index: true,
