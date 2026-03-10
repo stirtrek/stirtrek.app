@@ -2,7 +2,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchSessionizeData } from "./client";
 import type { SessionizeResponse } from "./types";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { eventLocalToUTC } from "@/lib/utils";
 
 interface SyncResult {
   rooms: number;
@@ -27,7 +26,7 @@ export async function syncSessionizeData(
     // Resolve the Sessionize API ID
     const { data: event } = await supabase
       .from("events")
-      .select("sessionize_api_id, timezone")
+      .select("sessionize_api_id")
       .eq("id", eventId)
       .single();
 
@@ -56,8 +55,7 @@ export async function syncSessionizeData(
 
     try {
       const data = await fetchSessionizeData(event.sessionize_api_id);
-      const timezone = event.timezone || "America/New_York";
-      const result = await upsertData(supabase, data, eventId, timezone);
+      const result = await upsertData(supabase, data, eventId);
 
       // Update sync log
       if (syncId) {
@@ -115,7 +113,6 @@ async function upsertData(
   supabase: any,
   data: SessionizeResponse,
   eventId: string,
-  timezone: string,
 ): Promise<SyncResult> {
   // 1. Upsert rooms
   if (data.rooms.length > 0) {
@@ -219,8 +216,8 @@ async function upsertData(
       event_id: eventId,
       title: s.title,
       description: s.description,
-      starts_at: s.startsAt ? eventLocalToUTC(s.startsAt.replace(/Z$/i, ""), timezone) : null,
-      ends_at: s.endsAt ? eventLocalToUTC(s.endsAt.replace(/Z$/i, ""), timezone) : null,
+      starts_at: s.startsAt ?? null,
+      ends_at: s.endsAt ?? null,
       room_id: s.roomId,
       is_service_session: s.isServiceSession,
       is_plenum_session: s.isPlenumSession,
