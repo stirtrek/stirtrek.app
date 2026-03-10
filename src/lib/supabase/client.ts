@@ -15,6 +15,15 @@ export function createClient(eventId?: string) {
   if (eventId) {
     return createBrowserClient(url, key, {
       isSingleton: false,
+      auth: {
+        // Prevent this client from creating its own GoTrueClient.
+        // The singleton client (AuthProvider) owns the auth session;
+        // extra GoTrueClient instances cause lock contention and
+        // race conditions during sign-out.
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        persistSession: true,
+      },
       global: {
         headers: {
           "x-event-id": eventId,

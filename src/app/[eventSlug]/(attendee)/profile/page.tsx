@@ -99,14 +99,14 @@ export default function ProfilePage() {
     setSaving(false);
   };
 
-  const handleSignOut = () => {
-    // Fire sign-out but don't wait for it — navigate immediately.
-    // This prevents a hanging network call from blocking the redirect.
-    signOut().catch((err) => console.error("Sign out error:", err));
-    // Small delay to let Supabase clear session cookies before navigation
-    setTimeout(() => {
-      window.location.href = eventPath("/login");
-    }, 100);
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+    // Full page navigation ensures middleware sees the cleared session
+    window.location.href = eventPath("/login");
   };
 
   return (
