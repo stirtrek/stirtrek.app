@@ -25,7 +25,7 @@ export const TIERS: Tier[] = [
     priceCents: 29900,
     maxAttendees: 500,
     maxAdmins: 1,
-    includedFeatures: ["announcements"],
+    includedFeatures: ["announcements", "venue_map", "emergency_reporting"],
   },
   {
     id: "all-in",
