@@ -10,8 +10,12 @@ const DEFAULT_EVENT_SLUG = "stirtrek";
 // Custom domains NOT in this list trigger domain-based resolution
 const PLATFORM_HOSTS = ["localhost", "127.0.0.1"];
 
-// Domains that serve the marketing homepage (not an event app)
+// Domains that serve the marketing homepage AND event apps by slug
 const MARKETING_HOSTS = ["conferenceday.app", "www.conferenceday.app"];
+
+// Paths on the marketing domain that should render marketing pages
+// Everything else falls through to slug-based event routing
+const MARKETING_PATHS = ["/", "/pricing"];
 
 // Paths that are truly global (no event slug prefix)
 const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/api/apple-touch-icon", "/api/public", "/super-admin", "/api/super-admin", "/create-event", "/api/checkout", "/api/webhooks"];
@@ -82,9 +86,13 @@ export async function updateSession(request: NextRequest) {
   const hostname = host.split(":")[0].toLowerCase();
 
   if (MARKETING_HOSTS.includes(hostname)) {
-    const rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = `/marketing${pathname === "/" ? "" : pathname}`;
-    return NextResponse.rewrite(rewriteUrl, { request });
+    const isMarketingPath = MARKETING_PATHS.includes(pathname);
+    if (isMarketingPath) {
+      const rewriteUrl = request.nextUrl.clone();
+      rewriteUrl.pathname = `/marketing${pathname === "/" ? "" : pathname}`;
+      return NextResponse.rewrite(rewriteUrl, { request });
+    }
+    // Fall through to platform domain handling for event slugs
   }
 
   // ── 3. Check for custom domain ──
