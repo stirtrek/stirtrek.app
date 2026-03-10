@@ -179,7 +179,7 @@ export default async function MarketingPage() {
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/cd_logo.png" alt="" className="h-9 w-9" aria-hidden="true" />
+            <img src="/images/cd_logo.png" alt="" className="h-9 w-9 drop-shadow-md" aria-hidden="true" />
             <span className="text-lg font-bold tracking-tight text-slate-800">
               Conference Day
             </span>
