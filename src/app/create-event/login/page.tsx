@@ -22,7 +22,10 @@ export default function CreateEventLoginPage() {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true },
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/create-event/auth/callback`,
+      },
     });
 
     if (error) {
