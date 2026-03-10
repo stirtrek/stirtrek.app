@@ -179,7 +179,7 @@ export default async function MarketingPage() {
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" className="h-7 w-7" aria-hidden="true" />
+            <img src="/images/cd_logo.png" alt="" className="h-7 w-7" aria-hidden="true" />
             <span className="text-lg font-bold tracking-tight text-slate-800">
               Conference Day
             </span>
@@ -239,7 +239,7 @@ export default async function MarketingPage() {
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/images/cd_logo.png"
             alt=""
             aria-hidden="true"
             className="absolute"
@@ -339,7 +339,7 @@ export default async function MarketingPage() {
         <div className="relative z-10 mx-auto max-w-3xl">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 text-sm font-medium text-sky-700 shadow-sm backdrop-blur-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" className="h-5 w-5" aria-hidden="true" />
+            <img src="/images/cd_logo.png" alt="" className="h-5 w-5" aria-hidden="true" />
             Smooth sailing for your next event
           </div>
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-slate-900 md:text-6xl">
