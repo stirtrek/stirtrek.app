@@ -29,6 +29,7 @@ export interface AnnouncementTargetCriteria {
   category_item_ids?: number[];
 }
 export type SyncStatus = "pending" | "in_progress" | "completed" | "failed";
+export type OrderStatus = "pending" | "completed" | "expired" | "refunded" | "failed";
 
 // ============================================================
 // Multi-tenant types
@@ -68,6 +69,10 @@ export interface Event {
   domain: string | null;
   is_active: boolean;
   show_on_marketing: boolean;
+  order_id: string | null;
+  stripe_customer_id: string | null;
+  max_attendees: number;
+  max_admins: number;
   created_at: string;
   updated_at: string;
 }
@@ -96,6 +101,7 @@ export interface Profile {
   phone: string | null;
   receives_sms_alerts: boolean;
   receives_push_alerts: boolean;
+  stripe_customer_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -344,6 +350,28 @@ export interface Announcement {
   scheduled_for: string | null;
   target_type: AnnouncementTargetType;
   target_criteria: AnnouncementTargetCriteria | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Order {
+  id: string;
+  user_id: string;
+  stripe_checkout_session_id: string | null;
+  stripe_customer_id: string | null;
+  stripe_payment_intent_id: string | null;
+  tier_id: string;
+  addon_ids: string[];
+  amount_cents: number;
+  currency: string;
+  event_name: string;
+  event_slug: string;
+  event_date: string | null;
+  event_end_date: string | null;
+  venue_name: string | null;
+  timezone: string;
+  status: OrderStatus;
+  event_id: string | null;
   created_at: string;
   updated_at: string;
 }

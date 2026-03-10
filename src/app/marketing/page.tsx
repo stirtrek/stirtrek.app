@@ -192,18 +192,22 @@ export default async function MarketingPage() {
               Features
             </a>
             <a
+              href="/pricing"
+              className="hidden text-sm font-medium text-slate-500 transition-colors hover:text-sky-600 sm:block"
+            >
+              Pricing
+            </a>
+            <a
               href="#events"
               className="hidden text-sm font-medium text-slate-500 transition-colors hover:text-sky-600 sm:block"
             >
               Events
             </a>
             <a
-              href="https://jeffblankenburg.info"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/create-event"
               className="rounded-full bg-sky-500 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-sky-600 hover:shadow-md"
             >
-              Get in Touch
+              Get Started
             </a>
           </div>
         </div>
@@ -357,9 +361,7 @@ export default async function MarketingPage() {
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="https://jeffblankenburg.info"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/create-event"
               className="inline-flex items-center justify-center rounded-xl bg-sky-500 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition-all hover:-translate-y-0.5 hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 active:translate-y-0"
             >
               Get Started for Your Event

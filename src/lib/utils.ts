@@ -153,5 +153,5 @@ export function isFeedbackAvailable(
   const start = new Date(startsAt);
   if (start > now) return false;
   const hoursSinceStart = (now.getTime() - start.getTime()) / (1000 * 60 * 60);
-  return hoursSinceStart <= 48;
+  return hoursSinceStart <= 336; // 14 days (2 weeks)
 }

@@ -18,6 +18,9 @@ import {
   Clock,
   Megaphone,
   Loader2,
+  Settings,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -89,6 +92,12 @@ export default function AdminDashboardPage() {
       description: "Override event time for testing",
       icon: Clock,
     },
+    {
+      href: eventPath("/admin/settings"),
+      label: "Settings",
+      description: "Event configuration",
+      icon: Settings,
+    },
   ].filter(Boolean) as { href: string; label: string; description: string; icon: typeof Calendar }[];
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -156,6 +165,54 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-bold">Dashboard</h1>
+
+      {/* Onboarding checklist for freshly created events */}
+      {event.order_id && (!event.logo_url || !event.sessionize_api_id) && (
+        <Card className="gap-0 border-sky-200 bg-sky-50/50 py-0">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-sm text-sky-900">Getting Started</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 px-4 pb-4">
+            {[
+              {
+                done: !!event.logo_url,
+                label: "Upload your event logo",
+                href: eventPath("/admin/settings"),
+              },
+              {
+                done: !!event.sessionize_api_id,
+                label: "Connect Sessionize for your schedule",
+                href: eventPath("/admin/settings"),
+              },
+              {
+                done: !!event.event_date,
+                label: "Set your event date",
+                href: eventPath("/admin/settings"),
+              },
+              {
+                done: !!event.venue_name,
+                label: "Add venue details",
+                href: eventPath("/admin/settings"),
+              },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sky-100/50"
+              >
+                {item.done ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                ) : (
+                  <Circle className="h-4 w-4 shrink-0 text-sky-400" />
+                )}
+                <span className={item.done ? "text-slate-400 line-through" : "text-sky-900"}>
+                  {item.label}
+                </span>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
