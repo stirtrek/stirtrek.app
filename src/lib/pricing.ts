@@ -75,7 +75,7 @@ export const ADD_ONS: AddOn[] = [
     id: "feedback",
     name: "Session Feedback",
     description: "Collect session ratings and comments from attendees.",
-    priceCents: 4900,
+    priceCents: 9900,
     featureFlag: "feedback",
   },
   {
@@ -90,14 +90,14 @@ export const ADD_ONS: AddOn[] = [
     name: "Sponsor Passport",
     description:
       "Gamified sponsor booth visits — attendees collect stamps for prizes.",
-    priceCents: 7900,
+    priceCents: 4900,
     featureFlag: "passport",
   },
   {
     id: "domain",
     name: "Custom Domain",
     description: "Use your own domain (e.g. app.myconf.com) instead of conferenceday.app.",
-    priceCents: 9900,
+    priceCents: 4900,
     capability: "domain",
   },
   {
