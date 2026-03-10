@@ -19,7 +19,7 @@ export function PresenceTracker() {
       config: { presence: { key: user.id } },
     });
 
-    channel.subscribe(async (status) => {
+    channel.subscribe(async (status: string) => {
       if (status === "SUBSCRIBED") {
         await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
       }

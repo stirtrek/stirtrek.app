@@ -202,7 +202,7 @@ export function NotificationProvider({
             schema: "public",
             table: "emergency_messages",
           },
-          (payload) => {
+          (payload: { old: Record<string, unknown>; new: Record<string, unknown> }) => {
             if (payload.old.status !== payload.new.status) {
               refreshCount();
             }

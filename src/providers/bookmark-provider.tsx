@@ -56,7 +56,7 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
           console.error("Failed to load bookmarks:", error.message);
           toast.error("Could not load your saved schedule");
         } else if (data) {
-          setBookmarkedIds(new Set(data.map((d) => d.session_id)));
+          setBookmarkedIds(new Set(data.map((d: { session_id: string }) => d.session_id)));
         }
       } catch (err) {
         console.error("Bookmark fetch error:", err);

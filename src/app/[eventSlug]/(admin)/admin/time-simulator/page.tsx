@@ -40,7 +40,8 @@ export default function TimeSimulatorPage() {
       .order("starts_at", { ascending: true });
 
     if (data) {
-      const unique: string[] = [...new Set(data.map((s: { starts_at: string }) => s.starts_at))];
+      const times = (data as { starts_at: string }[]).map((s) => s.starts_at);
+      const unique = times.filter((t, i) => times.indexOf(t) === i);
       setSessionTimes(unique);
     }
   }, []);

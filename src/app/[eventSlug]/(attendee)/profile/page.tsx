@@ -42,7 +42,7 @@ export default function ProfilePage() {
       .select("first_name, last_name")
       .eq("id", user.id)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: { first_name: string | null; last_name: string | null } | null }) => {
         if (data) {
           setFirstName(data.first_name || "");
           setLastName(data.last_name || "");

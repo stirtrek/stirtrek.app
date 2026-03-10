@@ -69,7 +69,7 @@ export default function CreateEventLayout({
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => {
       if (!user && pathname !== "/create-event/login") {
         router.push("/create-event/login");
       } else {

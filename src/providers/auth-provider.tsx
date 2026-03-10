@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // auth check.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: string, session: { user: User } | null) => {
       const newUser = session?.user ?? null;
       const newUserId = newUser?.id ?? null;
       const identityChanged = newUserId !== currentUserId.current;

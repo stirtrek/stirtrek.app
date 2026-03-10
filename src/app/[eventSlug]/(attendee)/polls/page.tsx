@@ -64,17 +64,18 @@ export default function PollsPage() {
     }
 
     const votes: Record<string, string> = {};
-    const enrichedPolls: PollWithOptions[] = pollData.map((p) => {
-      const response = p.poll_responses?.[0];
-      if (response) votes[p.id] = response.option_id;
+    const enrichedPolls: PollWithOptions[] = pollData.map((p: Record<string, unknown>) => {
+      const responses = p.poll_responses as { poll_id: string; option_id: string }[] | null;
+      const response = responses?.[0];
+      if (response) votes[p.id as string] = response.option_id;
       return {
-        id: p.id,
-        question: p.question,
-        description: p.description,
-        status: p.status,
-        allow_multiple: p.allow_multiple,
-        options: (p.poll_options ?? []).sort(
-          (a, b) => a.sort_order - b.sort_order,
+        id: p.id as string,
+        question: p.question as string,
+        description: p.description as string | null,
+        status: p.status as string,
+        allow_multiple: p.allow_multiple as boolean,
+        options: ((p.poll_options as { id: string; text: string; sort_order: number }[]) ?? []).sort(
+          (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order,
         ),
       };
     });
