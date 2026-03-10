@@ -64,6 +64,21 @@ export function MembershipProvider({
       setRole(data.role);
       setIsSponsor(data.is_sponsor);
       setSponsorId(data.sponsor_id ?? null);
+    } else {
+      // Token may be mid-refresh (lock contention) — retry after a short delay
+      setTimeout(async () => {
+        const { data: retry } = await supabase
+          .from("event_memberships")
+          .select("role, is_sponsor, sponsor_id")
+          .eq("event_id", eventId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (retry) {
+          setRole(retry.role);
+          setIsSponsor(retry.is_sponsor);
+          setSponsorId(retry.sponsor_id ?? null);
+        }
+      }, 1500);
     }
     setLoading(false);
   }, [user, eventId, supabase]);
