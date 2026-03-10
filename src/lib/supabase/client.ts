@@ -1,35 +1,40 @@
 import { createBrowserClient } from "@supabase/ssr";
 
 /**
+ * Cache of event-scoped clients keyed by eventId.
+ * All providers sharing the same eventId reuse one client instance,
+ * avoiding multiple GoTrueClient instances fighting over the same
+ * storage key.
+ */
+const eventClientCache = new Map<string, ReturnType<typeof createBrowserClient>>();
+
+/**
  * Create a browser-side Supabase client.
  *
  * Without eventId: returns the @supabase/ssr singleton (used by AuthProvider).
- * With eventId: creates a separate, non-singleton client that carries the
- * x-event-id header for RLS tenant isolation. Consumers should cache the
- * result with useMemo to avoid re-creating on every render.
+ * With eventId: returns a cached, non-singleton client that carries the
+ * x-event-id header for RLS tenant isolation. The client is shared across
+ * all providers for the same eventId to prevent duplicate GoTrueClient
+ * instances.
  */
 export function createClient(eventId?: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
   if (eventId) {
-    return createBrowserClient(url, key, {
+    const cached = eventClientCache.get(eventId);
+    if (cached) return cached;
+
+    const client = createBrowserClient(url, key, {
       isSingleton: false,
-      auth: {
-        // Prevent this client from creating its own GoTrueClient.
-        // The singleton client (AuthProvider) owns the auth session;
-        // extra GoTrueClient instances cause lock contention and
-        // race conditions during sign-out.
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-        persistSession: true,
-      },
       global: {
         headers: {
           "x-event-id": eventId,
         },
       },
     });
+    eventClientCache.set(eventId, client);
+    return client;
   }
 
   return createBrowserClient(url, key);
