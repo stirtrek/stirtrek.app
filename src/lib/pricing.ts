@@ -79,26 +79,11 @@ export const ADD_ONS: AddOn[] = [
     featureFlag: "feedback",
   },
   {
-    id: "emergency_reporting",
-    name: "Emergency Reporting",
-    description:
-      "Private attendee-to-staff messaging for safety concerns and facility issues.",
-    priceCents: 7900,
-    featureFlag: "emergency_reporting",
-  },
-  {
     id: "sponsor_leads",
     name: "Sponsor Lead Capture",
     description: "Let sponsors scan attendee badges and export contact lists.",
     priceCents: 9900,
     featureFlag: "sponsor_leads",
-  },
-  {
-    id: "venue_map",
-    name: "Venue Map",
-    description: "Upload floor plans so attendees can navigate the venue.",
-    priceCents: 4900,
-    featureFlag: "venue_map",
   },
   {
     id: "passport",
