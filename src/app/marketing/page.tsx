@@ -446,7 +446,7 @@ export default async function MarketingPage() {
                     <img
                       src={event.logo_url}
                       alt={event.name}
-                      className="mx-auto mb-4 h-16 w-auto object-contain"
+                      className="mx-auto mb-4 h-16 w-16 rounded-2xl border border-slate-200 object-contain p-1"
                     />
                   ) : (
                     <div
