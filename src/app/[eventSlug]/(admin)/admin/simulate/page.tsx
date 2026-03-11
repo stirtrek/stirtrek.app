@@ -22,15 +22,9 @@ interface UserRow {
   role: UserRole;
   is_sponsor: boolean;
   sponsor_id: string | null;
+  is_speaker: boolean;
   created_at: string;
 }
-
-const ROLE_COLORS: Record<string, string> = {
-  admin: "bg-red-500/10 text-red-400 border-red-500/20",
-  staff: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  proctor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  attendee: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-};
 
 export default function SimulateUserPage() {
   const { eventSlug, eventPath } = useEvent();
@@ -153,25 +147,45 @@ export default function SimulateUserPage() {
                             {name}
                           </p>
                         )}
-                        {user.is_sponsor && (
-                          <Badge
-                            variant="outline"
-                            className="shrink-0 px-1.5 py-0 text-[10px]"
-                          >
-                            Sponsor
-                          </Badge>
-                        )}
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
                         {user.email}
                       </p>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={`shrink-0 text-[10px] ${ROLE_COLORS[user.role] ?? ""}`}
-                    >
-                      {user.role}
-                    </Badge>
+                    <div className="flex shrink-0 items-center gap-1">
+                      {["admin", "staff"].includes(user.role) && (
+                        <Badge
+                          variant="outline"
+                          className="bg-red-500/10 text-red-400 border-red-500/20 px-1.5 py-0 text-[10px]"
+                        >
+                          Admin
+                        </Badge>
+                      )}
+                      {user.is_speaker && (
+                        <Badge
+                          variant="outline"
+                          className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-1.5 py-0 text-[10px]"
+                        >
+                          Speaker
+                        </Badge>
+                      )}
+                      {user.role === "proctor" && (
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-500/10 text-amber-400 border-amber-500/20 px-1.5 py-0 text-[10px]"
+                        >
+                          Proctor
+                        </Badge>
+                      )}
+                      {user.is_sponsor && (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-500/10 text-green-400 border-green-500/20 px-1.5 py-0 text-[10px]"
+                        >
+                          Sponsor
+                        </Badge>
+                      )}
+                    </div>
                   </button>
                 );
               })}

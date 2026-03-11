@@ -47,14 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // onAuthStateChange fires INITIAL_SESSION synchronously from local
-    // cookie/storage state — no network call required. This resolves the
-    // loading state immediately so the UI never hangs waiting for a remote
-    // auth check.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event: string, session: { user: User } | null) => {
-      const newUser = session?.user ?? null;
+    // Shared handler for both onAuthStateChange and the getSession fallback
+    const handleAuthUser = async (newUser: User | null) => {
       const newUserId = newUser?.id ?? null;
       const identityChanged = newUserId !== currentUserId.current;
 
@@ -107,24 +101,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Resolve loading on the very first event (INITIAL_SESSION)
       if (!initialised.current) {
         initialised.current = true;
         setLoading(false);
       }
+    };
+
+    // Listen for ongoing auth state changes (sign-in, sign-out, token refresh)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event: string, session: { user: User } | null) => {
+      await handleAuthUser(session?.user ?? null);
     });
 
-    // Safety timeout: if auth state hasn't resolved in 5 s, unblock the UI
-    const timeout = setTimeout(() => {
-      if (!initialised.current) {
-        initialised.current = true;
-        console.warn("Auth: INITIAL_SESSION did not fire within 5 s — unblocking UI");
-        setLoading(false);
-      }
-    }, 5000);
+    // Proactive session check — resolves immediately from local storage
+    // without waiting for INITIAL_SESSION which may not fire reliably
+    // in all @supabase/ssr versions.
+    if (!initialised.current) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!initialised.current) {
+          handleAuthUser(session?.user ?? null);
+        }
+      });
+    }
 
     return () => {
-      clearTimeout(timeout);
       subscription.unsubscribe();
     };
   }, [supabase]);

@@ -46,6 +46,14 @@ export async function GET(request: NextRequest) {
       memberships.map((m) => [m.user_id, { role: m.role, is_sponsor: m.is_sponsor, sponsor_id: m.sponsor_id }]),
     );
 
+    // Fetch linked speakers for this event to tag users paired as speakers
+    const { data: speakers } = await admin
+      .from("speakers")
+      .select("user_id")
+      .eq("event_id", eventId)
+      .not("user_id", "is", null);
+    const speakerUserIds = new Set((speakers ?? []).map((s) => s.user_id));
+
     const { page, limit, offset } = getPagination(request);
 
     let query = admin
@@ -69,12 +77,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Merge profile data with event membership data
+    // Merge profile data with event membership + speaker data
     const users = (profiles ?? []).map((p) => ({
       ...p,
       role: memberMap.get(p.id)?.role ?? "attendee",
       is_sponsor: memberMap.get(p.id)?.is_sponsor ?? false,
       sponsor_id: memberMap.get(p.id)?.sponsor_id ?? null,
+      is_speaker: speakerUserIds.has(p.id),
     }));
 
     return NextResponse.json({
