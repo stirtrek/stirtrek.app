@@ -9,7 +9,7 @@ import {
 
 /**
  * GET /api/admin/attendance
- * Returns attendance report: counts joined with sessions, theaters, and profiles.
+ * Returns attendance report: counts joined with sessions, rooms, and profiles.
  * Optional query param: ?session_id= to filter by session
  */
 export async function GET(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Get all attendance counts with theater info
+    // Get all attendance counts
     let countsQuery = admin
       .from("attendance_counts")
       .select("*")
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: countsError.message }, { status: 500 });
     }
 
-    // Get theaters for display names
-    const { data: theaters } = await admin
-      .from("theaters")
+    // Get rooms for display names
+    const { data: rooms } = await admin
+      .from("rooms")
       .select("id, name, sort_order")
       .eq("event_id", eventId)
       .order("sort_order", { ascending: true });
@@ -66,19 +66,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Build lookup maps
-    const theaterMap = new Map((theaters ?? []).map((t) => [t.id, t]));
+    const roomMap = new Map((rooms ?? []).map((r) => [r.id, r]));
     const sessionMap = new Map((sessions ?? []).map((s) => [s.id, s]));
     const profileMap = new Map(profiles.map((p) => [p.id, p]));
 
     // Build report rows
     const report = (counts ?? []).map((c) => {
-      const theater = theaterMap.get(c.theater_id);
+      const room = roomMap.get(c.room_id);
       const session = sessionMap.get(c.session_id);
       const counter = profileMap.get(c.counted_by);
       return {
         ...c,
-        theater_name: theater?.name ?? "Unknown",
-        theater_sort_order: theater?.sort_order ?? 0,
+        room_name: room?.name ?? "Unknown",
+        room_sort_order: room?.sort_order ?? 0,
         session_title: session?.title ?? "Unknown",
         starts_at: session?.starts_at ?? null,
         counted_by_name: counter
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       report,
       session_totals: sessionTotals,
-      theaters: theaters ?? [],
+      rooms: rooms ?? [],
       sessions: sessions ?? [],
     });
   });

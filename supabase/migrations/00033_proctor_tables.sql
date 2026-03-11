@@ -1,69 +1,50 @@
 -- ============================================================
 -- PROCTOR ATTENDANCE COUNTING
--- Adds theaters (physical venue rooms), session-to-theater
--- mappings, attendance counts, and RLS policies.
+-- Adds session-to-room mappings (simulcast), attendance counts,
+-- and RLS policies.
 -- (Depends on 00032 which adds the 'proctor' enum value.)
+--
+-- Uses the existing `rooms` table for all venue rooms.
 -- ============================================================
 
 -- ============================================================
--- 1. THEATERS TABLE (all 28 physical theater rooms)
--- Separate from `rooms` which are Sessionize-synced schedule slots.
+-- 1. SESSION_ROOMS (maps sessions to multiple rooms for simulcast)
+-- The existing sessions.room_id tracks the primary/speaker room.
+-- This junction table tracks ALL rooms a session plays in,
+-- including simulcast rooms.
 -- ============================================================
-CREATE TABLE public.theaters (
+CREATE TABLE public.session_rooms (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id    UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-  name        TEXT NOT NULL,
-  sort_order  INTEGER NOT NULL DEFAULT 0,
-  is_active   BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_theaters_event ON public.theaters(event_id);
-CREATE INDEX idx_theaters_event_sort ON public.theaters(event_id, sort_order);
-
-CREATE TRIGGER set_theaters_updated_at
-  BEFORE UPDATE ON public.theaters
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
--- ============================================================
--- 2. THEATER_SESSIONS (maps sessions to physical theaters)
--- A session can play in multiple theaters (simulcast).
--- Uses TEXT session_id to match sessions.id (no FK to avoid
--- conflicts with Sessionize sync delete/recreate cycles).
--- ============================================================
-CREATE TABLE public.theater_sessions (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id    UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-  theater_id  UUID NOT NULL REFERENCES public.theaters(id) ON DELETE CASCADE,
+  room_id     INTEGER NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
   session_id  TEXT NOT NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(event_id, theater_id, session_id)
+  UNIQUE(event_id, room_id, session_id)
 );
 
-CREATE INDEX idx_theater_sessions_event ON public.theater_sessions(event_id);
-CREATE INDEX idx_theater_sessions_theater ON public.theater_sessions(theater_id);
-CREATE INDEX idx_theater_sessions_session ON public.theater_sessions(session_id);
+CREATE INDEX idx_session_rooms_event ON public.session_rooms(event_id);
+CREATE INDEX idx_session_rooms_room ON public.session_rooms(room_id);
+CREATE INDEX idx_session_rooms_session ON public.session_rooms(session_id);
 
 -- ============================================================
--- 3. ATTENDANCE_COUNTS (one count per theater per session)
+-- 2. ATTENDANCE_COUNTS (one count per room per session)
 -- Upsert model: any proctor can insert or update.
 -- ============================================================
 CREATE TABLE public.attendance_counts (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id    UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-  theater_id  UUID NOT NULL REFERENCES public.theaters(id) ON DELETE CASCADE,
+  room_id     INTEGER NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
   session_id  TEXT NOT NULL,
   count       INTEGER NOT NULL CHECK (count >= 0),
   counted_by  UUID NOT NULL REFERENCES public.profiles(id),
   counted_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(event_id, theater_id, session_id)
+  UNIQUE(event_id, room_id, session_id)
 );
 
 CREATE INDEX idx_attendance_counts_event ON public.attendance_counts(event_id);
 CREATE INDEX idx_attendance_counts_session ON public.attendance_counts(session_id);
-CREATE INDEX idx_attendance_counts_theater ON public.attendance_counts(theater_id);
+CREATE INDEX idx_attendance_counts_room ON public.attendance_counts(room_id);
 CREATE INDEX idx_attendance_counts_event_session ON public.attendance_counts(event_id, session_id);
 
 CREATE TRIGGER set_attendance_counts_updated_at
@@ -71,7 +52,7 @@ CREATE TRIGGER set_attendance_counts_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- ============================================================
--- 4. RLS HELPER: is_event_proctor_or_above()
+-- 3. RLS HELPER: is_event_proctor_or_above()
 -- Returns TRUE for admin, staff, or proctor roles.
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.is_event_proctor_or_above()
@@ -95,42 +76,23 @@ RETURNS BOOLEAN AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- ============================================================
--- 5. RLS POLICIES
+-- 4. RLS POLICIES
 -- ============================================================
 
 -- ----------------------------------------------------------
--- THEATERS
+-- SESSION_ROOMS
 -- ----------------------------------------------------------
-ALTER TABLE public.theaters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.session_rooms ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Event members can read theaters"
-  ON public.theaters FOR SELECT
-  USING (
-    (event_id = public.current_event_id() OR public.current_event_id() IS NULL)
-    AND public.is_event_member()
-  );
-
-CREATE POLICY "Event admin can manage theaters"
-  ON public.theaters FOR ALL
-  USING (
-    (event_id = public.current_event_id() OR public.current_event_id() IS NULL)
-    AND public.is_event_admin_or_staff()
-  );
-
--- ----------------------------------------------------------
--- THEATER_SESSIONS
--- ----------------------------------------------------------
-ALTER TABLE public.theater_sessions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Event proctor+ can read theater sessions"
-  ON public.theater_sessions FOR SELECT
+CREATE POLICY "Event proctor+ can read session rooms"
+  ON public.session_rooms FOR SELECT
   USING (
     (event_id = public.current_event_id() OR public.current_event_id() IS NULL)
     AND public.is_event_proctor_or_above()
   );
 
-CREATE POLICY "Event admin can manage theater sessions"
-  ON public.theater_sessions FOR ALL
+CREATE POLICY "Event admin can manage session rooms"
+  ON public.session_rooms FOR ALL
   USING (
     (event_id = public.current_event_id() OR public.current_event_id() IS NULL)
     AND public.is_event_admin_or_staff()

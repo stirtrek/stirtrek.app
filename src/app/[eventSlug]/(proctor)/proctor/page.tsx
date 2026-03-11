@@ -14,9 +14,9 @@ interface TimeSlot {
   ends_at: string | null;
 }
 
-interface TheaterEntry {
-  theater: {
-    id: string;
+interface RoomEntry {
+  room: {
+    id: number;
     name: string;
     sort_order: number;
   };
@@ -34,9 +34,9 @@ interface TheaterEntry {
 }
 
 interface Summary {
-  total_theaters: number;
-  mapped_theaters: number;
-  counted_theaters: number;
+  total_rooms: number;
+  mapped_rooms: number;
+  counted_rooms: number;
   total_attendance: number;
 }
 
@@ -45,10 +45,10 @@ export default function ProctorPage() {
   const [loading, setLoading] = useState(true);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [theaters, setTheaters] = useState<TheaterEntry[]>([]);
+  const [rooms, setRooms] = useState<RoomEntry[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [counts, setCounts] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState<string | null>(null);
+  const [counts, setCounts] = useState<Record<number, string>>({});
+  const [saving, setSaving] = useState<number | null>(null);
 
   // Fetch time slots on mount
   useEffect(() => {
@@ -74,22 +74,22 @@ export default function ProctorPage() {
     fetchSlots();
   }, [eventSlug]);
 
-  // Fetch theater data when slot changes
-  const fetchTheaters = useCallback(async () => {
+  // Fetch room data when slot changes
+  const fetchRooms = useCallback(async () => {
     if (!selectedSlot) return;
     const res = await fetch(
       `/${eventSlug}/api/proctor/attendance?time_slot=${encodeURIComponent(selectedSlot)}`
     );
     if (res.ok) {
       const d = await res.json();
-      setTheaters(d.theaters);
+      setRooms(d.rooms);
       setSummary(d.summary);
 
       // Pre-populate existing counts
-      const existingCounts: Record<string, string> = {};
-      for (const entry of d.theaters) {
+      const existingCounts: Record<number, string> = {};
+      for (const entry of d.rooms) {
         if (entry.attendance) {
-          existingCounts[entry.theater.id] = String(entry.attendance.count);
+          existingCounts[entry.room.id] = String(entry.attendance.count);
         }
       }
       setCounts(existingCounts);
@@ -98,12 +98,12 @@ export default function ProctorPage() {
 
   useEffect(() => {
     if (selectedSlot) {
-      fetchTheaters();
+      fetchRooms();
     }
-  }, [selectedSlot, fetchTheaters]);
+  }, [selectedSlot, fetchRooms]);
 
-  async function saveCount(theaterId: string, sessionId: string) {
-    const countStr = counts[theaterId];
+  async function saveCount(roomId: number, sessionId: string) {
+    const countStr = counts[roomId];
     if (countStr === undefined || countStr === "") return;
 
     const count = parseInt(countStr, 10);
@@ -112,17 +112,17 @@ export default function ProctorPage() {
       return;
     }
 
-    setSaving(theaterId);
+    setSaving(roomId);
     const res = await fetch(`/${eventSlug}/api/proctor/attendance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theater_id: theaterId, session_id: sessionId, count }),
+      body: JSON.stringify({ room_id: roomId, session_id: sessionId, count }),
     });
 
     if (res.ok) {
       toast.success("Count saved");
       // Refresh to get updated data
-      await fetchTheaters();
+      await fetchRooms();
     } else {
       const err = await res.json();
       toast.error(err.error || "Failed to save");
@@ -146,8 +146,8 @@ export default function ProctorPage() {
           <CardContent className="flex items-center gap-3 py-6">
             <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
             <p className="text-sm text-muted-foreground">
-              No sessions have been mapped to theaters yet. An admin needs to set up
-              theater-session mappings first.
+              No sessions have been mapped to rooms yet. An admin needs to set up
+              session-room mappings first.
             </p>
           </CardContent>
         </Card>
@@ -155,8 +155,8 @@ export default function ProctorPage() {
     );
   }
 
-  // Filter to only theaters that have a mapped session for this slot
-  const mappedTheaters = theaters.filter((e) => e.session !== null);
+  // Filter to only rooms that have a mapped session for this slot
+  const mappedRooms = rooms.filter((e) => e.session !== null);
 
   return (
     <div className="space-y-4">
@@ -179,21 +179,21 @@ export default function ProctorPage() {
         ))}
       </div>
 
-      {/* Theater cards */}
-      {mappedTheaters.length === 0 ? (
+      {/* Room cards */}
+      {mappedRooms.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
-          No theaters mapped for this time slot.
+          No rooms mapped for this time slot.
         </p>
       ) : (
         <div className="space-y-2">
-          {mappedTheaters.map((entry) => {
-            const { theater, session, attendance } = entry;
+          {mappedRooms.map((entry) => {
+            const { room, session, attendance } = entry;
             const hasCount = attendance !== null;
-            const inputValue = counts[theater.id] ?? "";
+            const inputValue = counts[room.id] ?? "";
 
             return (
               <Card
-                key={theater.id}
+                key={room.id}
                 className={`gap-0 py-0 ${
                   hasCount
                     ? "border-green-500/30"
@@ -204,7 +204,7 @@ export default function ProctorPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-sm">{theater.name}</p>
+                        <p className="font-semibold text-sm">{room.name}</p>
                         {hasCount && (
                           <Check className="h-4 w-4 text-green-500 shrink-0" />
                         )}
@@ -232,12 +232,12 @@ export default function ProctorPage() {
                         onChange={(e) =>
                           setCounts((prev) => ({
                             ...prev,
-                            [theater.id]: e.target.value,
+                            [room.id]: e.target.value,
                           }))
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && session) {
-                            saveCount(theater.id, session.id);
+                            saveCount(room.id, session.id);
                           }
                         }}
                         placeholder="0"
@@ -247,16 +247,16 @@ export default function ProctorPage() {
                         size="sm"
                         className="h-10"
                         disabled={
-                          saving === theater.id ||
+                          saving === room.id ||
                           !session ||
                           inputValue === "" ||
                           inputValue === String(attendance?.count)
                         }
                         onClick={() => {
-                          if (session) saveCount(theater.id, session.id);
+                          if (session) saveCount(room.id, session.id);
                         }}
                       >
-                        {saving === theater.id ? (
+                        {saving === room.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           "Save"
@@ -272,15 +272,15 @@ export default function ProctorPage() {
       )}
 
       {/* Summary bar */}
-      {summary && summary.mapped_theaters > 0 && (
+      {summary && summary.mapped_rooms > 0 && (
         <div className="sticky bottom-4 flex items-center justify-between rounded-lg border bg-background/95 px-4 py-3 shadow-sm backdrop-blur">
           <div className="text-sm">
             <span className="font-semibold tabular-nums">
-              {summary.counted_theaters}
+              {summary.counted_rooms}
             </span>
             <span className="text-muted-foreground">
               {" "}
-              of {summary.mapped_theaters} counted
+              of {summary.mapped_rooms} counted
             </span>
           </div>
           <div className="text-sm font-bold tabular-nums">

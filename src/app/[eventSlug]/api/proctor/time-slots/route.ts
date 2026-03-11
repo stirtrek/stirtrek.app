@@ -9,7 +9,7 @@ import {
 
 /**
  * GET /api/proctor/time-slots
- * Returns distinct session start times that have theater mappings.
+ * Returns distinct session start times that have room mappings.
  */
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Get all session IDs that have theater mappings
+    // Get all session IDs that have room mappings
     const { data: mappings } = await admin
-      .from("theater_sessions")
+      .from("session_rooms")
       .select("session_id")
       .eq("event_id", eventId);
 

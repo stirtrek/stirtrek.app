@@ -10,7 +10,7 @@ import {
 
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
-  return telemetry.trackAPIRoute("/api/admin/theater-sessions", "GET", async () => {
+  return telemetry.trackAPIRoute("/api/admin/session-rooms", "GET", async () => {
     const eventId = getEventId(request);
     const auth = await requireEventAdmin(eventId);
     if (isErrorResponse(auth)) return auth;
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const sessionId = searchParams.get("session_id");
 
     let query = admin
-      .from("theater_sessions")
+      .from("session_rooms")
       .select("*")
       .eq("event_id", eventId);
 
@@ -34,34 +34,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ theater_sessions: data ?? [] });
+    return NextResponse.json({ session_rooms: data ?? [] });
   });
 }
 
 export async function POST(request: NextRequest) {
   const telemetry = getTelemetryService();
-  return telemetry.trackAPIRoute("/api/admin/theater-sessions", "POST", async () => {
+  return telemetry.trackAPIRoute("/api/admin/session-rooms", "POST", async () => {
     const eventId = getEventId(request);
     const auth = await requireEventAdmin(eventId);
     if (isErrorResponse(auth)) return auth;
 
     const body = await safeParseBody(request);
     if (body instanceof NextResponse) return body;
-    const { theater_id, session_id } = body;
+    const { room_id, session_id } = body;
 
-    if (!theater_id || !session_id) {
+    if (!room_id || !session_id) {
       return NextResponse.json(
-        { error: "theater_id and session_id are required" },
+        { error: "room_id and session_id are required" },
         { status: 400 },
       );
     }
 
     const admin = createAdminClient();
     const { data, error } = await admin
-      .from("theater_sessions")
+      .from("session_rooms")
       .insert({
         event_id: eventId,
-        theater_id,
+        room_id,
         session_id,
       })
       .select()
@@ -71,13 +71,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ theater_session: data }, { status: 201 });
+    return NextResponse.json({ session_room: data }, { status: 201 });
   });
 }
 
 export async function DELETE(request: NextRequest) {
   const telemetry = getTelemetryService();
-  return telemetry.trackAPIRoute("/api/admin/theater-sessions", "DELETE", async () => {
+  return telemetry.trackAPIRoute("/api/admin/session-rooms", "DELETE", async () => {
     const eventId = getEventId(request);
     const auth = await requireEventAdmin(eventId);
     if (isErrorResponse(auth)) return auth;
@@ -92,7 +92,7 @@ export async function DELETE(request: NextRequest) {
 
     const admin = createAdminClient();
     const { error } = await admin
-      .from("theater_sessions")
+      .from("session_rooms")
       .delete()
       .eq("id", id)
       .eq("event_id", eventId);

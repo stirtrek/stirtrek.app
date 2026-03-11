@@ -398,23 +398,13 @@ export interface EmergencyMessageWithReplies extends EmergencyMessage {
 }
 
 // ============================================================
-// Theaters & Attendance (proctor feature)
+// Attendance (proctor feature)
 // ============================================================
 
-export interface Theater {
+export interface SessionRoom {
   id: string;
   event_id: string;
-  name: string;
-  sort_order: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TheaterSession {
-  id: string;
-  event_id: string;
-  theater_id: string;
+  room_id: number;
   session_id: string;
   created_at: string;
 }
@@ -422,7 +412,7 @@ export interface TheaterSession {
 export interface AttendanceCount {
   id: string;
   event_id: string;
-  theater_id: string;
+  room_id: number;
   session_id: string;
   count: number;
   counted_by: string;

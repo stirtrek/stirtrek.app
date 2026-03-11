@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, ArrowLeft, Settings2, BarChart3, Check } from "lucide-react";
 import { toast } from "sonner";
 import { formatTime } from "@/lib/utils";
-import type { Theater } from "@/lib/types";
+import type { Room } from "@/lib/types";
 
 type View = "setup" | "report";
 
@@ -20,17 +20,17 @@ interface SessionEntry {
   ends_at: string | null;
 }
 
-interface TheaterMapping {
+interface RoomMapping {
   id: string;
-  theater_id: string;
+  room_id: number;
   session_id: string;
 }
 
 interface AttendanceRow {
   session_id: string;
-  theater_id: string;
+  room_id: number;
   count: number;
-  theater_name: string;
+  room_name: string;
   session_title: string;
   starts_at: string | null;
   counted_by_name: string;
@@ -41,23 +41,22 @@ export default function AttendanceAdminPage() {
   const { event, eventSlug, eventPath } = useEvent();
   const [view, setView] = useState<View>("setup");
   const [loading, setLoading] = useState(true);
-  const [theaters, setTheaters] = useState<Theater[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [sessions, setSessions] = useState<SessionEntry[]>([]);
-  const [mappings, setMappings] = useState<TheaterMapping[]>([]);
+  const [mappings, setMappings] = useState<RoomMapping[]>([]);
   const [report, setReport] = useState<AttendanceRow[]>([]);
   const [sessionTotals, setSessionTotals] = useState<Record<string, number>>({});
-  const [savingSession, setSavingSession] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [theatersRes, sessionsRes, mappingsRes] = await Promise.all([
-      fetch(`/${eventSlug}/api/admin/theaters`),
+    const [roomsRes, sessionsRes, mappingsRes] = await Promise.all([
+      fetch(`/${eventSlug}/api/admin/rooms`),
       fetch(`/${eventSlug}/api/admin/sessions`),
-      fetch(`/${eventSlug}/api/admin/theater-sessions`),
+      fetch(`/${eventSlug}/api/admin/session-rooms`),
     ]);
 
-    if (theatersRes.ok) {
-      const d = await theatersRes.json();
-      setTheaters(d.theaters);
+    if (roomsRes.ok) {
+      const d = await roomsRes.json();
+      setRooms(d.rooms);
     }
     if (sessionsRes.ok) {
       const d = await sessionsRes.json();
@@ -69,7 +68,7 @@ export default function AttendanceAdminPage() {
     }
     if (mappingsRes.ok) {
       const d = await mappingsRes.json();
-      setMappings(d.theater_sessions);
+      setMappings(d.session_rooms);
     }
     setLoading(false);
   }, [eventSlug]);
@@ -103,15 +102,15 @@ export default function AttendanceAdminPage() {
 
   const sortedTimeSlots = Object.keys(timeSlots).sort();
 
-  // Toggle a theater mapping for a session
-  async function toggleTheater(sessionId: string, theaterId: string) {
+  // Toggle a room mapping for a session
+  async function toggleRoom(sessionId: string, roomId: number) {
     const existing = mappings.find(
-      (m) => m.session_id === sessionId && m.theater_id === theaterId
+      (m) => m.session_id === sessionId && m.room_id === roomId
     );
 
     if (existing) {
       // Remove
-      const res = await fetch(`/${eventSlug}/api/admin/theater-sessions`, {
+      const res = await fetch(`/${eventSlug}/api/admin/session-rooms`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: existing.id }),
@@ -123,23 +122,23 @@ export default function AttendanceAdminPage() {
       }
     } else {
       // Add
-      const res = await fetch(`/${eventSlug}/api/admin/theater-sessions`, {
+      const res = await fetch(`/${eventSlug}/api/admin/session-rooms`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theater_id: theaterId, session_id: sessionId }),
+        body: JSON.stringify({ room_id: roomId, session_id: sessionId }),
       });
       if (res.ok) {
         const d = await res.json();
-        setMappings((prev) => [...prev, d.theater_session]);
+        setMappings((prev) => [...prev, d.session_room]);
       } else {
         toast.error("Failed to add mapping");
       }
     }
   }
 
-  function isTheaterMapped(sessionId: string, theaterId: string) {
+  function isRoomMapped(sessionId: string, roomId: number) {
     return mappings.some(
-      (m) => m.session_id === sessionId && m.theater_id === theaterId
+      (m) => m.session_id === sessionId && m.room_id === roomId
     );
   }
 
@@ -185,14 +184,14 @@ export default function AttendanceAdminPage() {
 
       {view === "setup" && (
         <div className="space-y-4">
-          {theaters.length === 0 && (
+          {rooms.length === 0 && (
             <Card>
               <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                No theaters configured. Add theaters in the{" "}
+                No rooms configured. Add rooms in the{" "}
                 <Link href={eventPath("/admin/schedule")} className="underline">
                   Schedule
                 </Link>{" "}
-                page under the Theaters tab.
+                page under the Rooms tab.
               </CardContent>
             </Card>
           )}
@@ -209,8 +208,8 @@ export default function AttendanceAdminPage() {
               <CardContent className="px-4 pb-3">
                 <div className="space-y-3">
                   {timeSlots[slot].map((session) => {
-                    const mappedCount = theaters.filter((t) =>
-                      isTheaterMapped(session.id, t.id)
+                    const mappedCount = rooms.filter((r) =>
+                      isRoomMapped(session.id, r.id)
                     ).length;
 
                     return (
@@ -220,20 +219,20 @@ export default function AttendanceAdminPage() {
                             {session.title}
                           </p>
                           <Badge variant="outline" className="shrink-0 text-[10px] ml-2">
-                            {mappedCount} theater{mappedCount !== 1 && "s"}
+                            {mappedCount} room{mappedCount !== 1 && "s"}
                           </Badge>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {theaters.map((theater) => {
-                            const mapped = isTheaterMapped(
+                          {rooms.map((room) => {
+                            const mapped = isRoomMapped(
                               session.id,
-                              theater.id
+                              room.id
                             );
                             return (
                               <button
-                                key={theater.id}
+                                key={room.id}
                                 onClick={() =>
-                                  toggleTheater(session.id, theater.id)
+                                  toggleRoom(session.id, room.id)
                                 }
                                 className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
                                   mapped
@@ -242,7 +241,7 @@ export default function AttendanceAdminPage() {
                                 }`}
                               >
                                 {mapped && <Check className="h-3 w-3" />}
-                                {theater.name}
+                                {room.name}
                               </button>
                             );
                           })}
@@ -306,16 +305,16 @@ export default function AttendanceAdminPage() {
                           {sessionRows
                             .sort(
                               (a, b) =>
-                                (a.theater_name > b.theater_name ? 1 : -1)
+                                (a.room_name > b.room_name ? 1 : -1)
                             )
                             .map((row) => (
                               <div
-                                key={`${row.session_id}-${row.theater_id}`}
+                                key={`${row.session_id}-${row.room_id}`}
                                 className="flex items-center justify-between py-1 text-sm"
                               >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span className="truncate">
-                                    {row.theater_name}
+                                    {row.room_name}
                                   </span>
                                   <span className="text-[10px] text-muted-foreground shrink-0">
                                     by {row.counted_by_name}

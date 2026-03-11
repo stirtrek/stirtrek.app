@@ -84,7 +84,7 @@ export default function AdminDashboardPage() {
     hasFeature("attendance") && {
       href: eventPath("/admin/attendance"),
       label: "Attendance",
-      description: "Theater setup & head counts",
+      description: "Room setup & head counts",
       icon: ClipboardCheck,
     },
     {
