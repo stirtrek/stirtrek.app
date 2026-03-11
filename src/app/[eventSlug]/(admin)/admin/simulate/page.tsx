@@ -19,6 +19,7 @@ interface UserRow {
   display_name: string | null;
   first_name: string | null;
   last_name: string | null;
+  is_super_admin: boolean;
   role: UserRole;
   is_sponsor: boolean;
   sponsor_id: string | null;
@@ -153,7 +154,7 @@ export default function SimulateUserPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      {["admin", "staff"].includes(user.role) && (
+                      {(user.is_super_admin || ["admin", "staff"].includes(user.role)) && (
                         <Badge
                           variant="outline"
                           className="bg-red-500/10 text-red-400 border-red-500/20 px-1.5 py-0 text-[10px]"

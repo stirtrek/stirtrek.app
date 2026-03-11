@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     let query = admin
       .from("profiles")
       .select(
-        "id, email, display_name, first_name, last_name, created_at",
+        "id, email, display_name, first_name, last_name, is_super_admin, created_at",
         { count: "exact" },
       )
       .in("id", memberIds)
