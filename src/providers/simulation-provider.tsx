@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useCallback,
+  useLayoutEffect,
   useMemo,
   useState,
 } from "react";
@@ -49,17 +50,20 @@ export function SimulationProvider({
 }) {
   const { profile } = useAuth();
   const { eventId } = useEvent();
-  const [simulatedUser, setSimulatedUser] = useState<SimulatedUser | null>(
-    () => {
-      if (typeof window === "undefined") return null;
-      try {
-        const stored = sessionStorage.getItem(storageKey(eventId));
-        return stored ? JSON.parse(stored) : null;
-      } catch {
-        return null;
-      }
+  const [simulatedUser, setSimulatedUser] = useState<SimulatedUser | null>(null);
+
+  // Restore from sessionStorage before the browser paints so the
+  // simulation banner appears immediately (no flash). useLayoutEffect
+  // is safe here because this is a "use client" component — React
+  // skips it during SSR and runs it on hydration before paint.
+  useLayoutEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(storageKey(eventId));
+      if (stored) setSimulatedUser(JSON.parse(stored));
+    } catch {
+      // Ignore parse errors
     }
-  );
+  }, [eventId]);
 
   const startSimulation = useCallback(
     (user: SimulatedUser) => {
