@@ -29,6 +29,7 @@ function makeEvent(overrides: Partial<Event> = {}): Event {
       feedback: false,
       venue_map: false,
       passport: false,
+      attendance: false,
     },
     sponsor_tiers: [],
     schedule_message: null,
@@ -91,6 +92,7 @@ describe("EventProvider", () => {
         feedback: false,
         venue_map: false,
         passport: false,
+        attendance: false,
       },
     });
     const { result } = renderHook(() => useEvent(), {
@@ -115,6 +117,7 @@ describe("EventProvider", () => {
         feedback: false,
         venue_map: false,
         passport: false,
+        attendance: false,
       },
     });
     const { result } = renderHook(() => useEvent(), {

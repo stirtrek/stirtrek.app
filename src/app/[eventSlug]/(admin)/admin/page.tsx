@@ -21,6 +21,7 @@ import {
   Settings,
   CheckCircle2,
   Circle,
+  ClipboardCheck,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -80,6 +81,12 @@ export default function AdminDashboardPage() {
     //   description: "Upload venue maps",
     //   icon: Map,
     // },
+    hasFeature("attendance") && {
+      href: eventPath("/admin/attendance"),
+      label: "Attendance",
+      description: "Theater setup & head counts",
+      icon: ClipboardCheck,
+    },
     {
       href: eventPath("/admin/users"),
       label: "Users",

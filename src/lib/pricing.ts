@@ -140,6 +140,7 @@ export function computeFeatureFlags(
     feedback: false,
     venue_map: false,
     passport: false,
+    attendance: false,
   };
 
   // Enable features from tier

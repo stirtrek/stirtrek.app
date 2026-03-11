@@ -50,6 +50,7 @@ const LEGACY_PATHS = [
   "/leads",
   "/venue-map",
   "/announcements",
+  "/proctor",
   "/auth/callback",
   "/auth/confirm",
   "/profile/complete",
@@ -233,7 +234,7 @@ async function handleCustomDomain(
       return redirectWithCookies(url, supabaseResponse);
     }
 
-    if (eventPath.startsWith("/admin") || eventPath.startsWith("/leads")) {
+    if (eventPath.startsWith("/admin") || eventPath.startsWith("/leads") || eventPath.startsWith("/proctor")) {
       const { data: membership } = await supabase
         .from("event_memberships")
         .select("role, is_sponsor")
@@ -244,6 +245,22 @@ async function handleCustomDomain(
       if (eventPath.startsWith("/admin")) {
         if (!membership || !["admin", "staff"].includes(membership.role)) {
           // Super admins bypass event membership checks
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_super_admin")
+            .eq("id", user.id)
+            .single();
+
+          if (!profile?.is_super_admin) {
+            const url = request.nextUrl.clone();
+            url.pathname = "/schedule";
+            return redirectWithCookies(url, supabaseResponse);
+          }
+        }
+      }
+
+      if (eventPath.startsWith("/proctor")) {
+        if (!membership || !["admin", "staff", "proctor"].includes(membership.role)) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("is_super_admin")
@@ -385,7 +402,7 @@ async function handlePlatformDomain(
       return redirectWithCookies(url, supabaseResponse);
     }
 
-    if (event && (eventPath.startsWith("/admin") || eventPath.startsWith("/leads"))) {
+    if (event && (eventPath.startsWith("/admin") || eventPath.startsWith("/leads") || eventPath.startsWith("/proctor"))) {
       const { data: membership } = await supabase
         .from("event_memberships")
         .select("role, is_sponsor")
@@ -396,6 +413,22 @@ async function handlePlatformDomain(
       if (eventPath.startsWith("/admin")) {
         if (!membership || !["admin", "staff"].includes(membership.role)) {
           // Super admins bypass event membership checks
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("is_super_admin")
+            .eq("id", user.id)
+            .single();
+
+          if (!profile?.is_super_admin) {
+            const url = request.nextUrl.clone();
+            url.pathname = `/${eventSlug}/schedule`;
+            return redirectWithCookies(url, supabaseResponse);
+          }
+        }
+      }
+
+      if (eventPath.startsWith("/proctor")) {
+        if (!membership || !["admin", "staff", "proctor"].includes(membership.role)) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("is_super_admin")

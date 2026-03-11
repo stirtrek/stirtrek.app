@@ -43,12 +43,12 @@ import {
   Search,
   AlertTriangle,
 } from "lucide-react";
-import type { SessionizeSyncLog, Speaker, Room } from "@/lib/types";
+import type { SessionizeSyncLog, Speaker, Room, Theater } from "@/lib/types";
 import { toast } from "sonner";
 import Link from "next/link";
 import { formatTime, eventLocalToUTC, utcToEventLocal } from "@/lib/utils";
 
-type Tab = "sessions" | "speakers" | "rooms";
+type Tab = "sessions" | "speakers" | "rooms" | "theaters";
 
 interface SessionEntry {
   id: string;
@@ -183,13 +183,15 @@ function ManualEntryView({
   const [sessions, setSessions] = useState<SessionEntry[]>([]);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [theaters, setTheaters] = useState<Theater[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
-    const [sessRes, spkRes, rmRes] = await Promise.all([
+    const [sessRes, spkRes, rmRes, thRes] = await Promise.all([
       fetch(`/${eventSlug}/api/admin/sessions`),
       fetch(`/${eventSlug}/api/admin/speakers`),
       fetch(`/${eventSlug}/api/admin/rooms`),
+      fetch(`/${eventSlug}/api/admin/theaters`),
     ]);
 
     if (sessRes.ok) {
@@ -204,6 +206,10 @@ function ManualEntryView({
       const d = await rmRes.json();
       setRooms(d.rooms);
     }
+    if (thRes.ok) {
+      const d = await thRes.json();
+      setTheaters(d.theaters);
+    }
     setLoading(false);
   }, [eventSlug]);
 
@@ -215,6 +221,7 @@ function ManualEntryView({
     { key: "sessions", label: "Sessions", count: sessions.length },
     { key: "speakers", label: "Speakers", count: speakers.length },
     { key: "rooms", label: "Rooms", count: rooms.length },
+    { key: "theaters", label: "Theaters", count: theaters.length },
   ];
 
   return (
@@ -402,6 +409,13 @@ function ManualEntryView({
           {tab === "rooms" && (
             <RoomsTab
               rooms={rooms}
+              eventSlug={eventSlug}
+              onRefresh={fetchAll}
+            />
+          )}
+          {tab === "theaters" && (
+            <TheatersTab
+              theaters={theaters}
               eventSlug={eventSlug}
               onRefresh={fetchAll}
             />
@@ -1430,4 +1444,161 @@ function SessionsTab({
 // Helper: convert UTC ISO string to datetime-local input format in event timezone
 function toLocalInput(iso: string, timezone: string): string {
   return utcToEventLocal(iso, timezone);
+}
+
+// ──────────────────────────────────────────
+// THEATERS TAB (physical venue theaters)
+// ──────────────────────────────────────────
+
+function TheatersTab({
+  theaters,
+  eventSlug,
+  onRefresh,
+}: {
+  theaters: Theater[];
+  eventSlug: string;
+  onRefresh: () => void;
+}) {
+  const [newName, setNewName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  async function addTheater() {
+    if (!newName.trim()) return;
+    setSaving(true);
+    const res = await fetch(`/${eventSlug}/api/admin/theaters`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName.trim() }),
+    });
+    if (res.ok) {
+      setNewName("");
+      toast.success("Theater added");
+      onRefresh();
+    } else {
+      const err = await res.json();
+      toast.error(err.error);
+    }
+    setSaving(false);
+  }
+
+  async function renameTheater(id: string) {
+    if (!editName.trim()) return;
+    const res = await fetch(`/${eventSlug}/api/admin/theaters/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName.trim() }),
+    });
+    if (res.ok) {
+      toast.success("Theater renamed");
+      setEditingId(null);
+      onRefresh();
+    } else {
+      const err = await res.json();
+      toast.error(err.error);
+    }
+  }
+
+  async function deleteTheater(id: string) {
+    const res = await fetch(`/${eventSlug}/api/admin/theaters/${id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      toast.success("Theater deleted");
+      onRefresh();
+    } else {
+      const err = await res.json();
+      toast.error(err.error);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Theaters are the physical venue rooms (all 28). These are separate from schedule rooms and are used for proctor attendance counting.
+      </p>
+      <div className="flex gap-2">
+        <Input
+          placeholder="Theater name..."
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addTheater()}
+        />
+        <Button onClick={addTheater} disabled={saving || !newName.trim()} size="sm">
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      {theaters.length === 0 ? (
+        <p className="text-muted-foreground py-4 text-center text-sm">
+          No theaters yet. Add all physical venue theaters for proctor counting.
+        </p>
+      ) : (
+        <div className="space-y-1">
+          {theaters.map((theater) => (
+            <div
+              key={theater.id}
+              className="flex items-center justify-between rounded-md border px-3 py-2"
+            >
+              {editingId === theater.id ? (
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") renameTheater(theater.id);
+                    if (e.key === "Escape") setEditingId(null);
+                  }}
+                  autoFocus
+                  className="mr-2 h-7 text-sm"
+                />
+              ) : (
+                <span className="text-sm">{theater.name}</span>
+              )}
+              <div className="flex gap-1">
+                {editingId === theater.id ? (
+                  <>
+                    <Button
+                      onClick={() => renameTheater(theater.id)}
+                      disabled={!editName.trim()}
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      onClick={() => setEditingId(null)}
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditingId(theater.id);
+                        setEditName(theater.name);
+                      }}
+                      className="text-muted-foreground hover:text-foreground p-1"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => deleteTheater(theater.id)}
+                      className="text-muted-foreground hover:text-destructive p-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -94,7 +94,7 @@ export async function PUT(request: NextRequest) {
     if (body instanceof NextResponse) return body;
     const { profile_id, role } = body;
 
-    if (!profile_id || !["attendee", "admin"].includes(role)) {
+    if (!profile_id || !["attendee", "proctor", "admin"].includes(role)) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 

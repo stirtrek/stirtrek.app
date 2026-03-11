@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LogOut, Shield, MessageSquare, ArrowRight } from "lucide-react";
+import { Loader2, LogOut, Shield, ClipboardCheck, MessageSquare, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { SponsorActivation } from "@/components/profile/sponsor-activation";
@@ -19,7 +19,7 @@ import { SponsorCompanySelector } from "@/components/profile/sponsor-company-sel
 export default function ProfilePage() {
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const { eventPath, eventId, eventSlug } = useEvent();
-  const { isAdmin, isSponsor: memberIsSponsor, sponsorId: memberSponsorId } = useMembership();
+  const { isAdmin, isProctor, isSponsor: memberIsSponsor, sponsorId: memberSponsorId } = useMembership();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -113,15 +113,26 @@ export default function ProfilePage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Profile</h1>
-        {isAdmin && (
-          <Link
-            href={eventPath("/admin")}
-            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-          >
-            <Shield className="h-4 w-4" />
-            Admin
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          {isProctor && !isAdmin && (
+            <Link
+              href={eventPath("/proctor")}
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+              <ClipboardCheck className="h-4 w-4" />
+              Proctor
+            </Link>
+          )}
+          {isAdmin && (
+            <Link
+              href={eventPath("/admin")}
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+              <Shield className="h-4 w-4" />
+              Admin
+            </Link>
+          )}
+        </div>
       </div>
 
       <Card>

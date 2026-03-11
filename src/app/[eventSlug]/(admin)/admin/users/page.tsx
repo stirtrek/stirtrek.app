@@ -165,6 +165,7 @@ export default function AdminUsersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="attendee">Attendee</SelectItem>
+                          <SelectItem value="proctor">Proctor</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>

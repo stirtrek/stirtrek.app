@@ -1,5 +1,5 @@
 // Database enum types
-export type UserRole = "attendee" | "admin" | "staff";
+export type UserRole = "attendee" | "admin" | "staff" | "proctor";
 export type EmergencyCategory =
   | "person_safety"
   | "av_problem"
@@ -43,6 +43,7 @@ export interface EventFeatureFlags {
   feedback: boolean;
   venue_map: boolean;
   passport: boolean;
+  attendance: boolean;
 }
 
 export interface Event {
@@ -394,4 +395,37 @@ export interface EmergencyMessageWithReplies extends EmergencyMessage {
     last_name: string | null;
     email: string;
   };
+}
+
+// ============================================================
+// Theaters & Attendance (proctor feature)
+// ============================================================
+
+export interface Theater {
+  id: string;
+  event_id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TheaterSession {
+  id: string;
+  event_id: string;
+  theater_id: string;
+  session_id: string;
+  created_at: string;
+}
+
+export interface AttendanceCount {
+  id: string;
+  event_id: string;
+  theater_id: string;
+  session_id: string;
+  count: number;
+  counted_by: string;
+  counted_at: string;
+  updated_at: string;
 }

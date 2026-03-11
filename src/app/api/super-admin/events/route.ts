@@ -11,6 +11,7 @@ const DEFAULT_FEATURE_FLAGS: EventFeatureFlags = {
   feedback: false,
   venue_map: false,
   passport: false,
+  attendance: false,
 };
 
 export async function GET() {

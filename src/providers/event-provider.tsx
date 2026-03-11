@@ -25,6 +25,7 @@ const DEFAULT_FEATURE_FLAGS: EventFeatureFlags = {
   feedback: true,
   venue_map: false,
   passport: true,
+  attendance: false,
 };
 
 export function EventProvider({

@@ -240,6 +240,66 @@ export async function requireSuperAdmin(): Promise<
 }
 
 /**
+ * Check that the current user is authenticated and is an admin, staff,
+ * or proctor member for the given event. Returns the user ID and
+ * membership, or an error response.
+ */
+export async function requireEventProctor(
+  eventId: string,
+): Promise<
+  | { userId: string; membership: EventMembership; event: Event }
+  | NextResponse
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const event = await getEventById(eventId);
+  if (!event) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  const admin = createAdminClient();
+  const { data: membership } = await admin
+    .from("event_memberships")
+    .select("*")
+    .eq("event_id", eventId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (membership && ["admin", "staff", "proctor"].includes(membership.role)) {
+    return { userId: user.id, membership: membership as EventMembership, event };
+  }
+
+  // Super admins have access to everything
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.is_super_admin) {
+    const syntheticMembership: EventMembership = {
+      id: `super-admin-${user.id}`,
+      event_id: eventId,
+      user_id: user.id,
+      role: "admin",
+      is_sponsor: false,
+      sponsor_id: null,
+      joined_at: new Date().toISOString(),
+    };
+    return { userId: user.id, membership: syntheticMembership, event };
+  }
+
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
+
+/**
  * Helper: check if an API result is an error response.
  */
 export function isErrorResponse(

@@ -18,6 +18,7 @@ const DEFAULT_FLAGS: EventFeatureFlags = {
   feedback: false,
   venue_map: false,
   passport: false,
+  attendance: false,
 };
 
 const ACCENT_PRESETS = [
@@ -37,6 +38,7 @@ const FLAG_LABELS: Record<keyof EventFeatureFlags, string> = {
   feedback: "Session Feedback",
   venue_map: "Venue Map",
   passport: "Passport / Gamification",
+  attendance: "Proctor Attendance Counting",
 };
 
 interface EventFormProps {

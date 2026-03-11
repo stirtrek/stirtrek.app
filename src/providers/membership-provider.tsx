@@ -16,6 +16,7 @@ import type { UserRole } from "@/lib/types";
 interface MembershipContextValue {
   role: UserRole;
   isAdmin: boolean;
+  isProctor: boolean;
   isSponsor: boolean;
   sponsorId: string | null;
   loading: boolean;
@@ -25,6 +26,7 @@ interface MembershipContextValue {
 const MembershipContext = createContext<MembershipContextValue>({
   role: "attendee",
   isAdmin: false,
+  isProctor: false,
   isSponsor: false,
   sponsorId: null,
   loading: true,
@@ -91,12 +93,14 @@ export function MembershipProvider({
   }, [refreshMembership, profile]);
 
   const isAdmin = profile?.is_super_admin || ["admin", "staff"].includes(role);
+  const isProctor = profile?.is_super_admin || ["admin", "staff", "proctor"].includes(role);
 
   return (
     <MembershipContext.Provider
       value={{
         role,
         isAdmin,
+        isProctor,
         isSponsor,
         sponsorId,
         loading,
