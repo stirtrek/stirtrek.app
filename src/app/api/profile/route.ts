@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { safeParseBody } from "@/lib/events/api-helpers";
+import { safeParseBody, resolveEffectiveUser, blockSimulatedWrite } from "@/lib/events/api-helpers";
 
 export async function PUT(request: Request) {
   const telemetry = getTelemetryService();
@@ -15,6 +15,10 @@ export async function PUT(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { isSimulating } = await resolveEffectiveUser(request, user.id);
+    const blocked = blockSimulatedWrite(isSimulating);
+    if (blocked) return blocked;
 
     const body = await safeParseBody(request);
     if (body instanceof NextResponse) return body;

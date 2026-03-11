@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId, requireFeatureFlag } from "@/lib/events/api-helpers";
+import { getEventId, requireFeatureFlag, resolveEffectiveUser } from "@/lib/events/api-helpers";
 
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -22,10 +22,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
+    const { effectiveUserId } = await resolveEffectiveUser(request, user.id);
+    const admin = createAdminClient();
+
+    const { data: profile } = await admin
       .from("profiles")
       .select("email")
-      .eq("id", user.id)
+      .eq("id", effectiveUserId)
       .single();
 
     if (!profile?.email) {
@@ -34,8 +37,6 @@ export async function GET(request: NextRequest) {
         { status: 404 },
       );
     }
-
-    const admin = createAdminClient();
 
     // Find all leads where this attendee was scanned, joining to the
     // scanner's profile to get their sponsor company assignment

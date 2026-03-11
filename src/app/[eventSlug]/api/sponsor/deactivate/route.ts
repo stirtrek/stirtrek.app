@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId } from "@/lib/events/api-helpers";
+import { getEventId, resolveEffectiveUser, blockSimulatedWrite } from "@/lib/events/api-helpers";
 
 export async function POST(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -20,6 +20,10 @@ export async function POST(request: NextRequest) {
       if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+
+      const { isSimulating } = await resolveEffectiveUser(request, user.id);
+      const blocked = blockSimulatedWrite(isSimulating);
+      if (blocked) return blocked;
 
       const admin = createAdminClient();
       const { error } = await admin

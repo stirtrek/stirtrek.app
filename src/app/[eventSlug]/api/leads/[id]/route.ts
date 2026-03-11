@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId, safeParseBody } from "@/lib/events/api-helpers";
+import { getEventId, safeParseBody, resolveEffectiveUser, blockSimulatedWrite } from "@/lib/events/api-helpers";
 
 export async function PUT(
   request: NextRequest,
@@ -20,6 +20,10 @@ export async function PUT(
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { isSimulating: simPut } = await resolveEffectiveUser(request, user.id);
+    const blockedPut = blockSimulatedWrite(simPut);
+    if (blockedPut) return blockedPut;
 
     const body = await safeParseBody(request);
     if (body instanceof NextResponse) return body;
@@ -63,6 +67,10 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { isSimulating: simDel } = await resolveEffectiveUser(request, user.id);
+    const blockedDel = blockSimulatedWrite(simDel);
+    if (blockedDel) return blockedDel;
 
     const { error } = await supabase
       .from("leads")

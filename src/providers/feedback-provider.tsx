@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
 import { useEvent } from "./event-provider";
+import { useSimulation, useSimulationFetch } from "./simulation-provider";
 import { toast } from "sonner";
 import type { FeedbackRating } from "@/lib/types";
 
@@ -38,7 +39,9 @@ const FeedbackContext = createContext<FeedbackContextValue>({
 
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { eventId } = useEvent();
+  const { eventId, eventSlug } = useEvent();
+  const { isSimulating } = useSimulation();
+  const simulationFetch = useSimulationFetch();
   const [feedbackMap, setFeedbackMap] = useState<Map<string, FeedbackEntry>>(
     new Map()
   );
@@ -53,27 +56,48 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     }
 
     async function fetchFeedback() {
-      const { data } = await supabase
-        .from("session_feedback")
-        .select("session_id, rating, comment")
-        .eq("user_id", user!.id)
-        .eq("event_id", eventId);
+      try {
+        if (isSimulating) {
+          // During simulation, fetch via API (bypasses RLS)
+          const res = await simulationFetch(`/${eventSlug}/api/user-feedback`);
+          if (res.ok) {
+            const json = await res.json();
+            const map = new Map<string, FeedbackEntry>();
+            for (const row of json.feedback ?? []) {
+              map.set(row.session_id, {
+                rating: row.rating as FeedbackRating,
+                comment: row.comment,
+              });
+            }
+            setFeedbackMap(map);
+          }
+        } else {
+          const { data } = await supabase
+            .from("session_feedback")
+            .select("session_id, rating, comment")
+            .eq("user_id", user!.id)
+            .eq("event_id", eventId);
 
-      if (data) {
-        const map = new Map<string, FeedbackEntry>();
-        for (const row of data) {
-          map.set(row.session_id, {
-            rating: row.rating as FeedbackRating,
-            comment: row.comment,
-          });
+          if (data) {
+            const map = new Map<string, FeedbackEntry>();
+            for (const row of data) {
+              map.set(row.session_id, {
+                rating: row.rating as FeedbackRating,
+                comment: row.comment,
+              });
+            }
+            setFeedbackMap(map);
+          }
         }
-        setFeedbackMap(map);
+      } catch (err) {
+        console.error("Feedback fetch error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     fetchFeedback();
-  }, [user, supabase, eventId]);
+  }, [user, supabase, eventId, eventSlug, isSimulating, simulationFetch]);
 
   const getFeedback = useCallback(
     (sessionId: string) => feedbackMap.get(sessionId) ?? null,
@@ -90,6 +114,10 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
       comment: string | null
     ) => {
       if (!user) return;
+      if (isSimulating) {
+        toast.error("Cannot submit feedback during simulation");
+        return;
+      }
       if (inflight.current.has(sessionId)) return;
       inflight.current.add(sessionId);
 
@@ -130,7 +158,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
         inflight.current.delete(sessionId);
       }
     },
-    [user, supabase, eventId, feedbackMap]
+    [user, supabase, eventId, feedbackMap, isSimulating]
   );
 
   return (

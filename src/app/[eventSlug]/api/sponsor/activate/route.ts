@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { timingSafeEqual } from "crypto";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId, safeParseBody } from "@/lib/events/api-helpers";
+import { getEventId, safeParseBody, resolveEffectiveUser, blockSimulatedWrite } from "@/lib/events/api-helpers";
 
 export async function POST(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -21,6 +21,10 @@ export async function POST(request: NextRequest) {
       if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+
+      const { isSimulating } = await resolveEffectiveUser(request, user.id);
+      const blocked = blockSimulatedWrite(isSimulating);
+      if (blocked) return blocked;
 
       const body = await safeParseBody(request);
       if (body instanceof NextResponse) return body;

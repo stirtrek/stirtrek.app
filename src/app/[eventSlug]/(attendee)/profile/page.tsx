@@ -15,11 +15,14 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { SponsorActivation } from "@/components/profile/sponsor-activation";
 import { SponsorCompanySelector } from "@/components/profile/sponsor-company-selector";
+import { useSimulation, useSimulationFetch } from "@/providers/simulation-provider";
 
 export default function ProfilePage() {
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const { eventPath, eventId, eventSlug, hasFeature } = useEvent();
   const { isAdmin, isProctor, isSponsor: memberIsSponsor, sponsorId: memberSponsorId } = useMembership();
+  const { simulatedUser, isSimulating } = useSimulation();
+  const simulationFetch = useSimulationFetch();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -28,11 +31,14 @@ export default function ProfilePage() {
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
-    if (profile) {
+    if (isSimulating && simulatedUser) {
+      setFirstName(simulatedUser.first_name || "");
+      setLastName(simulatedUser.last_name || "");
+    } else if (profile) {
       setFirstName(profile.first_name || "");
       setLastName(profile.last_name || "");
     }
-  }, [profile]);
+  }, [profile, isSimulating, simulatedUser]);
 
   // Fallback: if auth provider didn't load the profile, fetch it directly
   useEffect(() => {
@@ -53,11 +59,11 @@ export default function ProfilePage() {
   // Check if user is a linked speaker
   useEffect(() => {
     if (!user) return;
-    fetch(`/${eventSlug}/api/speaker-feedback`)
+    simulationFetch(`/${eventSlug}/api/speaker-feedback`)
       .then((res) => (res.ok ? res.json() : { is_speaker: false }))
       .then((data) => setIsSpeaker(data.is_speaker ?? false))
       .catch(() => {});
-  }, [user, eventSlug]);
+  }, [user, eventSlug, simulationFetch]);
 
   // Redirect to login once auth has resolved (or timed out) with no user
   useEffect(() => {
@@ -76,6 +82,10 @@ export default function ProfilePage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSimulating) {
+      toast.error("Cannot update profile during simulation");
+      return;
+    }
     setSaving(true);
 
     const res = await fetch("/api/profile", {
@@ -146,7 +156,7 @@ export default function ProfilePage() {
               <Input
                 id="email"
                 type="email"
-                value={user.email || ""}
+                value={isSimulating && simulatedUser ? simulatedUser.email : (user.email || "")}
                 disabled
                 className="opacity-60"
               />
@@ -176,7 +186,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            <Button type="submit" disabled={saving} className="w-full">
+            <Button type="submit" disabled={saving || isSimulating} className="w-full">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -218,14 +228,16 @@ export default function ProfilePage() {
 
       {!memberIsSponsor && <SponsorActivation />}
 
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={handleSignOut}
-      >
-        <LogOut className="mr-2 h-4 w-4" />
-        Sign Out
-      </Button>
+      {!isSimulating && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleSignOut}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
+      )}
     </div>
   );
 }

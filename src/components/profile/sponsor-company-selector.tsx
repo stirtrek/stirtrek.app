@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { useSimulation } from "@/providers/simulation-provider";
 import type { Sponsor } from "@/lib/types";
 
 const NOT_A_SPONSOR = "__not_a_sponsor__";
@@ -34,6 +35,7 @@ interface SponsorCompanySelectorProps {
 export function SponsorCompanySelector({ initialSponsorId }: SponsorCompanySelectorProps) {
   const { refreshProfile } = useAuth();
   const { eventSlug } = useEvent();
+  const { isSimulating } = useSimulation();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loadingSponsors, setLoadingSponsors] = useState(true);
   const [sponsorId, setSponsorId] = useState<string | null>(initialSponsorId);
@@ -54,6 +56,10 @@ export function SponsorCompanySelector({ initialSponsorId }: SponsorCompanySelec
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handleChange = async (value: string) => {
+    if (isSimulating) {
+      toast.error("Cannot change sponsor during simulation");
+      return;
+    }
     if (value === NOT_A_SPONSOR) {
       setShowConfirm(true);
       return;
@@ -82,6 +88,11 @@ export function SponsorCompanySelector({ initialSponsorId }: SponsorCompanySelec
   };
 
   const handleDeactivate = async () => {
+    if (isSimulating) {
+      toast.error("Cannot deactivate sponsor during simulation");
+      setShowConfirm(false);
+      return;
+    }
     setShowConfirm(false);
     setSaving(true);
     const res = await fetch(`/${eventSlug}/api/sponsor/deactivate`, { method: "POST" });

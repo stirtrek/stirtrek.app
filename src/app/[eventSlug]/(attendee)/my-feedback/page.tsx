@@ -7,6 +7,7 @@ import { Loader2, ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { FEEDBACK_RATINGS } from "@/lib/constants";
 import { useEvent } from "@/providers/event-provider";
+import { useSimulationFetch } from "@/providers/simulation-provider";
 
 interface FeedbackItem {
   rating: "red" | "yellow" | "green";
@@ -37,20 +38,21 @@ function scoreLabel(session: SessionFeedbackSummary): string {
 
 export default function SpeakerFeedbackPage() {
   const { event, eventSlug, eventPath } = useEvent();
+  const simulationFetch = useSimulationFetch();
   const [sessions, setSessions] = useState<SessionFeedbackSummary[]>([]);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/${eventSlug}/api/speaker-feedback`)
+    simulationFetch(`/${eventSlug}/api/speaker-feedback`)
       .then((res) => (res.ok ? res.json() : { sessions: [], is_speaker: false }))
       .then((data) => {
         setSessions(data.sessions ?? []);
         setIsSpeaker(data.is_speaker ?? false);
       })
       .finally(() => setLoading(false));
-  }, [eventSlug]);
+  }, [eventSlug, simulationFetch]);
 
   if (loading) {
     return (

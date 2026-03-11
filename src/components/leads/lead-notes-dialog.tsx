@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEvent } from "@/providers/event-provider";
+import { useSimulation } from "@/providers/simulation-provider";
 import type { Lead } from "@/lib/types";
 
 interface LeadNotesDialogProps {
@@ -30,6 +31,7 @@ export function LeadNotesDialog({
   onDeleted,
 }: LeadNotesDialogProps) {
   const { eventSlug } = useEvent();
+  const { isSimulating } = useSimulation();
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -45,6 +47,10 @@ export function LeadNotesDialog({
 
   const handleSave = async () => {
     if (!lead) return;
+    if (isSimulating) {
+      toast.error("Cannot save notes during simulation");
+      return;
+    }
     setSaving(true);
 
     const res = await fetch(`/${eventSlug}/api/leads/${lead.id}`, {
@@ -68,6 +74,10 @@ export function LeadNotesDialog({
 
   const handleDelete = async () => {
     if (!lead) return;
+    if (isSimulating) {
+      toast.error("Cannot delete leads during simulation");
+      return;
+    }
     setDeleting(true);
 
     const res = await fetch(`/${eventSlug}/api/leads/${lead.id}`, {

@@ -13,6 +13,8 @@ import Link from "next/link";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
 import { isFeedbackAvailable } from "@/lib/utils";
 import { FEEDBACK_RATINGS } from "@/lib/constants";
+import { useSimulation } from "@/providers/simulation-provider";
+import { toast } from "sonner";
 import type { FeedbackRating } from "@/lib/types";
 
 export default function FeedbackPage() {
@@ -22,6 +24,7 @@ export default function FeedbackPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = createClient();
 
+  const { isSimulating } = useSimulation();
   const { getNow } = useSimulatedTime();
   const [sessionTitle, setSessionTitle] = useState("");
   const [sessionStartsAt, setSessionStartsAt] = useState<string | null>(null);
@@ -65,6 +68,10 @@ export default function FeedbackPage() {
 
   const handleSubmit = async () => {
     if (!user || !rating) return;
+    if (isSimulating) {
+      toast.error("Cannot submit feedback during simulation");
+      return;
+    }
 
     setSubmitting(true);
     const { error } = await supabase.from("session_feedback").upsert(

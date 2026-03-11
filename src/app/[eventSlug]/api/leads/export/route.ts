@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId } from "@/lib/events/api-helpers";
+import { getEventId, resolveEffectiveUser } from "@/lib/events/api-helpers";
 
 function escapeCsvField(field: string): string {
   if (field.includes(",") || field.includes('"') || field.includes("\n")) {
@@ -25,23 +25,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { effectiveUserId } = await resolveEffectiveUser(request, user.id);
+
     const admin = createAdminClient();
     const { data: membership } = await admin
       .from("event_memberships")
       .select("is_sponsor")
       .eq("event_id", eventId)
-      .eq("user_id", user.id)
+      .eq("user_id", effectiveUserId)
       .single();
 
     if (!membership?.is_sponsor) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data: leads, error } = await supabase
+    const { data: leads, error } = await admin
       .from("leads")
       .select("*")
       .eq("event_id", eventId)
-      .eq("sponsor_profile_id", user.id)
+      .eq("sponsor_profile_id", effectiveUserId)
       .order("scanned_at", { ascending: false });
 
     if (error) {

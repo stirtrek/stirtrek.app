@@ -11,11 +11,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { enqueueMutation } from "@/lib/offline-queue";
+import { useSimulation, useSimulationFetch } from "@/providers/simulation-provider";
 import type { EmergencyMessageWithReplies } from "@/lib/types";
 
 export default function EmergencyPage() {
   const { user, loading: authLoading } = useAuth();
   const { eventSlug } = useEvent();
+  const { isSimulating } = useSimulation();
+  const simulationFetch = useSimulationFetch();
   const { markRepliesRead, refreshCount } = useNotifications();
   const [messages, setMessages] = useState<EmergencyMessageWithReplies[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,19 +27,21 @@ export default function EmergencyPage() {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await fetch(`/${eventSlug}/api/emergency/messages`);
+      const res = await simulationFetch(`/${eventSlug}/api/emergency/messages`);
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages);
 
-        // Mark any unread replies as read
-        const unreadReplyIds = data.messages
-          .flatMap((m: EmergencyMessageWithReplies) => m.replies)
-          .filter((r: { is_read: boolean }) => !r.is_read)
-          .map((r: { id: string }) => r.id);
+        // Mark any unread replies as read (skip during simulation)
+        if (!isSimulating) {
+          const unreadReplyIds = data.messages
+            .flatMap((m: EmergencyMessageWithReplies) => m.replies)
+            .filter((r: { is_read: boolean }) => !r.is_read)
+            .map((r: { id: string }) => r.id);
 
-        if (unreadReplyIds.length > 0) {
-          await markRepliesRead(unreadReplyIds);
+          if (unreadReplyIds.length > 0) {
+            await markRepliesRead(unreadReplyIds);
+          }
         }
       }
     } catch {
@@ -44,7 +49,7 @@ export default function EmergencyPage() {
     } finally {
       setLoading(false);
     }
-  }, [eventSlug, markRepliesRead]);
+  }, [eventSlug, markRepliesRead, simulationFetch, isSimulating]);
 
   useEffect(() => {
     if (user) {
@@ -55,6 +60,10 @@ export default function EmergencyPage() {
   }, [user, fetchMessages]);
 
   const handleSend = async (message: string) => {
+    if (isSimulating) {
+      toast.error("Cannot send messages during simulation");
+      return;
+    }
     setSending(true);
     const url = `/${eventSlug}/api/emergency/messages`;
     const init: RequestInit = {
@@ -85,6 +94,10 @@ export default function EmergencyPage() {
   };
 
   const handleReply = async (messageId: string, reply: string) => {
+    if (isSimulating) {
+      toast.error("Cannot send replies during simulation");
+      return;
+    }
     const url = `/${eventSlug}/api/emergency/messages/${messageId}/reply`;
     const init: RequestInit = {
       method: "POST",

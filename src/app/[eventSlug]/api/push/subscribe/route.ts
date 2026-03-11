@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getTelemetryService } from "@/lib/telemetry/service";
-import { getEventId, safeParseBody } from "@/lib/events/api-helpers";
+import { getEventId, safeParseBody, resolveEffectiveUser, blockSimulatedWrite } from "@/lib/events/api-helpers";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
@@ -25,6 +25,10 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { isSimulating: simPost } = await resolveEffectiveUser(request, user.id);
+    const blockedPost = blockSimulatedWrite(simPost);
+    if (blockedPost) return blockedPost;
 
     const body = await safeParseBody(request);
     if (body instanceof NextResponse) return body;
@@ -74,6 +78,10 @@ export async function DELETE(request: NextRequest) {
       if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+
+      const { isSimulating: simDel } = await resolveEffectiveUser(request, user.id);
+      const blockedDel = blockSimulatedWrite(simDel);
+      if (blockedDel) return blockedDel;
 
       const body = await safeParseBody(request);
       if (body instanceof NextResponse) return body;

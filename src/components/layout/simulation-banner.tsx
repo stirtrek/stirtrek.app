@@ -27,7 +27,7 @@ export function SimulationBanner() {
   return (
     <div className="sticky top-0 z-[55] flex items-center justify-center gap-2 bg-purple-600 px-4 py-1.5 text-center text-xs font-semibold text-white">
       <span>
-        Simulating: {name} ({simulatedUser.role})
+        Simulating: {name} ({simulatedUser.role}) &mdash; Read-only
       </span>
       <button
         onClick={handleStop}

@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
 import { useEvent } from "./event-provider";
+import { useSimulation, useSimulationFetch } from "./simulation-provider";
 import { toast } from "sonner";
 
 interface BookmarkContextValue {
@@ -30,7 +31,9 @@ const BookmarkContext = createContext<BookmarkContextValue>({
 
 export function BookmarkProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
-  const { eventId } = useEvent();
+  const { eventId, eventSlug } = useEvent();
+  const { isSimulating } = useSimulation();
+  const simulationFetch = useSimulationFetch();
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const supabase = useMemo(() => createClient(eventId), [eventId]);
@@ -46,17 +49,26 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
 
     async function fetchBookmarks() {
       try {
-        const { data, error } = await supabase
-          .from("personal_schedule")
-          .select("session_id")
-          .eq("user_id", user!.id)
-          .eq("event_id", eventId);
+        if (isSimulating) {
+          // During simulation, fetch via API (bypasses RLS)
+          const res = await simulationFetch(`/${eventSlug}/api/bookmarks`);
+          if (res.ok) {
+            const json = await res.json();
+            setBookmarkedIds(new Set(json.session_ids ?? []));
+          }
+        } else {
+          const { data, error } = await supabase
+            .from("personal_schedule")
+            .select("session_id")
+            .eq("user_id", user!.id)
+            .eq("event_id", eventId);
 
-        if (error) {
-          console.error("Failed to load bookmarks:", error.message);
-          toast.error("Could not load your saved schedule");
-        } else if (data) {
-          setBookmarkedIds(new Set(data.map((d: { session_id: string }) => d.session_id)));
+          if (error) {
+            console.error("Failed to load bookmarks:", error.message);
+            toast.error("Could not load your saved schedule");
+          } else if (data) {
+            setBookmarkedIds(new Set(data.map((d: { session_id: string }) => d.session_id)));
+          }
         }
       } catch (err) {
         console.error("Bookmark fetch error:", err);
@@ -66,7 +78,7 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchBookmarks();
-  }, [user, authLoading, supabase, eventId]);
+  }, [user, authLoading, supabase, eventId, eventSlug, isSimulating, simulationFetch]);
 
   const isBookmarked = useCallback(
     (sessionId: string) => bookmarkedIds.has(sessionId),
@@ -79,6 +91,10 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
   const toggleBookmark = useCallback(
     async (sessionId: string) => {
       if (!user) return;
+      if (isSimulating) {
+        toast.error("Cannot toggle bookmarks during simulation");
+        return;
+      }
       if (inflight.current.has(sessionId)) return;
       inflight.current.add(sessionId);
 
@@ -128,7 +144,7 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
         inflight.current.delete(sessionId);
       }
     },
-    [user, supabase, eventId],
+    [user, supabase, eventId, isSimulating],
   );
 
   return (

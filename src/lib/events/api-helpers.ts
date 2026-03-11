@@ -300,6 +300,49 @@ export async function requireEventProctor(
 }
 
 /**
+ * Resolve the effective user ID for simulation.
+ * If the X-Simulated-User-Id header is present AND the real user
+ * is a super admin, returns the simulated user ID.
+ * Falls back to the real user ID if not simulating or not authorized.
+ */
+export async function resolveEffectiveUser(
+  request: Request,
+  realUserId: string,
+): Promise<{ effectiveUserId: string; isSimulating: boolean }> {
+  const simulatedId = request.headers.get("x-simulated-user-id");
+  if (!simulatedId || simulatedId === realUserId) {
+    return { effectiveUserId: realUserId, isSimulating: false };
+  }
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", realUserId)
+    .single();
+
+  if (!profile?.is_super_admin) {
+    return { effectiveUserId: realUserId, isSimulating: false };
+  }
+
+  return { effectiveUserId: simulatedId, isSimulating: true };
+}
+
+/**
+ * Block write operations during simulation.
+ * Returns a 403 NextResponse if simulating, null otherwise.
+ */
+export function blockSimulatedWrite(isSimulating: boolean): NextResponse | null {
+  if (isSimulating) {
+    return NextResponse.json(
+      { error: "Cannot modify data during simulation" },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
+/**
  * Helper: check if an API result is an error response.
  */
 export function isErrorResponse(

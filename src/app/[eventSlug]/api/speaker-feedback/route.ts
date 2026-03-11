@@ -5,6 +5,7 @@ import {
   getEventId,
   requireEventMember,
   isErrorResponse,
+  resolveEffectiveUser,
 } from "@/lib/events/api-helpers";
 
 export async function GET(request: NextRequest) {
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
     const auth = await requireEventMember(eventId);
     if (isErrorResponse(auth)) return auth;
 
+    const { effectiveUserId } = await resolveEffectiveUser(request, auth.userId);
     const admin = createAdminClient();
 
     // Find speaker records linked to this user
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
       .from("speakers")
       .select("id")
       .eq("event_id", eventId)
-      .eq("user_id", auth.userId);
+      .eq("user_id", effectiveUserId);
 
     if (!speakers || speakers.length === 0) {
       return NextResponse.json({ sessions: [], is_speaker: false });

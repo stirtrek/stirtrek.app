@@ -8,6 +8,8 @@ import {
   requireEventAdmin,
   isErrorResponse,
   safeParseBody,
+  resolveEffectiveUser,
+  blockSimulatedWrite,
 } from "@/lib/events/api-helpers";
 
 export async function POST(
@@ -39,6 +41,10 @@ export async function POST(
       if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+
+      const { isSimulating } = await resolveEffectiveUser(request, user.id);
+      const blocked = blockSimulatedWrite(isSimulating);
+      if (blocked) return blocked;
 
       // Use admin client for lookup — auth is already verified by
       // requireEventAdmin above, and the user-scoped client's RLS

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
+import { useSimulation } from "@/providers/simulation-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2 } from "lucide-react";
@@ -28,6 +29,7 @@ interface PollResult {
 export default function PollsPage() {
   const { user, loading: authLoading } = useAuth();
   const { eventId } = useEvent();
+  const { isSimulating } = useSimulation();
   const [polls, setPolls] = useState<PollWithOptions[]>([]);
   const [myVotes, setMyVotes] = useState<Record<string, string>>({});
   const [results, setResults] = useState<Record<string, PollResult[]>>({});
@@ -114,6 +116,10 @@ export default function PollsPage() {
   const handleVote = async (pollId: string) => {
     const optionId = selected[pollId];
     if (!optionId || !user) return;
+    if (isSimulating) {
+      toast.error("Cannot vote during simulation");
+      return;
+    }
 
     setSubmitting(pollId);
 

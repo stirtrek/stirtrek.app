@@ -27,6 +27,7 @@ interface SimulationContextValue {
   isSimulating: boolean;
   startSimulation: (user: SimulatedUser) => void;
   stopSimulation: () => void;
+  getSimulationHeaders: () => Record<string, string>;
 }
 
 const SimulationContext = createContext<SimulationContextValue>({
@@ -34,6 +35,7 @@ const SimulationContext = createContext<SimulationContextValue>({
   isSimulating: false,
   startSimulation: () => {},
   stopSimulation: () => {},
+  getSimulationHeaders: () => ({}),
 });
 
 function storageKey(eventId: string) {
@@ -85,6 +87,11 @@ export function SimulationProvider({
     }
   }, [eventId]);
 
+  const getSimulationHeaders = useCallback((): Record<string, string> => {
+    if (!simulatedUser) return {};
+    return { "X-Simulated-User-Id": simulatedUser.id };
+  }, [simulatedUser]);
+
   return (
     <SimulationContext.Provider
       value={{
@@ -92,6 +99,7 @@ export function SimulationProvider({
         isSimulating: simulatedUser !== null,
         startSimulation,
         stopSimulation,
+        getSimulationHeaders,
       }}
     >
       {children}
@@ -101,4 +109,25 @@ export function SimulationProvider({
 
 export function useSimulation() {
   return useContext(SimulationContext);
+}
+
+/**
+ * Returns a fetch wrapper that auto-injects the simulation header.
+ */
+export function useSimulationFetch() {
+  const { getSimulationHeaders } = useSimulation();
+
+  return useCallback(
+    (url: string, init?: RequestInit) => {
+      const simHeaders = getSimulationHeaders();
+      return fetch(url, {
+        ...init,
+        headers: {
+          ...init?.headers,
+          ...simHeaders,
+        },
+      });
+    },
+    [getSimulationHeaders],
+  );
 }

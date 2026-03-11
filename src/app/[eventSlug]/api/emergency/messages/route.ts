@@ -8,6 +8,8 @@ import {
   requireEventAdmin,
   isErrorResponse,
   safeParseBody,
+  resolveEffectiveUser,
+  blockSimulatedWrite,
 } from "@/lib/events/api-helpers";
 import { rateLimit, getRateLimitKey } from "@/lib/rate-limit";
 
@@ -125,11 +127,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: messages, error } = await supabase
+    const { effectiveUserId } = await resolveEffectiveUser(request, user.id);
+
+    const { data: messages, error } = await admin
       .from("emergency_messages")
       .select("*")
       .eq("event_id", eventId)
-      .eq("user_id", user.id)
+      .eq("user_id", effectiveUserId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -140,7 +144,7 @@ export async function GET(request: NextRequest) {
 
     const { data: replies } =
       messageIds.length > 0
-        ? await supabase
+        ? await admin
             .from("emergency_replies")
             .select("*")
             .in("message_id", messageIds)
@@ -220,6 +224,10 @@ export async function POST(request: NextRequest) {
       if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+
+      const { isSimulating } = await resolveEffectiveUser(request, user.id);
+      const blocked = blockSimulatedWrite(isSimulating);
+      if (blocked) return blocked;
 
       const body = await safeParseBody(request);
       if (body instanceof NextResponse) return body;

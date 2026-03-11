@@ -6,6 +6,7 @@ import {
   getEventId,
   requireEventAdmin,
   isErrorResponse,
+  resolveEffectiveUser,
 } from "@/lib/events/api-helpers";
 
 export async function GET(request: NextRequest) {
@@ -50,11 +51,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      const { data: myMessages } = await supabase
+      const { effectiveUserId } = await resolveEffectiveUser(request, user.id);
+
+      const admin = createAdminClient();
+      const { data: myMessages } = await admin
         .from("emergency_messages")
         .select("id")
         .eq("event_id", eventId)
-        .eq("user_id", user.id);
+        .eq("user_id", effectiveUserId);
 
       const messageIds = (myMessages ?? []).map((m) => m.id);
 
@@ -62,7 +66,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ count: 0 });
       }
 
-      const { count, error } = await supabase
+      const { count, error } = await admin
         .from("emergency_replies")
         .select("*", { count: "exact", head: true })
         .in("message_id", messageIds)

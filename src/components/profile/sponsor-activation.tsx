@@ -15,11 +15,13 @@ import {
 } from "@/components/ui/select";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import { useSimulation } from "@/providers/simulation-provider";
 import type { Sponsor } from "@/lib/types";
 
 export function SponsorActivation() {
   const { refreshProfile } = useAuth();
   const { event, eventSlug } = useEvent();
+  const { isSimulating } = useSimulation();
   const [expanded, setExpanded] = useState(false);
   const [code, setCode] = useState("");
   const [sponsorId, setSponsorId] = useState<string | undefined>(undefined);
@@ -40,6 +42,10 @@ export function SponsorActivation() {
 
   const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSimulating) {
+      toast.error("Cannot activate sponsor during simulation");
+      return;
+    }
     setLoading(true);
 
     const res = await fetch(`/${eventSlug}/api/sponsor/activate`, {

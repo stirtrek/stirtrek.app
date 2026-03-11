@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
+import { useSimulation, useSimulationFetch } from "@/providers/simulation-provider";
 import { Button } from "@/components/ui/button";
 import { LeadCard } from "@/components/leads/lead-card";
 import { LeadNotesDialog } from "@/components/leads/lead-notes-dialog";
@@ -13,19 +14,21 @@ import type { Lead } from "@/lib/types";
 export default function LeadsPage() {
   const { loading: authLoading } = useAuth();
   const { eventSlug, eventPath } = useEvent();
+  const { isSimulating } = useSimulation();
+  const simulationFetch = useSimulationFetch();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const fetchLeads = useCallback(async () => {
-    const res = await fetch(`/${eventSlug}/api/leads`);
+    const res = await simulationFetch(`/${eventSlug}/api/leads`);
     if (res.ok) {
       const json = await res.json();
       setLeads(json.data ?? json);
     }
     setLoading(false);
-  }, [eventSlug]);
+  }, [eventSlug, simulationFetch]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -50,7 +53,21 @@ export default function LeadsPage() {
     setSelectedLead(null);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    if (isSimulating) {
+      // Can't use window.location.href with custom headers; use fetch + blob
+      const res = await simulationFetch(`/${eventSlug}/api/leads/export`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = res.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || "leads.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      return;
+    }
     window.location.href = `/${eventSlug}/api/leads/export`;
   };
 

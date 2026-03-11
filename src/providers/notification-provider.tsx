@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
 import { useEvent } from "./event-provider";
 import { useMembership } from "./membership-provider";
+import { useSimulation, useSimulationFetch } from "./simulation-provider";
 import type { EmergencyMessageStatus } from "@/lib/types";
 
 interface NotificationContextValue {
@@ -78,6 +79,8 @@ export function NotificationProvider({
   const { user } = useAuth();
   const { eventSlug, eventId } = useEvent();
   const { isAdmin } = useMembership();
+  const { isSimulating } = useSimulation();
+  const simulationFetch = useSimulationFetch();
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [pushSubscribed, setPushSubscribed] = useState(false);
@@ -97,7 +100,7 @@ export function NotificationProvider({
     if (!user) return;
 
     try {
-      const res = await fetch(`/${eventSlug}/api/emergency/unread-count`);
+      const res = await simulationFetch(`/${eventSlug}/api/emergency/unread-count`);
       if (res.ok) {
         const data = await res.json();
         setUnreadCount(data.count);
@@ -105,7 +108,7 @@ export function NotificationProvider({
     } catch (err) {
       console.error("Failed to fetch unread count:", err);
     }
-  }, [user, eventSlug]);
+  }, [user, eventSlug, simulationFetch]);
 
   // Fetch initial count
   useEffect(() => {
@@ -145,7 +148,7 @@ export function NotificationProvider({
   const subscribeToPush = useCallback(async (): Promise<
     "subscribed" | "denied" | "dismissed" | "unsupported" | "error"
   > => {
-    if (!pushSupported) return "unsupported";
+    if (!pushSupported || isSimulating) return "unsupported";
 
     // Check if permission was previously hard-denied (browser/OS level).
     // In this state requestPermission() returns "denied" instantly with
