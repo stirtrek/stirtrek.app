@@ -228,6 +228,32 @@ export default function AdminDashboardPage() {
         </Card>
       )}
 
+      {/* Quick links to admin tools */}
+      <Card className="gap-0 py-0">
+        <CardHeader className="px-4 py-3">
+          <CardTitle className="text-sm">Admin Tools</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-3">
+          <div className="grid grid-cols-3 gap-2">
+            {adminTools.map((tool) => {
+              const Icon = tool.icon;
+              return (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className="flex flex-col items-center gap-1.5 rounded-md border p-3 text-center transition-colors hover:bg-accent"
+                >
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-xs font-medium leading-tight">
+                    {tool.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {loading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -307,32 +333,6 @@ export default function AdminDashboardPage() {
           )}
         </>
       )}
-
-      {/* Quick links to admin tools */}
-      <Card className="gap-0 py-0">
-        <CardHeader className="px-4 py-3">
-          <CardTitle className="text-sm">Admin Tools</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-3">
-          <div className="grid grid-cols-3 gap-2">
-            {adminTools.map((tool) => {
-              const Icon = tool.icon;
-              return (
-                <Link
-                  key={tool.href}
-                  href={tool.href}
-                  className="flex flex-col items-center gap-1.5 rounded-md border p-3 text-center transition-colors hover:bg-accent"
-                >
-                  <Icon className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-xs font-medium leading-tight">
-                    {tool.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
