@@ -32,6 +32,14 @@ export function createClient(eventId?: string) {
           "x-event-id": eventId,
         },
       },
+      auth: {
+        // Let the global singleton (AuthProvider) handle token refresh.
+        // Without this, the event-scoped client creates its own GoTrueClient
+        // that fights over the same storage lock, causing INITIAL_SESSION
+        // timeouts and auth failures.
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
     });
     eventClientCache.set(eventId, client);
     return client;

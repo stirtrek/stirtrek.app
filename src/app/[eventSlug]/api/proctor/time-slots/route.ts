@@ -9,7 +9,8 @@ import {
 
 /**
  * GET /api/proctor/time-slots
- * Returns distinct session start times that have room mappings.
+ * Returns distinct session start times from non-service sessions
+ * that have a room assigned.
  */
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
@@ -20,25 +21,12 @@ export async function GET(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Get all session IDs that have room mappings
-    const { data: mappings } = await admin
-      .from("session_rooms")
-      .select("session_id")
-      .eq("event_id", eventId);
-
-    const mappedSessionIds = [...new Set((mappings ?? []).map((m) => m.session_id))];
-
-    if (mappedSessionIds.length === 0) {
-      return NextResponse.json({ time_slots: [] });
-    }
-
-    // Get distinct start times for those sessions
     const { data: sessions } = await admin
       .from("sessions")
       .select("starts_at, ends_at")
       .eq("event_id", eventId)
       .eq("is_service_session", false)
-      .in("id", mappedSessionIds)
+      .not("room_id", "is", null)
       .order("starts_at", { ascending: true });
 
     // Deduplicate by starts_at

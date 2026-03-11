@@ -29,7 +29,7 @@ interface UserRow {
 }
 
 export default function AdminUsersPage() {
-  const { eventSlug, eventPath } = useEvent();
+  const { eventSlug, eventPath, hasFeature } = useEvent();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -165,7 +165,9 @@ export default function AdminUsersPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="attendee">Attendee</SelectItem>
-                          <SelectItem value="proctor">Proctor</SelectItem>
+                          {hasFeature("attendance") && (
+                            <SelectItem value="proctor">Proctor</SelectItem>
+                          )}
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>

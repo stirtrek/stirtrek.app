@@ -5,6 +5,7 @@ import { useEvent } from "@/providers/event-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatTime } from "@/lib/utils";
@@ -20,12 +21,7 @@ interface RoomEntry {
     name: string;
     sort_order: number;
   };
-  session: {
-    id: string;
-    title: string;
-    starts_at: string | null;
-    ends_at: string | null;
-  } | null;
+  is_simulcast: boolean;
   attendance: {
     count: number;
     counted_by_name: string;
@@ -35,7 +31,6 @@ interface RoomEntry {
 
 interface Summary {
   total_rooms: number;
-  mapped_rooms: number;
   counted_rooms: number;
   total_attendance: number;
 }
@@ -63,7 +58,9 @@ export default function ProctorPage() {
           const now = new Date();
           const current = d.time_slots.find((slot: TimeSlot) => {
             const start = new Date(slot.starts_at);
-            const end = slot.ends_at ? new Date(slot.ends_at) : new Date(start.getTime() + 60 * 60 * 1000);
+            const end = slot.ends_at
+              ? new Date(slot.ends_at)
+              : new Date(start.getTime() + 60 * 60 * 1000);
             return now >= start && now <= end;
           });
           setSelectedSlot(current?.starts_at ?? d.time_slots[0].starts_at);
@@ -102,7 +99,7 @@ export default function ProctorPage() {
     }
   }, [selectedSlot, fetchRooms]);
 
-  async function saveCount(roomId: number, sessionId: string) {
+  async function saveCount(roomId: number) {
     const countStr = counts[roomId];
     if (countStr === undefined || countStr === "") return;
 
@@ -116,12 +113,11 @@ export default function ProctorPage() {
     const res = await fetch(`/${eventSlug}/api/proctor/attendance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ room_id: roomId, session_id: sessionId, count }),
+      body: JSON.stringify({ room_id: roomId, time_slot: selectedSlot, count }),
     });
 
     if (res.ok) {
       toast.success("Count saved");
-      // Refresh to get updated data
       await fetchRooms();
     } else {
       const err = await res.json();
@@ -146,17 +142,13 @@ export default function ProctorPage() {
           <CardContent className="flex items-center gap-3 py-6">
             <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
             <p className="text-sm text-muted-foreground">
-              No sessions have been mapped to rooms yet. An admin needs to set up
-              session-room mappings first.
+              No sessions are scheduled for this event yet.
             </p>
           </CardContent>
         </Card>
       </div>
     );
   }
-
-  // Filter to only rooms that have a mapped session for this slot
-  const mappedRooms = rooms.filter((e) => e.session !== null);
 
   return (
     <div className="space-y-4">
@@ -180,14 +172,14 @@ export default function ProctorPage() {
       </div>
 
       {/* Room cards */}
-      {mappedRooms.length === 0 ? (
+      {rooms.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
-          No rooms mapped for this time slot.
+          No rooms active for this time slot.
         </p>
       ) : (
         <div className="space-y-2">
-          {mappedRooms.map((entry) => {
-            const { room, session, attendance } = entry;
+          {rooms.map((entry) => {
+            const { room, is_simulcast, attendance } = entry;
             const hasCount = attendance !== null;
             const inputValue = counts[room.id] ?? "";
 
@@ -195,9 +187,7 @@ export default function ProctorPage() {
               <Card
                 key={room.id}
                 className={`gap-0 py-0 ${
-                  hasCount
-                    ? "border-green-500/30"
-                    : "border-amber-500/30"
+                  hasCount ? "border-green-500/30" : "border-amber-500/30"
                 }`}
               >
                 <CardContent className="px-4 py-3">
@@ -208,18 +198,26 @@ export default function ProctorPage() {
                         {hasCount && (
                           <Check className="h-4 w-4 text-green-500 shrink-0" />
                         )}
+                        {is_simulcast && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[9px] px-1.5 py-0 shrink-0"
+                          >
+                            simulcast
+                          </Badge>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {session?.title ?? "No session"}
-                      </p>
                       {attendance && (
                         <p className="text-[10px] text-muted-foreground mt-1">
                           Last: {attendance.counted_by_name} at{" "}
-                          {new Date(attendance.counted_at).toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            timeZone: event.timezone,
-                          })}
+                          {new Date(attendance.counted_at).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              timeZone: event.timezone,
+                            }
+                          )}
                         </p>
                       )}
                     </div>
@@ -236,8 +234,8 @@ export default function ProctorPage() {
                           }))
                         }
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && session) {
-                            saveCount(room.id, session.id);
+                          if (e.key === "Enter") {
+                            saveCount(room.id);
                           }
                         }}
                         placeholder="0"
@@ -248,13 +246,10 @@ export default function ProctorPage() {
                         className="h-10"
                         disabled={
                           saving === room.id ||
-                          !session ||
                           inputValue === "" ||
                           inputValue === String(attendance?.count)
                         }
-                        onClick={() => {
-                          if (session) saveCount(room.id, session.id);
-                        }}
+                        onClick={() => saveCount(room.id)}
                       >
                         {saving === room.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -272,7 +267,7 @@ export default function ProctorPage() {
       )}
 
       {/* Summary bar */}
-      {summary && summary.mapped_rooms > 0 && (
+      {summary && summary.total_rooms > 0 && (
         <div className="sticky bottom-4 flex items-center justify-between rounded-lg border bg-background/95 px-4 py-3 shadow-sm backdrop-blur">
           <div className="text-sm">
             <span className="font-semibold tabular-nums">
@@ -280,7 +275,7 @@ export default function ProctorPage() {
             </span>
             <span className="text-muted-foreground">
               {" "}
-              of {summary.mapped_rooms} counted
+              of {summary.total_rooms} counted
             </span>
           </div>
           <div className="text-sm font-bold tabular-nums">

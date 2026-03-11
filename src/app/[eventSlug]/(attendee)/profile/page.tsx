@@ -18,7 +18,7 @@ import { SponsorCompanySelector } from "@/components/profile/sponsor-company-sel
 
 export default function ProfilePage() {
   const { user, profile, loading, signOut, refreshProfile } = useAuth();
-  const { eventPath, eventId, eventSlug } = useEvent();
+  const { eventPath, eventId, eventSlug, hasFeature } = useEvent();
   const { isAdmin, isProctor, isSponsor: memberIsSponsor, sponsorId: memberSponsorId } = useMembership();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
@@ -114,7 +114,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Profile</h1>
         <div className="flex items-center gap-3">
-          {isProctor && (
+          {isProctor && hasFeature("attendance") && (
             <Link
               href={eventPath("/proctor")}
               className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"

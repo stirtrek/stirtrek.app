@@ -6,10 +6,10 @@ import { useEvent } from "@/providers/event-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Settings2, BarChart3, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Settings2, BarChart3, Check, Info } from "lucide-react";
 import { toast } from "sonner";
 import { formatTime } from "@/lib/utils";
-import type { Room } from "@/lib/types";
+import type { Room, SimulcastRoom } from "@/lib/types";
 
 type View = "setup" | "report";
 
@@ -18,57 +18,43 @@ interface SessionEntry {
   title: string;
   starts_at: string | null;
   ends_at: string | null;
+  room_id: number | null;
 }
 
-interface RoomMapping {
-  id: string;
-  room_id: number;
+interface ReportRow {
   session_id: string;
-}
-
-interface AttendanceRow {
-  session_id: string;
-  room_id: number;
-  count: number;
-  room_name: string;
   session_title: string;
-  starts_at: string | null;
+  starts_at: string;
+  room_id: number;
+  room_name: string;
+  count: number;
   counted_by_name: string;
   counted_at: string;
+  is_simulcast: boolean;
 }
 
 export default function AttendanceAdminPage() {
   const { event, eventSlug, eventPath } = useEvent();
   const [view, setView] = useState<View>("setup");
   const [loading, setLoading] = useState(true);
+
+  // Setup state
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [sourceRoomIds, setSourceRoomIds] = useState<number[]>([]);
+  const [simulcasts, setSimulcasts] = useState<SimulcastRoom[]>([]);
+
+  // Report state
   const [sessions, setSessions] = useState<SessionEntry[]>([]);
-  const [mappings, setMappings] = useState<RoomMapping[]>([]);
-  const [report, setReport] = useState<AttendanceRow[]>([]);
+  const [report, setReport] = useState<ReportRow[]>([]);
   const [sessionTotals, setSessionTotals] = useState<Record<string, number>>({});
 
-  const fetchData = useCallback(async () => {
-    const [roomsRes, sessionsRes, mappingsRes] = await Promise.all([
-      fetch(`/${eventSlug}/api/admin/rooms`),
-      fetch(`/${eventSlug}/api/admin/sessions`),
-      fetch(`/${eventSlug}/api/admin/session-rooms`),
-    ]);
-
-    if (roomsRes.ok) {
-      const d = await roomsRes.json();
+  const fetchSetupData = useCallback(async () => {
+    const res = await fetch(`/${eventSlug}/api/admin/simulcast-rooms`);
+    if (res.ok) {
+      const d = await res.json();
       setRooms(d.rooms);
-    }
-    if (sessionsRes.ok) {
-      const d = await sessionsRes.json();
-      setSessions(
-        (d.sessions as SessionEntry[]).filter(
-          (s: SessionEntry & { is_service_session?: boolean }) => !s.is_service_session
-        )
-      );
-    }
-    if (mappingsRes.ok) {
-      const d = await mappingsRes.json();
-      setMappings(d.session_rooms);
+      setSourceRoomIds(d.source_rooms);
+      setSimulcasts(d.simulcast_rooms);
     }
     setLoading(false);
   }, [eventSlug]);
@@ -79,12 +65,13 @@ export default function AttendanceAdminPage() {
       const d = await res.json();
       setReport(d.report);
       setSessionTotals(d.session_totals);
+      setSessions(d.sessions);
     }
   }, [eventSlug]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchSetupData();
+  }, [fetchSetupData]);
 
   useEffect(() => {
     if (view === "report") {
@@ -92,55 +79,60 @@ export default function AttendanceAdminPage() {
     }
   }, [view, fetchReport]);
 
-  // Group sessions by time slot
+  // Source rooms = rooms that have sessions assigned from Sessionize
+  const sourceRooms = rooms.filter((r) => sourceRoomIds.includes(r.id));
+
+  // Available target rooms = rooms NOT currently a source room
+  // (a room can still be both a source and a target in theory)
+  function getTargetRooms(sourceRoomId: number) {
+    return rooms.filter((r) => r.id !== sourceRoomId);
+  }
+
+  function isSimulcastTarget(sourceRoomId: number, targetRoomId: number) {
+    return simulcasts.some(
+      (s) => s.source_room_id === sourceRoomId && s.target_room_id === targetRoomId
+    );
+  }
+
+  async function toggleSimulcast(sourceRoomId: number, targetRoomId: number) {
+    const existing = simulcasts.find(
+      (s) => s.source_room_id === sourceRoomId && s.target_room_id === targetRoomId
+    );
+
+    if (existing) {
+      const res = await fetch(`/${eventSlug}/api/admin/simulcast-rooms`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: existing.id }),
+      });
+      if (res.ok) {
+        setSimulcasts((prev) => prev.filter((s) => s.id !== existing.id));
+      } else {
+        toast.error("Failed to remove simulcast");
+      }
+    } else {
+      const res = await fetch(`/${eventSlug}/api/admin/simulcast-rooms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source_room_id: sourceRoomId, target_room_id: targetRoomId }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setSimulcasts((prev) => [...prev, d.simulcast_room]);
+      } else {
+        toast.error("Failed to add simulcast");
+      }
+    }
+  }
+
+  // Group sessions by time slot for report
   const timeSlots = sessions.reduce<Record<string, SessionEntry[]>>((acc, s) => {
     const key = s.starts_at || "unscheduled";
     if (!acc[key]) acc[key] = [];
     acc[key].push(s);
     return acc;
   }, {});
-
   const sortedTimeSlots = Object.keys(timeSlots).sort();
-
-  // Toggle a room mapping for a session
-  async function toggleRoom(sessionId: string, roomId: number) {
-    const existing = mappings.find(
-      (m) => m.session_id === sessionId && m.room_id === roomId
-    );
-
-    if (existing) {
-      // Remove
-      const res = await fetch(`/${eventSlug}/api/admin/session-rooms`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: existing.id }),
-      });
-      if (res.ok) {
-        setMappings((prev) => prev.filter((m) => m.id !== existing.id));
-      } else {
-        toast.error("Failed to remove mapping");
-      }
-    } else {
-      // Add
-      const res = await fetch(`/${eventSlug}/api/admin/session-rooms`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ room_id: roomId, session_id: sessionId }),
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setMappings((prev) => [...prev, d.session_room]);
-      } else {
-        toast.error("Failed to add mapping");
-      }
-    }
-  }
-
-  function isRoomMapped(sessionId: string, roomId: number) {
-    return mappings.some(
-      (m) => m.session_id === sessionId && m.room_id === roomId
-    );
-  }
 
   if (loading) {
     return (
@@ -170,7 +162,7 @@ export default function AttendanceAdminPage() {
           onClick={() => setView("setup")}
         >
           <Settings2 className="mr-1.5 h-3.5 w-3.5" />
-          Setup
+          Simulcast Setup
         </Button>
         <Button
           variant={view === "report" ? "default" : "outline"}
@@ -184,75 +176,69 @@ export default function AttendanceAdminPage() {
 
       {view === "setup" && (
         <div className="space-y-4">
-          {rooms.length === 0 && (
+          <div className="flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5">
+            <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground">
+              For most events, no setup is needed here. Sessions are automatically
+              counted in their assigned room. Only configure simulcast if a
+              session&apos;s audio/video plays in additional rooms.
+            </p>
+          </div>
+
+          {sourceRooms.length === 0 ? (
             <Card>
               <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                No rooms configured. Add rooms in the{" "}
-                <Link href={eventPath("/admin/schedule")} className="underline">
-                  Schedule
-                </Link>{" "}
-                page under the Rooms tab.
+                No rooms have sessions assigned yet. Sync your schedule from
+                Sessionize first.
               </CardContent>
             </Card>
+          ) : (
+            sourceRooms.map((sourceRoom) => {
+              const targets = getTargetRooms(sourceRoom.id);
+              const activeCount = simulcasts.filter(
+                (s) => s.source_room_id === sourceRoom.id
+              ).length;
+
+              return (
+                <Card key={sourceRoom.id} className="gap-0 py-0">
+                  <CardHeader className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm">{sourceRoom.name}</CardTitle>
+                      {activeCount > 0 && (
+                        <Badge variant="outline" className="text-[10px]">
+                          +{activeCount} simulcast
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3">
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Simulcast to:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {targets.map((target) => {
+                        const active = isSimulcastTarget(sourceRoom.id, target.id);
+                        return (
+                          <button
+                            key={target.id}
+                            onClick={() => toggleSimulcast(sourceRoom.id, target.id)}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
+                              active
+                                ? "border-green-500/50 bg-green-500/10 text-green-700"
+                                : "border-border text-muted-foreground hover:border-foreground/30"
+                            }`}
+                          >
+                            {active && <Check className="h-3 w-3" />}
+                            {target.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
-
-          {sortedTimeSlots.map((slot) => (
-            <Card key={slot} className="gap-0 py-0">
-              <CardHeader className="px-4 py-3">
-                <CardTitle className="text-sm">
-                  {slot === "unscheduled"
-                    ? "Unscheduled"
-                    : formatTime(slot, event.timezone)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-3">
-                <div className="space-y-3">
-                  {timeSlots[slot].map((session) => {
-                    const mappedCount = rooms.filter((r) =>
-                      isRoomMapped(session.id, r.id)
-                    ).length;
-
-                    return (
-                      <div key={session.id} className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium truncate">
-                            {session.title}
-                          </p>
-                          <Badge variant="outline" className="shrink-0 text-[10px] ml-2">
-                            {mappedCount} room{mappedCount !== 1 && "s"}
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {rooms.map((room) => {
-                            const mapped = isRoomMapped(
-                              session.id,
-                              room.id
-                            );
-                            return (
-                              <button
-                                key={room.id}
-                                onClick={() =>
-                                  toggleRoom(session.id, room.id)
-                                }
-                                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors ${
-                                  mapped
-                                    ? "border-green-500/50 bg-green-500/10 text-green-700"
-                                    : "border-border text-muted-foreground hover:border-foreground/30"
-                                }`}
-                              >
-                                {mapped && <Check className="h-3 w-3" />}
-                                {room.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
         </div>
       )}
 
@@ -303,10 +289,7 @@ export default function AttendanceAdminPage() {
                       <CardContent className="px-4 pb-3">
                         <div className="space-y-1">
                           {sessionRows
-                            .sort(
-                              (a, b) =>
-                                (a.room_name > b.room_name ? 1 : -1)
-                            )
+                            .sort((a, b) => (a.room_name > b.room_name ? 1 : -1))
                             .map((row) => (
                               <div
                                 key={`${row.session_id}-${row.room_id}`}
@@ -316,6 +299,11 @@ export default function AttendanceAdminPage() {
                                   <span className="truncate">
                                     {row.room_name}
                                   </span>
+                                  {row.is_simulcast && (
+                                    <Badge variant="secondary" className="text-[9px] px-1 py-0 shrink-0">
+                                      simulcast
+                                    </Badge>
+                                  )}
                                   <span className="text-[10px] text-muted-foreground shrink-0">
                                     by {row.counted_by_name}
                                   </span>

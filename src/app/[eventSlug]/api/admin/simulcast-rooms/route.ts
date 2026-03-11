@@ -8,61 +8,86 @@ import {
   safeParseBody,
 } from "@/lib/events/api-helpers";
 
+/**
+ * GET /api/admin/simulcast-rooms
+ * Returns simulcast config, all rooms, and which rooms have sessions (source rooms).
+ */
 export async function GET(request: NextRequest) {
   const telemetry = getTelemetryService();
-  return telemetry.trackAPIRoute("/api/admin/session-rooms", "GET", async () => {
+  return telemetry.trackAPIRoute("/api/admin/simulcast-rooms", "GET", async () => {
     const eventId = getEventId(request);
     const auth = await requireEventAdmin(eventId);
     if (isErrorResponse(auth)) return auth;
 
     const admin = createAdminClient();
-    const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get("session_id");
 
-    let query = admin
-      .from("session_rooms")
-      .select("*")
-      .eq("event_id", eventId);
+    const [simulcastRes, roomsRes, sessionsRes] = await Promise.all([
+      admin
+        .from("simulcast_rooms")
+        .select("*")
+        .eq("event_id", eventId),
+      admin
+        .from("rooms")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("sort_order", { ascending: true }),
+      admin
+        .from("sessions")
+        .select("room_id")
+        .eq("event_id", eventId)
+        .eq("is_service_session", false)
+        .not("room_id", "is", null),
+    ]);
 
-    if (sessionId) {
-      query = query.eq("session_id", sessionId);
-    }
+    // Distinct room IDs that have sessions assigned (source rooms)
+    const sourceRooms = [
+      ...new Set((sessionsRes.data ?? []).map((s) => s.room_id as number)),
+    ];
 
-    const { data, error } = await query;
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ session_rooms: data ?? [] });
+    return NextResponse.json({
+      simulcast_rooms: simulcastRes.data ?? [],
+      rooms: roomsRes.data ?? [],
+      source_rooms: sourceRooms,
+    });
   });
 }
 
+/**
+ * POST /api/admin/simulcast-rooms
+ * Add a simulcast mapping: source_room_id → target_room_id
+ */
 export async function POST(request: NextRequest) {
   const telemetry = getTelemetryService();
-  return telemetry.trackAPIRoute("/api/admin/session-rooms", "POST", async () => {
+  return telemetry.trackAPIRoute("/api/admin/simulcast-rooms", "POST", async () => {
     const eventId = getEventId(request);
     const auth = await requireEventAdmin(eventId);
     if (isErrorResponse(auth)) return auth;
 
     const body = await safeParseBody(request);
     if (body instanceof NextResponse) return body;
-    const { room_id, session_id } = body;
+    const { source_room_id, target_room_id } = body;
 
-    if (!room_id || !session_id) {
+    if (!source_room_id || !target_room_id) {
       return NextResponse.json(
-        { error: "room_id and session_id are required" },
+        { error: "source_room_id and target_room_id are required" },
+        { status: 400 },
+      );
+    }
+
+    if (source_room_id === target_room_id) {
+      return NextResponse.json(
+        { error: "A room cannot simulcast to itself" },
         { status: 400 },
       );
     }
 
     const admin = createAdminClient();
     const { data, error } = await admin
-      .from("session_rooms")
+      .from("simulcast_rooms")
       .insert({
         event_id: eventId,
-        room_id,
-        session_id,
+        source_room_id,
+        target_room_id,
       })
       .select()
       .single();
@@ -71,13 +96,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ session_room: data }, { status: 201 });
+    return NextResponse.json({ simulcast_room: data }, { status: 201 });
   });
 }
 
+/**
+ * DELETE /api/admin/simulcast-rooms
+ * Remove a simulcast mapping by ID.
+ */
 export async function DELETE(request: NextRequest) {
   const telemetry = getTelemetryService();
-  return telemetry.trackAPIRoute("/api/admin/session-rooms", "DELETE", async () => {
+  return telemetry.trackAPIRoute("/api/admin/simulcast-rooms", "DELETE", async () => {
     const eventId = getEventId(request);
     const auth = await requireEventAdmin(eventId);
     if (isErrorResponse(auth)) return auth;
@@ -92,7 +121,7 @@ export async function DELETE(request: NextRequest) {
 
     const admin = createAdminClient();
     const { error } = await admin
-      .from("session_rooms")
+      .from("simulcast_rooms")
       .delete()
       .eq("id", id)
       .eq("event_id", eventId);

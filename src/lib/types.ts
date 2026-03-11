@@ -401,11 +401,11 @@ export interface EmergencyMessageWithReplies extends EmergencyMessage {
 // Attendance (proctor feature)
 // ============================================================
 
-export interface SessionRoom {
+export interface SimulcastRoom {
   id: string;
   event_id: string;
-  room_id: number;
-  session_id: string;
+  source_room_id: number;
+  target_room_id: number;
   created_at: string;
 }
 
@@ -413,7 +413,7 @@ export interface AttendanceCount {
   id: string;
   event_id: string;
   room_id: number;
-  session_id: string;
+  time_slot: string;
   count: number;
   counted_by: string;
   counted_at: string;
