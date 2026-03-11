@@ -118,7 +118,42 @@ export default function ProctorPage() {
 
     if (res.ok) {
       toast.success("Count saved");
-      await fetchRooms();
+      // Preserve unsaved local counts while refreshing server data
+      const localCounts = { ...counts };
+      const refreshRes = await fetch(
+        `/${eventSlug}/api/proctor/attendance?time_slot=${encodeURIComponent(selectedSlot!)}`
+      );
+      if (refreshRes.ok) {
+        const d = await refreshRes.json();
+        setRooms(d.rooms);
+        setSummary(d.summary);
+        // Merge: use server values for saved rooms, keep local values for unsaved
+        const serverCounts: Record<number, string> = {};
+        for (const entry of d.rooms) {
+          if (entry.attendance) {
+            serverCounts[entry.room.id] = String(entry.attendance.count);
+          }
+        }
+        const merged: Record<number, string> = {};
+        for (const entry of d.rooms) {
+          const id = entry.room.id;
+          if (localCounts[id] !== undefined && localCounts[id] !== "" && !serverCounts[id]) {
+            // Unsaved local value — keep it
+            merged[id] = localCounts[id];
+          } else if (serverCounts[id] !== undefined) {
+            // Server has a saved value — but if user typed something different locally
+            // for a DIFFERENT room, keep the local; for THIS room we just saved, use server
+            if (id === roomId) {
+              merged[id] = serverCounts[id];
+            } else if (localCounts[id] !== undefined && localCounts[id] !== "" && localCounts[id] !== serverCounts[id]) {
+              merged[id] = localCounts[id];
+            } else {
+              merged[id] = serverCounts[id];
+            }
+          }
+        }
+        setCounts(merged);
+      }
     } else {
       const err = await res.json();
       toast.error(err.error || "Failed to save");
