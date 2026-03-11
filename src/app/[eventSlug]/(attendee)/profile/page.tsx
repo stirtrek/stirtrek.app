@@ -170,7 +170,8 @@ export default function ProfilePage() {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 required
-                disabled={saving}
+                disabled={saving || isSimulating}
+                className={isSimulating ? "opacity-60" : ""}
               />
             </div>
 
@@ -182,20 +183,23 @@ export default function ProfilePage() {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 required
-                disabled={saving}
+                disabled={saving || isSimulating}
+                className={isSimulating ? "opacity-60" : ""}
               />
             </div>
 
-            <Button type="submit" disabled={saving || isSimulating} className="w-full">
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
+            {!isSimulating && (
+              <Button type="submit" disabled={saving} className="w-full">
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -226,7 +230,7 @@ export default function ProfilePage() {
         <SponsorCompanySelector initialSponsorId={memberSponsorId} />
       )}
 
-      {!memberIsSponsor && <SponsorActivation />}
+      {!memberIsSponsor && !isSimulating && <SponsorActivation />}
 
       {!isSimulating && (
         <Button
