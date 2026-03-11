@@ -125,18 +125,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
+    // Re-sync session when the user returns to a stale tab.
+    // The Web Locks API may have orphaned a lock while the tab was
+    // suspended, causing getSession to return null temporarily.
+    // Once Supabase force-acquires the lock, onAuthStateChange fires,
+    // but by then downstream code may have already reacted to the
+    // null user. Re-checking here ensures a quick recovery.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        supabase.auth.getSession().then(({ data: { session } }: { data: { session: { user: User } | null } }) => {
+          handleAuthUser(session?.user ?? null);
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [supabase]);
 
   const signOut = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-    setUser(null);
+    // Clear local state immediately so the UI is responsive even
+    // if the server call stalls on a contended lock.
+    currentUserId.current = null;
     profileRef.current = null;
+    setUser(null);
     setProfile(null);
+
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // Server-side revocation failed (lock timeout, network, etc.)
+        // Local state is already cleared; session will expire on its own.
+      }
+    }
   };
 
   const refreshProfile = async () => {
