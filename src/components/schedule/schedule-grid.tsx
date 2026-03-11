@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TimeSlotChips } from "./time-slot-chips";
@@ -80,8 +80,10 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const isMultiDay = eventDays.length > 1;
 
   // Initialize activeDay once simulated time is loaded (multi-day only)
+  const dayInitialized = useRef(false);
   useEffect(() => {
-    if (timeLoading || !isMultiDay) return;
+    if (timeLoading || !isMultiDay || dayInitialized.current) return;
+    dayInitialized.current = true;
     const today = new Intl.DateTimeFormat("en-CA", {
       timeZone: event.timezone,
       year: "numeric",
