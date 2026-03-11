@@ -4,7 +4,7 @@ import {
   createContext,
   useContext,
   useCallback,
-  useEffect,
+  useMemo,
   useState,
 } from "react";
 import { useAuth } from "./auth-provider";
@@ -50,20 +50,16 @@ export function SimulationProvider({
   const { profile } = useAuth();
   const { eventId } = useEvent();
   const [simulatedUser, setSimulatedUser] = useState<SimulatedUser | null>(
-    null
-  );
-
-  // Restore from sessionStorage on mount
-  useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(storageKey(eventId));
-      if (stored) {
-        setSimulatedUser(JSON.parse(stored));
+    () => {
+      if (typeof window === "undefined") return null;
+      try {
+        const stored = sessionStorage.getItem(storageKey(eventId));
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
       }
-    } catch {
-      // Ignore parse errors
     }
-  }, [eventId]);
+  );
 
   const startSimulation = useCallback(
     (user: SimulatedUser) => {
@@ -87,21 +83,30 @@ export function SimulationProvider({
     }
   }, [eventId]);
 
-  const getSimulationHeaders = useCallback((): Record<string, string> => {
-    if (!simulatedUser) return {};
-    return { "X-Simulated-User-Id": simulatedUser.id };
-  }, [simulatedUser]);
+  const simHeaders = useMemo(
+    (): Record<string, string> =>
+      simulatedUser ? { "X-Simulated-User-Id": simulatedUser.id } : {},
+    [simulatedUser]
+  );
+
+  const getSimulationHeaders = useCallback(
+    () => simHeaders,
+    [simHeaders]
+  );
+
+  const value = useMemo(
+    () => ({
+      simulatedUser,
+      isSimulating: simulatedUser !== null,
+      startSimulation,
+      stopSimulation,
+      getSimulationHeaders,
+    }),
+    [simulatedUser, startSimulation, stopSimulation, getSimulationHeaders]
+  );
 
   return (
-    <SimulationContext.Provider
-      value={{
-        simulatedUser,
-        isSimulating: simulatedUser !== null,
-        startSimulation,
-        stopSimulation,
-        getSimulationHeaders,
-      }}
-    >
+    <SimulationContext.Provider value={value}>
       {children}
     </SimulationContext.Provider>
   );
