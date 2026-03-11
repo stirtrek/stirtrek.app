@@ -11,6 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "./auth-provider";
 import { useEvent } from "./event-provider";
+import { useSimulation } from "./simulation-provider";
 import type { UserRole } from "@/lib/types";
 
 interface MembershipContextValue {
@@ -40,6 +41,7 @@ export function MembershipProvider({
 }) {
   const { user, profile } = useAuth();
   const { eventId } = useEvent();
+  const { simulatedUser } = useSimulation();
   const [role, setRole] = useState<UserRole>("attendee");
   const [isSponsor, setIsSponsor] = useState(false);
   const [sponsorId, setSponsorId] = useState<string | null>(null);
@@ -47,6 +49,15 @@ export function MembershipProvider({
   const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   const refreshMembership = useCallback(async () => {
+    // When simulation is active, use the simulated user's membership data
+    if (simulatedUser) {
+      setRole(simulatedUser.role);
+      setIsSponsor(simulatedUser.is_sponsor);
+      setSponsorId(simulatedUser.sponsor_id);
+      setLoading(false);
+      return;
+    }
+
     if (!user || !eventId) {
       setRole("attendee");
       setIsSponsor(false);
@@ -83,17 +94,23 @@ export function MembershipProvider({
       }, 1500);
     }
     setLoading(false);
-  }, [user, eventId, supabase]);
+  }, [user, eventId, supabase, simulatedUser]);
 
   // Fetch on mount and whenever user/profile changes
   // (profile is included so refreshProfile() after sponsor activate/deactivate
   // triggers a re-fetch of membership status)
   useEffect(() => {
     refreshMembership();
-  }, [refreshMembership, profile]);
+  }, [refreshMembership, profile, simulatedUser]);
 
-  const isAdmin = profile?.is_super_admin || ["admin", "staff"].includes(role);
-  const isProctor = profile?.is_super_admin || ["admin", "staff", "proctor"].includes(role);
+  // When simulating, derive permissions purely from the simulated role
+  // (ignore real profile's super_admin flag)
+  const isAdmin = simulatedUser
+    ? ["admin", "staff"].includes(role)
+    : profile?.is_super_admin || ["admin", "staff"].includes(role);
+  const isProctor = simulatedUser
+    ? ["admin", "staff", "proctor"].includes(role)
+    : profile?.is_super_admin || ["admin", "staff", "proctor"].includes(role);
 
   return (
     <MembershipContext.Provider

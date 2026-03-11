@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Circle,
   ClipboardCheck,
+  Eye,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -98,6 +99,12 @@ export default function AdminDashboardPage() {
       label: "Time Simulator",
       description: "Override event time for testing",
       icon: Clock,
+    },
+    {
+      href: eventPath("/admin/simulate"),
+      label: "Simulate",
+      description: "View as another user",
+      icon: Eye,
     },
     {
       href: eventPath("/admin/settings"),

@@ -3,6 +3,7 @@
 import { useAuth } from "@/providers/auth-provider";
 import { useNotifications } from "@/providers/notification-provider";
 import { useMembership } from "@/providers/membership-provider";
+import { useSimulation } from "@/providers/simulation-provider";
 import { useEvent } from "@/providers/event-provider";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export function Header() {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const { isAdmin } = useMembership();
+  const { isSimulating } = useSimulation();
   const { event, eventPath, hasFeature } = useEvent();
   const pathname = usePathname();
   const emergencyHref = isAdmin
@@ -45,7 +47,7 @@ export function Header() {
     user && hasFeature("emergency_reporting");
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={`sticky ${isSimulating ? "top-8" : "top-0"} z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60`}>
       <div className="mx-auto flex h-14 max-w-md items-center justify-between px-4">
         <Link href={eventPath("/schedule")} aria-label={event.name}>
           {event.slug === "bacon" ? (

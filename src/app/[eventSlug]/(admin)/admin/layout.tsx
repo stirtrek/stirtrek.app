@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Home } from "lucide-react";
 import { NotificationProvider } from "@/providers/notification-provider";
 import { PresenceTracker } from "@/components/presence-tracker";
+import { SimulationBanner } from "@/components/layout/simulation-banner";
 
 export default async function AdminLayout({
   children,
@@ -17,6 +18,7 @@ export default async function AdminLayout({
   return (
     <NotificationProvider>
       <div className="mx-auto min-h-screen max-w-[400px]">
+        <SimulationBanner />
         <header className="flex h-14 items-center justify-between border-b px-4">
           <Link href={`/${eventSlug}/admin`} className="font-semibold">
             Admin

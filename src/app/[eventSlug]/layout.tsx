@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveEvent } from "@/lib/events/resolve";
 import { EventProvider } from "@/providers/event-provider";
+import { SimulationProvider } from "@/providers/simulation-provider";
 
 export async function generateMetadata({
   params,
@@ -51,5 +52,9 @@ export default async function EventLayout({
     notFound();
   }
 
-  return <EventProvider event={event}>{children}</EventProvider>;
+  return (
+    <EventProvider event={event}>
+      <SimulationProvider>{children}</SimulationProvider>
+    </EventProvider>
+  );
 }

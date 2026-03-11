@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     // Get event members first, then join with profiles
     const { data: memberships } = await admin
       .from("event_memberships")
-      .select("user_id, role, is_sponsor")
+      .select("user_id, role, is_sponsor, sponsor_id")
       .eq("event_id", eventId);
 
     if (!memberships || memberships.length === 0) {
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     const memberIds = memberships.map((m) => m.user_id);
     const memberMap = new Map(
-      memberships.map((m) => [m.user_id, { role: m.role, is_sponsor: m.is_sponsor }]),
+      memberships.map((m) => [m.user_id, { role: m.role, is_sponsor: m.is_sponsor, sponsor_id: m.sponsor_id }]),
     );
 
     const { page, limit, offset } = getPagination(request);
@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
       ...p,
       role: memberMap.get(p.id)?.role ?? "attendee",
       is_sponsor: memberMap.get(p.id)?.is_sponsor ?? false,
+      sponsor_id: memberMap.get(p.id)?.sponsor_id ?? null,
     }));
 
     return NextResponse.json({

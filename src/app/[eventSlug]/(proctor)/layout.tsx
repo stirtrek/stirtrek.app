@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { Home } from "lucide-react";
+import { SimulationBanner } from "@/components/layout/simulation-banner";
 
 export default async function ProctorLayout({
   children,
@@ -14,6 +15,7 @@ export default async function ProctorLayout({
 
   return (
     <div className="mx-auto min-h-screen max-w-[400px]">
+      <SimulationBanner />
       <header className="flex h-14 items-center justify-between border-b px-4">
         <Link href={`/${eventSlug}/proctor`} className="font-semibold">
           Proctor

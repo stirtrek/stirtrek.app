@@ -2,6 +2,7 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { Header } from "@/components/layout/header";
 import { OfflineIndicator } from "@/components/layout/offline-indicator";
 import { DevTimeBanner } from "@/components/layout/dev-time-banner";
+import { SimulationBanner } from "@/components/layout/simulation-banner";
 import { PushPrompt } from "@/components/layout/push-prompt";
 import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 import { PresenceTracker } from "@/components/presence-tracker";
@@ -24,6 +25,7 @@ export default function AttendeeLayout({
         <NotificationProvider>
           <PullToRefresh>
             <div className="flex min-h-screen flex-col">
+              <SimulationBanner />
               <OfflineIndicator />
               <Header />
               <DevTimeBanner />
