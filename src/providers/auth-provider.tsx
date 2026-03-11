@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // without waiting for INITIAL_SESSION which may not fire reliably
     // in all @supabase/ssr versions.
     if (!initialised.current) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
+      supabase.auth.getSession().then(({ data: { session } }: { data: { session: { user: User } | null } }) => {
         if (!initialised.current) {
           handleAuthUser(session?.user ?? null);
         }
