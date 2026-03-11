@@ -1,49 +1,57 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
+
+/**
+ * Lazily-captured reference to the auth singleton so event-scoped
+ * clients can read its access token without creating their own
+ * GoTrueClient.
+ */
+let _singleton: ReturnType<typeof createBrowserClient> | null = null;
 
 /**
  * Cache of event-scoped clients keyed by eventId.
- * All providers sharing the same eventId reuse one client instance,
- * avoiding multiple GoTrueClient instances fighting over the same
- * storage key.
+ * All providers sharing the same eventId reuse one client instance.
  */
-const eventClientCache = new Map<string, ReturnType<typeof createBrowserClient>>();
+const eventClientCache = new Map<string, SupabaseClient>();
 
 /**
  * Create a browser-side Supabase client.
  *
  * Without eventId: returns the @supabase/ssr singleton (used by AuthProvider).
- * With eventId: returns a cached, non-singleton client that carries the
- * x-event-id header for RLS tenant isolation. The client is shared across
- * all providers for the same eventId to prevent duplicate GoTrueClient
- * instances.
+ * With eventId: returns a cached client that carries the x-event-id header
+ * for RLS tenant isolation. Event-scoped clients use the `accessToken`
+ * option to piggyback on the singleton's auth session, which avoids
+ * creating a second GoTrueClient and the navigator-lock contention that
+ * causes "Multiple GoTrueClient instances" warnings and INITIAL_SESSION
+ * timeouts.
  */
 export function createClient(eventId?: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
-  if (eventId) {
-    const cached = eventClientCache.get(eventId);
-    if (cached) return cached;
-
-    const client = createBrowserClient(url, key, {
-      isSingleton: false,
-      global: {
-        headers: {
-          "x-event-id": eventId,
-        },
-      },
-      auth: {
-        // Let the global singleton (AuthProvider) handle token refresh.
-        // Without this, the event-scoped client creates its own GoTrueClient
-        // that fights over the same storage lock, causing INITIAL_SESSION
-        // timeouts and auth failures.
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    });
-    eventClientCache.set(eventId, client);
-    return client;
+  if (!eventId) {
+    if (!_singleton) {
+      _singleton = createBrowserClient(url, key);
+    }
+    return _singleton;
   }
 
-  return createBrowserClient(url, key);
+  const cached = eventClientCache.get(eventId);
+  if (cached) return cached;
+
+  const client = createSupabaseClient(url, key, {
+    global: {
+      headers: {
+        "x-event-id": eventId,
+      },
+    },
+    accessToken: async () => {
+      if (!_singleton) return "";
+      const { data } = await _singleton.auth.getSession();
+      return data.session?.access_token ?? "";
+    },
+  });
+
+  eventClientCache.set(eventId, client);
+  return client;
 }
