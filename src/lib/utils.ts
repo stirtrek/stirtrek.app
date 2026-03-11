@@ -81,16 +81,44 @@ export function utcToEventLocal(iso: string, timezone: string): string {
 }
 
 /**
- * Check if `now` falls on the given event day in the event's timezone.
+ * Convert a UTC ISO timestamp to a local date string (YYYY-MM-DD) in the event's timezone.
  */
-function isEventDay(now: Date, eventDate: string, timezone: string): boolean {
+export function getSessionDate(iso: string, timezone: string): string {
+  const date = parseSessionizeTime(iso);
+  if (isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/**
+ * Format a YYYY-MM-DD date string into a human-readable label like "Fri, May 1".
+ */
+export function formatDayLabel(dateStr: string, timezone: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  return d.toLocaleDateString("en-US", {
+    timeZone: timezone,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * Check if `now` falls on any of the given event days in the event's timezone.
+ */
+function isEventDay(now: Date, eventDates: string[], timezone: string): boolean {
   const nowLocal = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(now);
-  return nowLocal === eventDate;
+  return eventDates.includes(nowLocal);
 }
 
 /**
@@ -101,17 +129,17 @@ function isEventDay(now: Date, eventDate: string, timezone: string): boolean {
  *
  * @param times - Sorted array of session start times (UTC ISO strings)
  * @param now - Current time (real UTC Date)
- * @param eventDate - The event date string in "YYYY-MM-DD" format
+ * @param eventDates - Array of event date strings in "YYYY-MM-DD" format
  * @param timezone - IANA timezone identifier
  */
 export function findCurrentSlot(
   times: string[],
   now: Date,
-  eventDate: string,
+  eventDates: string[],
   timezone: string,
 ): string | null {
   if (times.length === 0) return null;
-  if (!eventDate || !isEventDay(now, eventDate, timezone)) return null;
+  if (eventDates.length === 0 || !isEventDay(now, eventDates, timezone)) return null;
 
   let current: string | null = null;
   for (const t of times) {

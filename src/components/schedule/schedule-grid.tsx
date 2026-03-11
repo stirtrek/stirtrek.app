@@ -12,7 +12,8 @@ import { useEvent } from "@/providers/event-provider";
 import { AddToCalendarButton } from "./add-to-calendar-button";
 import ReactMarkdown from "react-markdown";
 import { Bookmark, Info, Loader2 } from "lucide-react";
-import { findCurrentSlot } from "@/lib/utils";
+import { findCurrentSlot, getSessionDate } from "@/lib/utils";
+import { DaySelector } from "./day-selector";
 import type { SessionWithDetails } from "@/lib/types";
 
 interface ScheduleGridProps {
@@ -59,56 +60,97 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const activeTab =
     searchParams.get("tab") === "my-schedule" ? "my-schedule" : "full-schedule";
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [activeDay, setActiveDay] = useState<string | null>(null);
   const { user, loading: authLoading } = useAuth();
   const { bookmarkedIds, loading: bookmarksLoading } = useBookmarks();
   const { getNow, loading: timeLoading } = useSimulatedTime();
   const { event } = useEvent();
 
-  // Unique start times for non-service sessions
+  // Derive distinct event days from session timestamps
+  const eventDays = useMemo(() => {
+    const days = new Set<string>();
+    for (const s of sessions) {
+      if (s.starts_at) {
+        days.add(getSessionDate(s.starts_at, event.timezone));
+      }
+    }
+    return Array.from(days).sort();
+  }, [sessions, event.timezone]);
+
+  const isMultiDay = eventDays.length > 1;
+
+  // Initialize activeDay once simulated time is loaded (multi-day only)
+  useEffect(() => {
+    if (timeLoading || !isMultiDay) return;
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: event.timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(getNow());
+    setActiveDay(eventDays.includes(today) ? today : eventDays[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventDays, timeLoading, isMultiDay]);
+
+  // Reset time chip filter when switching days
+  useEffect(() => {
+    setActiveSlot(null);
+  }, [activeDay]);
+
+  // Sessions filtered to the active day (passthrough for single-day events)
+  const daySessions = useMemo(() => {
+    if (!isMultiDay || !activeDay) return sessions;
+    return sessions.filter((s) => {
+      if (!s.starts_at) return false;
+      return getSessionDate(s.starts_at, event.timezone) === activeDay;
+    });
+  }, [sessions, activeDay, isMultiDay, event.timezone]);
+
+  // Unique start times for non-service sessions (scoped to active day)
   const timeSlotTimes = useMemo(() => {
     const times = new Set<string>();
-    for (const s of sessions) {
+    for (const s of daySessions) {
       if (!s.is_service_session && s.starts_at) {
         times.add(s.starts_at);
       }
     }
     return Array.from(times).sort();
-  }, [sessions]);
+  }, [daySessions]);
 
   // Auto-select the current time slot once simulated time is loaded
   useEffect(() => {
     if (timeLoading) return;
-    const current = findCurrentSlot(timeSlotTimes, getNow(), event.event_date ?? "", event.timezone);
+    const current = findCurrentSlot(timeSlotTimes, getNow(), eventDays, event.timezone);
     if (current) setActiveSlot(current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeSlotTimes, timeLoading]);
 
-  // Full schedule time slots (filtered by active chip)
+  // Full schedule time slots (filtered by active chip, scoped to active day)
   const fullTimeSlots = useMemo(() => {
     const filtered = activeSlot
-      ? sessions.filter((s) => s.starts_at === activeSlot)
-      : sessions;
+      ? daySessions.filter((s) => s.starts_at === activeSlot)
+      : daySessions;
     return groupByTimeSlot(filtered);
-  }, [sessions, activeSlot]);
+  }, [daySessions, activeSlot]);
 
-  // My schedule: bookmarked sessions + service sessions for day context
+  // My schedule: bookmarked sessions + service sessions (scoped to active day)
   const myTimeSlots = useMemo(() => {
-    const filtered = sessions.filter(
+    const filtered = daySessions.filter(
       (s) => s.is_service_session || bookmarkedIds.has(s.id)
     );
     return groupByTimeSlot(filtered);
-  }, [sessions, bookmarkedIds]);
+  }, [daySessions, bookmarkedIds]);
 
-  // Count bookmarked non-service sessions per time slot (for conflict detection)
+  // Count bookmarked non-service sessions per time slot (scoped to active day)
   const conflictCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const s of sessions) {
+    for (const s of daySessions) {
       if (!s.is_service_session && s.starts_at && bookmarkedIds.has(s.id)) {
         counts.set(s.starts_at, (counts.get(s.starts_at) || 0) + 1);
       }
     }
     return counts;
-  }, [sessions, bookmarkedIds]);
+  }, [daySessions, bookmarkedIds]);
 
   if (sessions.length === 0) {
     return (
@@ -122,10 +164,10 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
 
   const hasBookmarks = bookmarkedIds.size > 0;
 
-  // Bookmarked non-service sessions for calendar export
+  // Bookmarked non-service sessions for calendar export (scoped to active day)
   const bookmarkedSessions = useMemo(
-    () => sessions.filter((s) => !s.is_service_session && bookmarkedIds.has(s.id)),
-    [sessions, bookmarkedIds],
+    () => daySessions.filter((s) => !s.is_service_session && bookmarkedIds.has(s.id)),
+    [daySessions, bookmarkedIds],
   );
 
   // Logged-out: show read-only schedule with time chips, no tabs
@@ -133,6 +175,14 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
     return (
       <div className="space-y-0">
         <div className="sticky top-14 z-20 -mx-4 bg-background/95 px-4 pb-2 pt-2 backdrop-blur">
+          {isMultiDay && (
+            <DaySelector
+              days={eventDays}
+              activeDay={activeDay}
+              onSelectDay={setActiveDay}
+              timezone={event.timezone}
+            />
+          )}
           <TimeSlotChips
             times={timeSlotTimes}
             activeSlot={activeSlot}
@@ -178,6 +228,14 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
 
       <TabsContent value="full-schedule">
         <div className="sticky top-[6.5rem] z-20 -mx-4 bg-background/95 px-4 pb-2 backdrop-blur">
+          {isMultiDay && (
+            <DaySelector
+              days={eventDays}
+              activeDay={activeDay}
+              onSelectDay={setActiveDay}
+              timezone={event.timezone}
+            />
+          )}
           <TimeSlotChips
             times={timeSlotTimes}
             activeSlot={activeSlot}
@@ -202,6 +260,14 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
 
       <TabsContent value="my-schedule">
         <div className="space-y-4 pt-4">
+          {isMultiDay && (
+            <DaySelector
+              days={eventDays}
+              activeDay={activeDay}
+              onSelectDay={setActiveDay}
+              timezone={event.timezone}
+            />
+          )}
           {event.schedule_message && (
             <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/50 p-3">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
