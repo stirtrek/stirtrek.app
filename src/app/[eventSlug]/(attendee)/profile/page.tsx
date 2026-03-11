@@ -114,7 +114,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Profile</h1>
         <div className="flex items-center gap-3">
-          {isProctor && !isAdmin && (
+          {isProctor && (
             <Link
               href={eventPath("/proctor")}
               className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
