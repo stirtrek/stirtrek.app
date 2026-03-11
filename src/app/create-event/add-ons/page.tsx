@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useWizard } from "../layout";
+import { useWizard } from "../wizard-context";
 import { TIERS, ADD_ONS, getIncludedAddonIds, formatPrice, computeTotalCents } from "@/lib/pricing";
 import { Check, Star } from "lucide-react";
 

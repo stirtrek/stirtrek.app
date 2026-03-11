@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useWizard } from "./layout";
+import { useWizard } from "./wizard-context";
 import { Calendar, MapPin, Globe, Loader2 } from "lucide-react";
 
 const TIMEZONES = [

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useWizard } from "../layout";
+import { useWizard } from "../wizard-context";
 import { TIERS, ADD_ONS, formatPrice, computeTotalCents } from "@/lib/pricing";
 import { Loader2, Calendar, MapPin, Globe } from "lucide-react";
 

@@ -1,50 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-
-// ============================================================
-// Wizard state context
-// ============================================================
-
-interface WizardState {
-  eventName: string;
-  eventSlug: string;
-  eventDate: string;
-  eventEndDate: string;
-  venueName: string;
-  timezone: string;
-  tierId: "essential" | "all-in";
-  addonIds: string[];
-}
-
-interface WizardContextValue {
-  state: WizardState;
-  setState: (patch: Partial<WizardState>) => void;
-  user: User | null;
-}
-
-const WizardContext = createContext<WizardContextValue | null>(null);
-
-export function useWizard(): WizardContextValue {
-  const ctx = useContext(WizardContext);
-  if (!ctx) throw new Error("useWizard must be used within the create-event layout");
-  return ctx;
-}
-
-const DEFAULT_STATE: WizardState = {
-  eventName: "",
-  eventSlug: "",
-  eventDate: "",
-  eventEndDate: "",
-  venueName: "",
-  timezone: "America/New_York",
-  tierId: "essential",
-  addonIds: [],
-};
+import { WizardContext, DEFAULT_STATE } from "./wizard-context";
+import type { WizardState } from "./wizard-context";
 
 // ============================================================
 // Steps for progress indicator
