@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useEvent } from "@/providers/event-provider";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +45,7 @@ const TIMEZONES = [
 ];
 
 export default function AdminSettingsPage() {
+  const router = useRouter();
   const { event, eventSlug } = useEvent();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -95,6 +97,8 @@ export default function AdminSettingsPage() {
         toast.error(data.error || "Failed to save");
       } else {
         toast.success("Settings saved");
+        // Re-run server layout so EventProvider, header, and favicon get fresh data
+        router.refresh();
       }
     } catch {
       toast.error("Failed to save settings");
