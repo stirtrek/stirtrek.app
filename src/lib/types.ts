@@ -67,6 +67,7 @@ export interface Event {
   schedule_message: string | null;
   about_content: string | null;
   accent_color: string | null;
+  icon_background_color: string | null;
   domain: string | null;
   is_active: boolean;
   show_on_marketing: boolean;

@@ -19,7 +19,7 @@ export default async function manifest({
     start_url: `/${eventSlug}`,
     scope: `/${eventSlug}/`,
     display: "standalone",
-    background_color: "#ffffff",
+    background_color: event?.icon_background_color ?? "#ffffff",
     theme_color: "#1a1a2e",
     orientation: "portrait",
     icons: event?.logo_url

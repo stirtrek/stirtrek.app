@@ -53,6 +53,7 @@ export default function AdminSettingsPage() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
+  const iconBgColorInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch(`/${eventSlug}/api/admin/settings`)
@@ -86,6 +87,7 @@ export default function AdminSettingsPage() {
           sponsor_feed_url: settings.sponsor_feed_url,
           sponsor_access_code: settings.sponsor_access_code,
           accent_color: settings.accent_color,
+          icon_background_color: settings.icon_background_color,
           logo_url: settings.logo_url,
           schedule_message: settings.schedule_message,
           about_content: settings.about_content,
@@ -298,6 +300,52 @@ export default function AdminSettingsPage() {
               />
             </div>
           </div>
+
+          {/* Icon Background Color */}
+          <div className="space-y-1.5">
+            <div className="flex items-center">
+              <Label>Icon Background Color</Label>
+              <FieldInfo text="Background color shown behind your logo when the app is installed on a phone's home screen (PWA icon). Choose a color that contrasts well with your logo." />
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                ref={iconBgColorInputRef}
+                type="color"
+                value={settings.icon_background_color || "#ffffff"}
+                onChange={(e) => update({ icon_background_color: e.target.value })}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => iconBgColorInputRef.current?.click()}
+                className="h-10 w-10 shrink-0 rounded-full border-2 border-white/20 transition-transform hover:scale-110"
+                style={{ backgroundColor: settings.icon_background_color || "#ffffff" }}
+                title="Pick a color"
+              />
+              <Input
+                value={settings.icon_background_color || "#ffffff"}
+                onChange={(e) => update({ icon_background_color: e.target.value })}
+                className="w-28 font-mono text-xs"
+                placeholder="#ffffff"
+              />
+            </div>
+            {settings.logo_url && (
+              <div className="mt-2">
+                <p className="mb-1.5 text-xs text-muted-foreground">Preview:</p>
+                <div
+                  className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10"
+                  style={{ backgroundColor: settings.icon_background_color || "#ffffff" }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={settings.logo_url}
+                    alt="Icon preview"
+                    className="h-12 w-12 object-contain"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -491,6 +539,7 @@ export default function AdminSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
     </div>
   );
 }

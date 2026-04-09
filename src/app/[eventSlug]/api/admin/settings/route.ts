@@ -33,6 +33,7 @@ export async function PATCH(request: NextRequest) {
     "sponsor_feed_url",
     "sponsor_access_code",
     "accent_color",
+    "icon_background_color",
     "logo_url",
     "schedule_message",
     "about_content",
