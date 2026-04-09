@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Bookmark, BookmarkCheck, User } from "lucide-react";
-import { cn, formatTime, isHappeningNow, isFeedbackAvailable } from "@/lib/utils";
+import { cn, formatTime, isHappeningNow, hasSessionEnded, sessionProgress, isFeedbackAvailable } from "@/lib/utils";
 import { useBookmarks } from "@/providers/bookmark-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useSimulatedTime } from "@/providers/simulated-time-provider";
@@ -31,7 +31,10 @@ export const SessionCard = memo(function SessionCard({ session, highlightBookmar
   const startTime = session.starts_at ? formatTime(session.starts_at, event.timezone) : "";
   const endTime = session.ends_at ? formatTime(session.ends_at, event.timezone) : "";
 
-  const happeningNow = isHappeningNow(session.starts_at, session.ends_at, getNow());
+  const now = getNow();
+  const happeningNow = isHappeningNow(session.starts_at, session.ends_at, now);
+  const ended = hasSessionEnded(session.ends_at, now);
+  const progress = happeningNow ? sessionProgress(session.starts_at, session.ends_at, now) : 0;
   const showBookmark = !session.is_service_session && !!user;
 
   // Show inline feedback for non-service sessions that have started on event day
@@ -44,7 +47,8 @@ export const SessionCard = memo(function SessionCard({ session, highlightBookmar
     <Card
       className={cn(
         "py-0 gap-0 transition-colors",
-        highlightBookmark && bookmarked && "border-[#FFD36E] bg-[#FFD36E]/10"
+        highlightBookmark && bookmarked && "border-[#FFD36E] bg-[#FFD36E]/10",
+        ended && "opacity-50"
       )}
     >
       <CardContent className="p-3">
@@ -130,10 +134,19 @@ export const SessionCard = memo(function SessionCard({ session, highlightBookmar
 
             {happeningNow && (
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-500">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-                </span>
+                <svg width="14" height="14" viewBox="0 0 20 20" className="shrink-0">
+                  <circle cx="10" cy="10" r="10" className="fill-muted" />
+                  <circle
+                    cx="10"
+                    cy="10"
+                    r="5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="10"
+                    strokeDasharray={`${(progress / 100) * 31.416} 31.416`}
+                    transform="rotate(-90 10 10)"
+                  />
+                </svg>
                 Now
               </span>
             )}

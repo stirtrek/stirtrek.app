@@ -173,6 +173,35 @@ export function isHappeningNow(
   return start <= now && now < end;
 }
 
+/**
+ * Returns true if a session has ended (endsAt is in the past).
+ */
+export function hasSessionEnded(
+  endsAt: string | null,
+  now: Date,
+): boolean {
+  if (!endsAt) return false;
+  return now >= new Date(endsAt);
+}
+
+/**
+ * Returns the percentage (0–100) of a session that has elapsed.
+ * Only meaningful when the session is currently in progress.
+ */
+export function sessionProgress(
+  startsAt: string | null,
+  endsAt: string | null,
+  now: Date,
+): number {
+  if (!startsAt || !endsAt) return 0;
+  const start = new Date(startsAt).getTime();
+  const end = new Date(endsAt).getTime();
+  const total = end - start;
+  if (total <= 0) return 0;
+  const elapsed = now.getTime() - start;
+  return Math.min(100, Math.max(0, (elapsed / total) * 100));
+}
+
 export function isFeedbackAvailable(
   startsAt: string | null,
   now: Date,
