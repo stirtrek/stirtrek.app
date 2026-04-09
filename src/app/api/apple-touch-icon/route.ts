@@ -18,5 +18,9 @@ export async function GET(request: NextRequest) {
     return new NextResponse(null, { status: 404 });
   }
 
-  return NextResponse.redirect(event.logo_url);
+  // Redirect to the dynamic icon endpoint which composites the logo
+  // onto the event's icon_background_color
+  const iconUrl = new URL(`/${event.slug}/api/icon`, request.nextUrl.origin);
+  iconUrl.searchParams.set("size", "180");
+  return NextResponse.redirect(iconUrl);
 }

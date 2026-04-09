@@ -25,9 +25,9 @@ export async function generateMetadata({
       title: event.short_name ?? event.name,
     },
     icons: {
-      icon: event.logo_url || "/icons/icon-192x192.png",
+      icon: event.logo_url ? `/${eventSlug}/api/icon?size=192` : "/icons/icon-192x192.png",
       apple: [
-        { url: event.logo_url || "/icons/icon-192x192.png" },
+        { url: event.logo_url ? `/${eventSlug}/api/icon?size=180` : "/icons/icon-192x192.png" },
       ],
     },
   };

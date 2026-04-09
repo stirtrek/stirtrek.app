@@ -25,19 +25,19 @@ export default async function manifest({
     icons: event?.logo_url
       ? [
           {
-            src: event.logo_url,
+            src: `/${eventSlug}/api/icon?size=192`,
             sizes: "192x192",
-            type: event.logo_url.endsWith(".svg") ? "image/svg+xml" : "image/png",
+            type: "image/png",
           },
           {
-            src: event.logo_url,
+            src: `/${eventSlug}/api/icon?size=512`,
             sizes: "512x512",
-            type: event.logo_url.endsWith(".svg") ? "image/svg+xml" : "image/png",
+            type: "image/png",
           },
           {
-            src: event.logo_url,
+            src: `/${eventSlug}/api/icon?size=512`,
             sizes: "512x512",
-            type: event.logo_url.endsWith(".svg") ? "image/svg+xml" : "image/png",
+            type: "image/png",
             purpose: "maskable",
           },
         ]
