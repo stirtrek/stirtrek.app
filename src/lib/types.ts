@@ -238,6 +238,8 @@ export interface Poll {
   created_by: string;
   opened_at: string | null;
   closed_at: string | null;
+  scheduled_open: string | null;
+  scheduled_close: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTelemetryService } from "@/lib/telemetry/service";
+import { sendPushToAll } from "@/lib/push";
 import {
   getEventId,
   requireEventAdmin,
@@ -30,7 +31,7 @@ export async function PUT(
 
       const { data: poll } = await admin
         .from("polls")
-        .select("status")
+        .select("status, question")
         .eq("id", id)
         .eq("event_id", eventId)
         .single();
@@ -66,6 +67,31 @@ export async function PUT(
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      // Send push notification when poll goes live
+      if (newStatus === "active") {
+        const { data: event } = await admin
+          .from("events")
+          .select("name, short_name, logo_url")
+          .eq("id", eventId)
+          .single();
+
+        const title = event
+          ? `${event.short_name || event.name}: New Poll`
+          : "New Poll";
+
+        sendPushToAll(
+          {
+            title,
+            body: poll.question,
+            url: "/polls",
+            icon: event?.logo_url || undefined,
+          },
+          eventId,
+        ).catch((err) =>
+          console.error(`Poll push notification failed (${id}):`, err),
+        );
       }
 
       return NextResponse.json({ success: true });

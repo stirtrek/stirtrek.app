@@ -24,7 +24,7 @@ export async function GET(
     const { data: poll, error } = await admin
       .from("polls")
       .select(
-        "id, question, description, status, allow_multiple, opened_at, closed_at",
+        "id, question, description, status, allow_multiple, opened_at, closed_at, scheduled_open, scheduled_close",
       )
       .eq("id", id)
       .eq("event_id", eventId)
@@ -79,7 +79,7 @@ export async function PUT(
 
     const body = await safeParseBody(request);
     if (body instanceof NextResponse) return body;
-    const { question, description, allow_multiple, options } = body;
+    const { question, description, allow_multiple, options, scheduled_open, scheduled_close } = body;
 
     if (!question?.trim()) {
       return NextResponse.json(
@@ -108,6 +108,8 @@ export async function PUT(
         question: question.trim(),
         description: description?.trim() || null,
         allow_multiple: allow_multiple ?? false,
+        scheduled_open: scheduled_open || null,
+        scheduled_close: scheduled_close || null,
       })
       .eq("id", id);
 

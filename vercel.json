@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/send-scheduled-announcements",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/process-scheduled-polls",
+      "schedule": "* * * * *"
     }
   ]
 }

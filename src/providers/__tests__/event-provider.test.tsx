@@ -35,6 +35,7 @@ function makeEvent(overrides: Partial<Event> = {}): Event {
     schedule_message: null,
     about_content: null,
     accent_color: null,
+    icon_background_color: null,
     domain: null,
     is_active: true,
     show_on_marketing: false,

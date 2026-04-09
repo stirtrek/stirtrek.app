@@ -51,7 +51,7 @@ export const SessionCard = memo(function SessionCard({ session, highlightBookmar
         ended && "opacity-50"
       )}
     >
-      <CardContent className="p-3">
+      <CardContent className="relative p-3">
         <div className="space-y-2">
           <div className="flex items-start gap-2">
             <Link
@@ -132,31 +132,28 @@ export const SessionCard = memo(function SessionCard({ session, highlightBookmar
               </span>
             )}
 
-            {happeningNow && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-500">
-                <svg width="14" height="14" viewBox="0 0 20 20" className="shrink-0">
-                  <circle cx="10" cy="10" r="10" className="fill-muted" />
-                  <circle
-                    cx="10"
-                    cy="10"
-                    r="5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="10"
-                    strokeDasharray={`${(progress / 100) * 31.416} 31.416`}
-                    transform="rotate(-90 10 10)"
-                  />
-                </svg>
-                Now
-              </span>
-            )}
-
             {session.categories.length > 0 && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                 {session.categories[0].name}
               </Badge>
             )}
           </div>
+
+          {happeningNow && (
+            <svg width="18" height="18" viewBox="0 0 20 20" className="absolute bottom-2 right-2 text-green-500">
+              <circle cx="10" cy="10" r="10" className="fill-muted" />
+              <circle
+                cx="10"
+                cy="10"
+                r="5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="10"
+                strokeDasharray={`${(progress / 100) * 31.416} 31.416`}
+                transform="rotate(-90 10 10)"
+              />
+            </svg>
+          )}
 
           {showFeedback && (
             <InlineFeedback

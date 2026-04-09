@@ -18,6 +18,7 @@ import {
   BarChart3,
   Pencil,
   CheckSquare,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEvent } from "@/providers/event-provider";
@@ -33,6 +34,8 @@ interface PollListItem {
   status: PollStatus;
   option_count: number;
   response_count: number;
+  scheduled_open: string | null;
+  scheduled_close: string | null;
   created_at: string;
 }
 
@@ -42,6 +45,8 @@ interface PollDetail {
   description: string | null;
   status: PollStatus;
   allow_multiple: boolean;
+  scheduled_open: string | null;
+  scheduled_close: string | null;
   options: { id: string; text: string; sort_order: number }[];
 }
 
@@ -64,6 +69,14 @@ type View =
 let nextKey = 0;
 function genKey() {
   return `opt-${++nextKey}`;
+}
+
+/** Convert an ISO string to a local datetime-local input value */
+function toLocalDatetime(iso: string): string {
+  const d = new Date(iso);
+  const offset = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - offset * 60000);
+  return local.toISOString().slice(0, 16);
 }
 
 // ---------------------------------------------------------------------------
@@ -208,7 +221,10 @@ function PollList({
       ) : (
         <div className="space-y-2">
           {polls.map((poll) => {
-            const badge = statusBadge[poll.status];
+            const isScheduled = poll.status === "draft" && !!poll.scheduled_open;
+            const badge = isScheduled
+              ? { label: "Scheduled", variant: "secondary" as const }
+              : statusBadge[poll.status];
             return (
               <Card key={poll.id} className="gap-0 py-0">
                 <CardContent className="px-4 py-3">
@@ -227,6 +243,20 @@ function PollList({
                           <> &middot; {poll.response_count} vote{poll.response_count !== 1 ? "s" : ""}</>
                         )}
                       </p>
+                      {(poll.scheduled_open || poll.scheduled_close) && (
+                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {poll.scheduled_open && poll.status === "draft" && (
+                            <span>Opens {new Date(poll.scheduled_open).toLocaleString()}</span>
+                          )}
+                          {poll.scheduled_open && poll.scheduled_close && poll.status === "draft" && (
+                            <span>&middot;</span>
+                          )}
+                          {poll.scheduled_close && poll.status !== "closed" && (
+                            <span>Closes {new Date(poll.scheduled_close).toLocaleString()}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -324,6 +354,8 @@ function PollForm({
   const [question, setQuestion] = useState("");
   const [description, setDescription] = useState("");
   const [allowMultiple, setAllowMultiple] = useState(false);
+  const [scheduledOpen, setScheduledOpen] = useState("");
+  const [scheduledClose, setScheduledClose] = useState("");
   const [options, setOptions] = useState<FormOption[]>([
     { key: genKey(), text: "" },
     { key: genKey(), text: "" },
@@ -345,6 +377,8 @@ function PollForm({
       setQuestion(poll.question);
       setDescription(poll.description || "");
       setAllowMultiple(poll.allow_multiple);
+      setScheduledOpen(poll.scheduled_open ? toLocalDatetime(poll.scheduled_open) : "");
+      setScheduledClose(poll.scheduled_close ? toLocalDatetime(poll.scheduled_close) : "");
       setOptions(
         poll.options.map((o: { text: string }) => ({
           key: genKey(),
@@ -386,6 +420,8 @@ function PollForm({
       question,
       description,
       allow_multiple: allowMultiple,
+      scheduled_open: scheduledOpen ? new Date(scheduledOpen).toISOString() : null,
+      scheduled_close: scheduledClose ? new Date(scheduledClose).toISOString() : null,
       options: options.map((o) => o.text),
     };
 
@@ -481,6 +517,38 @@ function PollForm({
                 Allow multiple selections
               </span>
             </button>
+
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Schedule (optional)
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Leave blank to activate manually. Scheduled polls will open and close automatically, and a push notification will be sent when the poll opens.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="scheduled-open">Opens at</Label>
+                  <Input
+                    id="scheduled-open"
+                    type="datetime-local"
+                    value={scheduledOpen}
+                    onChange={(e) => setScheduledOpen(e.target.value)}
+                    disabled={saving}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="scheduled-close">Closes at</Label>
+                  <Input
+                    id="scheduled-close"
+                    type="datetime-local"
+                    value={scheduledClose}
+                    onChange={(e) => setScheduledClose(e.target.value)}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
