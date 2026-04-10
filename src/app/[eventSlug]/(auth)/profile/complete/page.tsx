@@ -1,35 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Loader2, UserCheck } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
 
 export default function CompleteProfilePage() {
-  const router = useRouter();
+  const { profile } = useAuth();
   const { eventPath, accentColor } = useEvent();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
+  const [lastName, setLastName] = useState(profile?.last_name ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Pre-populate with existing profile data (e.g. returning user on new device)
-  useEffect(() => {
-    async function loadProfile() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("id", user.id)
-        .single();
-      if (profile?.first_name) setFirstName(profile.first_name);
-      if (profile?.last_name) setLastName(profile.last_name);
-    }
-    loadProfile();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +35,9 @@ export default function CompleteProfilePage() {
         return;
       }
 
-      router.replace(eventPath("/schedule"));
+      // Hard redirect to ensure middleware re-evaluates with the
+      // freshly-completed profile and any layout user state is refreshed.
+      window.location.assign(eventPath("/schedule"));
     } catch {
       setError("Something went wrong");
       setLoading(false);

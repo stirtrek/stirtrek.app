@@ -18,7 +18,7 @@ const MARKETING_HOSTS = ["conferenceday.app", "www.conferenceday.app"];
 const MARKETING_PATHS = ["/", "/pricing"];
 
 // Paths that are truly global (no event slug prefix)
-const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/api/apple-touch-icon", "/api/public", "/super-admin", "/api/super-admin", "/create-event", "/api/checkout", "/api/webhooks"];
+const GLOBAL_PATHS = ["/offline", "/api/cron", "/api/profile", "/api/telemetry", "/api/apple-touch-icon", "/api/public", "/api/auth", "/super-admin", "/api/super-admin", "/create-event", "/api/checkout", "/api/webhooks"];
 
 // Paths within an event that don't require auth
 const PUBLIC_EVENT_PATHS = [
@@ -26,9 +26,7 @@ const PUBLIC_EVENT_PATHS = [
   "/login",
   "/auth/callback",
   "/auth/confirm",
-  "/schedule",
-  "/speakers",
-  "/sponsors",
+  "/browse",
 ];
 
 /**

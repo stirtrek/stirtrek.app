@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useEvent } from "@/providers/event-provider";
 import { Mail, Loader2, KeyRound } from "lucide-react";
 
 export function LoginForm() {
-  const router = useRouter();
-  const { eventSlug, eventPath, accentColor } = useEvent();
+  const { eventId, eventSlug, eventPath, accentColor } = useEvent();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -22,7 +20,7 @@ export function LoginForm() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
+    const supabase = createClient(eventId);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -49,7 +47,7 @@ export function LoginForm() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
+    const supabase = createClient(eventId);
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,
@@ -64,29 +62,17 @@ export function LoginForm() {
       return;
     }
 
-    // Auto-join the user to this event
+    // Auto-join the user to this event. Wait for it so the membership
+    // exists before downstream pages query for it.
     await fetch(`/${eventSlug}/api/join`, { method: "POST" }).catch((err) =>
       console.error("Failed to auto-join event:", err)
     );
 
-    // Check if profile is complete (has first/last name)
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.first_name && profile?.last_name) {
-        router.push(eventPath("/schedule"));
-      } else {
-        router.push(eventPath("/profile/complete"));
-      }
-    } else {
-      router.push(eventPath("/schedule"));
-    }
-    router.refresh();
+    // Hard redirect: forces middleware to re-run with the freshly-set
+    // auth cookies, refetches the server tree, and avoids any client-side
+    // state drift. Middleware enforces the profile-completion check, so
+    // we just send everyone to /schedule and let the server route them.
+    window.location.assign(eventPath("/schedule"));
   };
 
   const handleCodeChange = (index: number, value: string) => {
@@ -270,7 +256,7 @@ export function LoginForm() {
       </div>
 
       <Link
-        href={eventPath("/schedule")}
+        href={eventPath("/browse")}
         className="mt-4 block text-center text-sm text-[#B8BDC7] transition-colors hover:text-white"
       >
         Browse schedule without signing in

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveEvent } from "@/lib/events/resolve";
+import { getAuthUserAndProfile } from "@/lib/supabase/server";
+import { AuthProvider } from "@/providers/auth-provider";
 import { EventProvider } from "@/providers/event-provider";
 import { SimulationProvider } from "@/providers/simulation-provider";
 
@@ -52,9 +54,13 @@ export default async function EventLayout({
     notFound();
   }
 
+  const { user, profile } = await getAuthUserAndProfile();
+
   return (
-    <EventProvider event={event}>
-      <SimulationProvider>{children}</SimulationProvider>
-    </EventProvider>
+    <AuthProvider user={user} profile={profile}>
+      <EventProvider event={event}>
+        <SimulationProvider>{children}</SimulationProvider>
+      </EventProvider>
+    </AuthProvider>
   );
 }

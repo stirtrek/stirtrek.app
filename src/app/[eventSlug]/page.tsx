@@ -146,7 +146,7 @@ export default function EventHomePage() {
           </Link>
 
           <Link
-            href={eventPath("/schedule")}
+            href={eventPath("/browse")}
             className="inline-flex items-center justify-center rounded-md px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-[#F4F6F8] transition-all hover:-translate-y-0.5 hover:scale-[1.02] hover:text-white active:translate-y-0 active:scale-[0.98]"
             style={{
               backgroundColor: "#1B1D23",

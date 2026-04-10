@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useEvent } from "@/providers/event-provider";
 import { useMembership } from "@/providers/membership-provider";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,17 +16,15 @@ import { SponsorCompanySelector } from "@/components/profile/sponsor-company-sel
 import { useSimulation, useSimulationFetch } from "@/providers/simulation-provider";
 
 export default function ProfilePage() {
-  const { user, profile, loading, signOut, refreshProfile } = useAuth();
-  const { eventPath, eventId, eventSlug, hasFeature } = useEvent();
+  const { user, profile, signOut, refreshProfile } = useAuth();
+  const { eventPath, eventSlug, hasFeature } = useEvent();
   const { isAdmin, isProctor, isSponsor: memberIsSponsor, sponsorId: memberSponsorId } = useMembership();
   const { simulatedUser, isSimulating } = useSimulation();
   const simulationFetch = useSimulationFetch();
-  const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [saving, setSaving] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
-  const supabase = useMemo(() => createClient(eventId), [eventId]);
 
   useEffect(() => {
     if (isSimulating && simulatedUser) {
@@ -40,22 +36,6 @@ export default function ProfilePage() {
     }
   }, [profile, isSimulating, simulatedUser]);
 
-  // Fallback: if auth provider didn't load the profile, fetch it directly
-  useEffect(() => {
-    if (profile || loading || !user) return;
-    supabase
-      .from("profiles")
-      .select("first_name, last_name")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }: { data: { first_name: string | null; last_name: string | null } | null }) => {
-        if (data) {
-          setFirstName(data.first_name || "");
-          setLastName(data.last_name || "");
-        }
-      });
-  }, [profile, loading, user, supabase]);
-
   // Check if user is a linked speaker
   useEffect(() => {
     if (!user) return;
@@ -65,19 +45,10 @@ export default function ProfilePage() {
       .catch(() => {});
   }, [user, eventSlug, simulationFetch]);
 
-  // Redirect to login once auth has resolved (or timed out) with no user
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push(eventPath("/login"));
-    }
-  }, [loading, user, router, eventPath]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (!user) {
+    // AttendeeLayout server-redirects unauthenticated users; this is a
+    // safety net for the brief moment between sign-out and unmount.
+    return null;
   }
 
   const handleSave = async (e: React.FormEvent) => {
