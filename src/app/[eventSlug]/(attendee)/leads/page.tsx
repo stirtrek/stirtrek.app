@@ -7,7 +7,7 @@ import { useSimulation, useSimulationFetch } from "@/providers/simulation-provid
 import { Button } from "@/components/ui/button";
 import { LeadCard } from "@/components/leads/lead-card";
 import { LeadNotesDialog } from "@/components/leads/lead-notes-dialog";
-import { ScanLine, Download, Loader2 } from "lucide-react";
+import { ScanLine, Mail, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import type { Lead } from "@/lib/types";
 
@@ -20,6 +20,8 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [exportState, setExportState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const fetchLeads = useCallback(async () => {
     const res = await simulationFetch(`/${eventSlug}/api/leads`);
@@ -54,21 +56,24 @@ export default function LeadsPage() {
   };
 
   const handleExport = async () => {
-    if (isSimulating) {
-      // Can't use window.location.href with custom headers; use fetch + blob
-      const res = await simulationFetch(`/${eventSlug}/api/leads/export`);
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = res.headers.get("content-disposition")?.split("filename=")[1]?.replace(/"/g, "") || "leads.csv";
-        a.click();
-        URL.revokeObjectURL(url);
+    if (isSimulating) return;
+    setExportState("sending");
+    setExportError(null);
+    try {
+      const res = await simulationFetch(`/${eventSlug}/api/leads/export`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExportState("error");
+        setExportError(data.error || "Failed to send");
+        return;
       }
-      return;
+      setExportState("sent");
+    } catch {
+      setExportState("error");
+      setExportError("Failed to send");
     }
-    window.location.href = `/${eventSlug}/api/leads/export`;
   };
 
   if (loading || authLoading) {
@@ -91,9 +96,35 @@ export default function LeadsPage() {
           </Button>
         </Link>
         {leads.length > 0 && (
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            CSV
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={exportState === "sending" || exportState === "sent"}
+          >
+            {exportState === "sending" && (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            )}
+            {exportState === "sent" && (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Sent
+              </>
+            )}
+            {exportState === "error" && (
+              <>
+                <Mail className="mr-2 h-4 w-4" />
+                {exportError || "Retry"}
+              </>
+            )}
+            {exportState === "idle" && (
+              <>
+                <Mail className="mr-2 h-4 w-4" />
+                Email CSV
+              </>
+            )}
           </Button>
         )}
       </div>
