@@ -74,7 +74,7 @@ export default function PollsPage() {
         id: p.id as string,
         question: p.question as string,
         description: p.description as string | null,
-        status: p.status as string,
+        status: p.status as PollStatus,
         allow_multiple: p.allow_multiple as boolean,
         options: ((p.poll_options as { id: string; text: string; sort_order: number }[]) ?? []).sort(
           (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order,
