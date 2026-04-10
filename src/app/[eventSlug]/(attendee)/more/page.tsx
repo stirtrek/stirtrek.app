@@ -53,7 +53,7 @@ export default function AboutPage() {
             </p>
             <div className="flex gap-3 pt-2">
               <a
-                href="https://conferenceday.com"
+                href="https://conferenceday.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-primary"
