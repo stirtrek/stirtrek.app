@@ -26,10 +26,10 @@ export function LeadCard({ lead, onTap }: LeadCardProps) {
 
   return (
     <Card
-      className="cursor-pointer transition-colors hover:bg-accent"
+      className="cursor-pointer gap-0 py-0 transition-colors hover:bg-accent"
       onClick={() => onTap(lead)}
     >
-      <CardContent className="flex items-center gap-3 py-3">
+      <CardContent className="flex items-center gap-3 p-3">
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">
             {name || lead.attendee_email}
