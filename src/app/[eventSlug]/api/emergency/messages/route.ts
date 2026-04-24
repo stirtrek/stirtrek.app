@@ -30,89 +30,74 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
 
     if (isAdmin) {
+      // Single nested fetch: messages + sender profile + replies + reply_sender profile.
       const { data: messages, error } = await admin
         .from("emergency_messages")
-        .select("*")
+        .select(
+          `*,
+           sender:profiles!user_id(id, display_name, first_name, last_name, email),
+           replies:emergency_replies(
+             *,
+             reply_sender:profiles!sender_id(id, display_name, first_name, last_name, email, is_super_admin)
+           )`,
+        )
         .eq("event_id", eventId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .order("created_at", { referencedTable: "emergency_replies", ascending: true });
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      const messageIds = (messages ?? []).map((m) => m.id);
-      const userIds = [...new Set((messages ?? []).map((m) => m.user_id))];
-
-      const [{ data: profiles }, { data: replies }] = await Promise.all([
-        admin
-          .from("profiles")
-          .select("id, display_name, first_name, last_name, email")
-          .in("id", userIds.length > 0 ? userIds : ["no-match"]),
-        admin
-          .from("emergency_replies")
-          .select("*")
-          .in("message_id", messageIds.length > 0 ? messageIds : ["no-match"])
-          .order("created_at", { ascending: true }),
-      ]);
-
       const replySenderIds = [
-        ...new Set((replies ?? []).map((r) => r.sender_id)),
+        ...new Set(
+          (messages ?? []).flatMap((m: any) =>
+            (m.replies ?? []).map((r: any) => r.reply_sender?.id).filter(Boolean),
+          ),
+        ),
       ];
-      const [{ data: replySenderProfiles }, { data: replySenderMemberships }] =
+
+      const { data: replySenderMemberships } =
         replySenderIds.length > 0
-          ? await Promise.all([
-              admin
-                .from("profiles")
-                .select("id, display_name, first_name, last_name, email, is_super_admin")
-                .in("id", replySenderIds),
-              admin
-                .from("event_memberships")
-                .select("user_id, role")
-                .eq("event_id", eventId)
-                .in("user_id", replySenderIds),
-            ])
-          : [{ data: [] }, { data: [] }];
+          ? await admin
+              .from("event_memberships")
+              .select("user_id, role")
+              .eq("event_id", eventId)
+              .in("user_id", replySenderIds)
+          : { data: [] };
 
       const membershipRoleMap = new Map(
         (replySenderMemberships ?? []).map((m) => [m.user_id, m.role]),
       );
 
-      const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
-      const replySenderMap = new Map(
-        (replySenderProfiles ?? []).map((p) => [
-          p.id,
-          {
-            display_name: p.display_name,
-            first_name: p.first_name,
-            last_name: p.last_name,
-            email: p.email,
-            role: membershipRoleMap.get(p.id) ?? (p.is_super_admin ? "admin" : "attendee"),
-          },
-        ]),
-      );
-
-      const enriched = (messages ?? []).map((m) => {
-        const sender = profileMap.get(m.user_id);
-        const messageReplies = (replies ?? [])
-          .filter((r) => r.message_id === m.id)
-          .map((r) => ({
+      const enriched = (messages ?? []).map((m: any) => ({
+        ...m,
+        sender: m.sender
+          ? {
+              display_name: m.sender.display_name,
+              first_name: m.sender.first_name,
+              last_name: m.sender.last_name,
+              email: m.sender.email,
+            }
+          : undefined,
+        replies: (m.replies ?? []).map((r: any) => {
+          const rs = r.reply_sender;
+          return {
             ...r,
-            reply_sender: replySenderMap.get(r.sender_id) ?? undefined,
-          }));
-
-        return {
-          ...m,
-          sender: sender
-            ? {
-                display_name: sender.display_name,
-                first_name: sender.first_name,
-                last_name: sender.last_name,
-                email: sender.email,
-              }
-            : undefined,
-          replies: messageReplies,
-        };
-      });
+            reply_sender: rs
+              ? {
+                  display_name: rs.display_name,
+                  first_name: rs.first_name,
+                  last_name: rs.last_name,
+                  email: rs.email,
+                  role:
+                    membershipRoleMap.get(rs.id) ??
+                    (rs.is_super_admin ? "admin" : "attendee"),
+                }
+              : undefined,
+          };
+        }),
+      }));
 
       return NextResponse.json({ messages: enriched });
     }
@@ -131,69 +116,62 @@ export async function GET(request: NextRequest) {
 
     const { data: messages, error } = await admin
       .from("emergency_messages")
-      .select("*")
+      .select(
+        `*,
+         replies:emergency_replies(
+           *,
+           reply_sender:profiles!sender_id(id, display_name, first_name, last_name, email, is_super_admin)
+         )`,
+      )
       .eq("event_id", eventId)
       .eq("user_id", effectiveUserId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("created_at", { referencedTable: "emergency_replies", ascending: true });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const messageIds = (messages ?? []).map((m) => m.id);
-
-    const { data: replies } =
-      messageIds.length > 0
-        ? await admin
-            .from("emergency_replies")
-            .select("*")
-            .in("message_id", messageIds)
-            .order("created_at", { ascending: true })
-        : { data: [] };
-
     const replySenderIds = [
-      ...new Set((replies ?? []).map((r) => r.sender_id)),
+      ...new Set(
+        (messages ?? []).flatMap((m: any) =>
+          (m.replies ?? []).map((r: any) => r.reply_sender?.id).filter(Boolean),
+        ),
+      ),
     ];
-    const [{ data: replySenderProfiles }, { data: replySenderMemberships }] =
+
+    const { data: replySenderMemberships } =
       replySenderIds.length > 0
-        ? await Promise.all([
-            admin
-              .from("profiles")
-              .select("id, display_name, first_name, last_name, email, is_super_admin")
-              .in("id", replySenderIds),
-            admin
-              .from("event_memberships")
-              .select("user_id, role")
-              .eq("event_id", eventId)
-              .in("user_id", replySenderIds),
-          ])
-        : [{ data: [] }, { data: [] }];
+        ? await admin
+            .from("event_memberships")
+            .select("user_id, role")
+            .eq("event_id", eventId)
+            .in("user_id", replySenderIds)
+        : { data: [] };
 
     const membershipRoleMap = new Map(
       (replySenderMemberships ?? []).map((m) => [m.user_id, m.role]),
     );
 
-    const replySenderMap = new Map(
-      (replySenderProfiles ?? []).map((p) => [
-        p.id,
-        {
-          display_name: p.display_name,
-          first_name: p.first_name,
-          last_name: p.last_name,
-          email: p.email,
-          role: membershipRoleMap.get(p.id) ?? (p.is_super_admin ? "admin" : "attendee"),
-        },
-      ]),
-    );
-
-    const enriched = (messages ?? []).map((m) => ({
+    const enriched = (messages ?? []).map((m: any) => ({
       ...m,
-      replies: (replies ?? [])
-        .filter((r) => r.message_id === m.id)
-        .map((r) => ({
+      replies: (m.replies ?? []).map((r: any) => {
+        const rs = r.reply_sender;
+        return {
           ...r,
-          reply_sender: replySenderMap.get(r.sender_id) ?? undefined,
-        })),
+          reply_sender: rs
+            ? {
+                display_name: rs.display_name,
+                first_name: rs.first_name,
+                last_name: rs.last_name,
+                email: rs.email,
+                role:
+                  membershipRoleMap.get(rs.id) ??
+                  (rs.is_super_admin ? "admin" : "attendee"),
+              }
+            : undefined,
+        };
+      }),
     }));
 
     return NextResponse.json({ messages: enriched });

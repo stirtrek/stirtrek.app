@@ -1,9 +1,16 @@
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Megaphone, Loader2 } from "lucide-react";
-import { useEvent } from "@/providers/event-provider";
+import { Megaphone } from "lucide-react";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveEvent } from "@/lib/events/resolve";
+import { notFound } from "next/navigation";
+
+export const metadata = {
+  title: "Announcements",
+};
+
+// Revalidate at most every 30s — new announcements are rare and can tolerate
+// a short cache window in exchange for offloading 1000+ concurrent fetches.
+export const revalidate = 30;
 
 interface SentAnnouncement {
   id: string;
@@ -11,31 +18,26 @@ interface SentAnnouncement {
   sent_at: string;
 }
 
-export default function AnnouncementsPage() {
-  const { eventSlug } = useEvent();
-  const [announcements, setAnnouncements] = useState<SentAnnouncement[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function AnnouncementsPage({
+  params,
+}: {
+  params: Promise<{ eventSlug: string }>;
+}) {
+  const { eventSlug } = await params;
+  const event = await resolveEvent(eventSlug);
+  if (!event) notFound();
 
-  const fetchAnnouncements = useCallback(async () => {
-    const res = await fetch(`/${eventSlug}/api/announcements`);
-    if (res.ok) {
-      const data = await res.json();
-      setAnnouncements(data.announcements ?? []);
-    }
-    setLoading(false);
-  }, []);
+  const supabase = createAdminClient();
 
-  useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements]);
+  const { data } = await supabase
+    .from("announcements")
+    .select("id, message, sent_at")
+    .eq("event_id", event.id)
+    .eq("status", "sent")
+    .order("sent_at", { ascending: false })
+    .limit(100);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const announcements = (data ?? []) as SentAnnouncement[];
 
   if (announcements.length === 0) {
     return (

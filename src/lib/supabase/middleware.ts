@@ -214,11 +214,32 @@ async function handleCustomDomain(
         !eventPath.startsWith("/auth/") &&
         !eventPath.startsWith("/api/")))
   ) {
-    const { data: profile } = await supabase
+    const needsMembership =
+      eventPath.startsWith("/admin") ||
+      eventPath.startsWith("/leads") ||
+      eventPath.startsWith("/proctor");
+
+    // Fetch profile (with is_super_admin) and membership in parallel
+    // to avoid a sequential waterfall on the hot auth path.
+    const profilePromise = supabase
       .from("profiles")
-      .select("first_name, last_name")
+      .select("first_name, last_name, is_super_admin")
       .eq("id", user.id)
       .single();
+
+    const membershipPromise = needsMembership
+      ? supabase
+          .from("event_memberships")
+          .select("role, is_sponsor")
+          .eq("event_id", event.id)
+          .eq("user_id", user.id)
+          .single()
+      : Promise.resolve({ data: null });
+
+    const [{ data: profile }, { data: membership }] = await Promise.all([
+      profilePromise,
+      membershipPromise,
+    ]);
 
     if (
       profile &&
@@ -232,44 +253,26 @@ async function handleCustomDomain(
       return redirectWithCookies(url, supabaseResponse);
     }
 
-    if (eventPath.startsWith("/admin") || eventPath.startsWith("/leads") || eventPath.startsWith("/proctor")) {
-      const { data: membership } = await supabase
-        .from("event_memberships")
-        .select("role, is_sponsor")
-        .eq("event_id", event.id)
-        .eq("user_id", user.id)
-        .single();
-
+    if (needsMembership) {
       if (eventPath.startsWith("/admin")) {
-        if (!membership || !["admin", "staff"].includes(membership.role)) {
-          // Super admins bypass event membership checks
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("is_super_admin")
-            .eq("id", user.id)
-            .single();
-
-          if (!profile?.is_super_admin) {
-            const url = request.nextUrl.clone();
-            url.pathname = "/schedule";
-            return redirectWithCookies(url, supabaseResponse);
-          }
+        if (
+          (!membership || !["admin", "staff"].includes(membership.role)) &&
+          !profile?.is_super_admin
+        ) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/schedule";
+          return redirectWithCookies(url, supabaseResponse);
         }
       }
 
       if (eventPath.startsWith("/proctor")) {
-        if (!membership || !["admin", "staff", "proctor"].includes(membership.role)) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("is_super_admin")
-            .eq("id", user.id)
-            .single();
-
-          if (!profile?.is_super_admin) {
-            const url = request.nextUrl.clone();
-            url.pathname = "/schedule";
-            return redirectWithCookies(url, supabaseResponse);
-          }
+        if (
+          (!membership || !["admin", "staff", "proctor"].includes(membership.role)) &&
+          !profile?.is_super_admin
+        ) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/schedule";
+          return redirectWithCookies(url, supabaseResponse);
         }
       }
 
@@ -382,11 +385,32 @@ async function handlePlatformDomain(
         !eventPath.startsWith("/auth/") &&
         !eventPath.startsWith("/api/")))
   ) {
-    const { data: profile } = await supabase
+    const needsMembership =
+      !!event &&
+      (eventPath.startsWith("/admin") ||
+        eventPath.startsWith("/leads") ||
+        eventPath.startsWith("/proctor"));
+
+    // Fetch profile (with is_super_admin) and membership in parallel.
+    const profilePromise = supabase
       .from("profiles")
-      .select("first_name, last_name")
+      .select("first_name, last_name, is_super_admin")
       .eq("id", user.id)
       .single();
+
+    const membershipPromise = needsMembership
+      ? supabase
+          .from("event_memberships")
+          .select("role, is_sponsor")
+          .eq("event_id", event!.id)
+          .eq("user_id", user.id)
+          .single()
+      : Promise.resolve({ data: null });
+
+    const [{ data: profile }, { data: membership }] = await Promise.all([
+      profilePromise,
+      membershipPromise,
+    ]);
 
     if (
       profile &&
@@ -400,44 +424,26 @@ async function handlePlatformDomain(
       return redirectWithCookies(url, supabaseResponse);
     }
 
-    if (event && (eventPath.startsWith("/admin") || eventPath.startsWith("/leads") || eventPath.startsWith("/proctor"))) {
-      const { data: membership } = await supabase
-        .from("event_memberships")
-        .select("role, is_sponsor")
-        .eq("event_id", event.id)
-        .eq("user_id", user.id)
-        .single();
-
+    if (needsMembership) {
       if (eventPath.startsWith("/admin")) {
-        if (!membership || !["admin", "staff"].includes(membership.role)) {
-          // Super admins bypass event membership checks
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("is_super_admin")
-            .eq("id", user.id)
-            .single();
-
-          if (!profile?.is_super_admin) {
-            const url = request.nextUrl.clone();
-            url.pathname = `/${eventSlug}/schedule`;
-            return redirectWithCookies(url, supabaseResponse);
-          }
+        if (
+          (!membership || !["admin", "staff"].includes(membership.role)) &&
+          !profile?.is_super_admin
+        ) {
+          const url = request.nextUrl.clone();
+          url.pathname = `/${eventSlug}/schedule`;
+          return redirectWithCookies(url, supabaseResponse);
         }
       }
 
       if (eventPath.startsWith("/proctor")) {
-        if (!membership || !["admin", "staff", "proctor"].includes(membership.role)) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("is_super_admin")
-            .eq("id", user.id)
-            .single();
-
-          if (!profile?.is_super_admin) {
-            const url = request.nextUrl.clone();
-            url.pathname = `/${eventSlug}/schedule`;
-            return redirectWithCookies(url, supabaseResponse);
-          }
+        if (
+          (!membership || !["admin", "staff", "proctor"].includes(membership.role)) &&
+          !profile?.is_super_admin
+        ) {
+          const url = request.nextUrl.clone();
+          url.pathname = `/${eventSlug}/schedule`;
+          return redirectWithCookies(url, supabaseResponse);
         }
       }
 

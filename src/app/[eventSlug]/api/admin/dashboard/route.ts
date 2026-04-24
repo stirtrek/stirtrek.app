@@ -16,23 +16,38 @@ export async function GET(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Total registered users for this event
-    const { count: totalUsers } = await admin
-      .from("event_memberships")
-      .select("*", { count: "exact", head: true })
-      .eq("event_id", eventId);
-
-    // Users with completed profiles (have first_name) in this event
-    const { data: memberIds } = await admin
-      .from("event_memberships")
-      .select("user_id")
-      .eq("event_id", eventId);
+    // Run independent aggregate queries in parallel. Bookmark stats are
+    // computed in SQL via RPC so the dashboard doesn't load every row.
+    const [
+      { count: totalUsers },
+      { data: memberIds },
+      { count: sponsorCount },
+      { count: totalLeads },
+      { data: bookmarkStats },
+    ] = await Promise.all([
+      admin
+        .from("event_memberships")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId),
+      admin
+        .from("event_memberships")
+        .select("user_id")
+        .eq("event_id", eventId),
+      admin
+        .from("event_memberships")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .eq("is_sponsor", true),
+      admin
+        .from("leads")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", eventId),
+      admin.rpc("get_event_bookmark_stats", { p_event_id: eventId }),
+    ]);
 
     const userIds = (memberIds ?? []).map((m) => m.user_id);
 
     let completedProfiles = 0;
-    let sponsorAccounts = 0;
-
     if (userIds.length > 0) {
       const { count } = await admin
         .from("profiles")
@@ -42,71 +57,30 @@ export async function GET(request: NextRequest) {
       completedProfiles = count ?? 0;
     }
 
-    // Sponsor accounts for this event
-    const { count: sponsorCount } = await admin
-      .from("event_memberships")
-      .select("*", { count: "exact", head: true })
-      .eq("event_id", eventId)
-      .eq("is_sponsor", true);
-    sponsorAccounts = sponsorCount ?? 0;
+    const statRows = (bookmarkStats ?? []) as Array<{
+      total_bookmarks: number | null;
+      unique_bookmarkers: number | null;
+      top_session_id: string | null;
+      top_session_title: string | null;
+      top_session_count: number | null;
+    }>;
 
-    // Total leads scanned at this event
-    const { count: totalLeads } = await admin
-      .from("leads")
-      .select("*", { count: "exact", head: true })
-      .eq("event_id", eventId);
-
-    // Session bookmarks for this event
-    const { data: bookmarks } = await admin
-      .from("personal_schedule")
-      .select("session_id")
-      .eq("event_id", eventId);
-
-    const sessionBookmarkCounts: Record<string, number> = {};
-    for (const b of bookmarks ?? []) {
-      sessionBookmarkCounts[b.session_id] =
-        (sessionBookmarkCounts[b.session_id] || 0) + 1;
-    }
-
-    // Get session details for the top bookmarked sessions
-    const topSessionIds = Object.entries(sessionBookmarkCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([id]) => id);
-
-    let topSessions: { id: string; title: string; count: number }[] = [];
-
-    if (topSessionIds.length > 0) {
-      const { data: sessions } = await admin
-        .from("sessions")
-        .select("id, title")
-        .in("id", topSessionIds)
-        .eq("event_id", eventId);
-
-      topSessions = (sessions ?? [])
-        .map((s) => ({
-          id: s.id,
-          title: s.title,
-          count: sessionBookmarkCounts[s.id] || 0,
-        }))
-        .sort((a, b) => b.count - a.count);
-    }
-
-    // Users with at least one bookmark for this event
-    const { data: bookmarkUsers } = await admin
-      .from("personal_schedule")
-      .select("user_id")
-      .eq("event_id", eventId);
-    const uniqueBookmarkerCount = new Set(
-      (bookmarkUsers ?? []).map((b) => b.user_id),
-    ).size;
+    const totalBookmarks = Number(statRows[0]?.total_bookmarks ?? 0);
+    const uniqueBookmarkerCount = Number(statRows[0]?.unique_bookmarkers ?? 0);
+    const topSessions = statRows
+      .filter((r) => r.top_session_id !== null)
+      .map((r) => ({
+        id: r.top_session_id as string,
+        title: r.top_session_title ?? "",
+        count: Number(r.top_session_count ?? 0),
+      }));
 
     return NextResponse.json({
       totalUsers: totalUsers ?? 0,
       completedProfiles,
-      sponsorAccounts,
+      sponsorAccounts: sponsorCount ?? 0,
       totalLeads: totalLeads ?? 0,
-      totalBookmarks: bookmarks?.length ?? 0,
+      totalBookmarks,
       uniqueBookmarkers: uniqueBookmarkerCount,
       topSessions,
     });
