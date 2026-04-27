@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TimeSlotChips } from "./time-slot-chips";
@@ -59,8 +59,8 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
   const pathname = usePathname();
   const activeTab =
     searchParams.get("tab") === "my-schedule" ? "my-schedule" : "full-schedule";
-  const [activeSlot, setActiveSlot] = useState<string | null>(null);
-  const [activeDay, setActiveDay] = useState<string | null>(null);
+  const slotParam = searchParams.get("slot");
+  const dayParam = searchParams.get("day");
   const { user, loading: authLoading } = useAuth();
   const { bookmarkedIds, loading: bookmarksLoading } = useBookmarks();
   const { getNow, loading: timeLoading } = useSimulatedTime();
@@ -79,25 +79,22 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
 
   const isMultiDay = eventDays.length > 1;
 
-  // Initialize activeDay once simulated time is loaded (multi-day only)
-  const dayInitialized = useRef(false);
+  // Default day = today (or first event day) — used only when URL has no day param.
+  // This is the auto-selected fallback; user choice in URL always wins.
+  const [defaultDay, setDefaultDay] = useState<string | null>(null);
   useEffect(() => {
-    if (timeLoading || !isMultiDay || dayInitialized.current) return;
-    dayInitialized.current = true;
+    if (timeLoading || !isMultiDay) return;
     const today = new Intl.DateTimeFormat("en-CA", {
       timeZone: event.timezone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     }).format(getNow());
-    setActiveDay(eventDays.includes(today) ? today : eventDays[0]);
+    setDefaultDay(eventDays.includes(today) ? today : eventDays[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventDays, timeLoading, isMultiDay]);
 
-  // Reset time chip filter when switching days
-  useEffect(() => {
-    setActiveSlot(null);
-  }, [activeDay]);
+  const activeDay = dayParam ?? defaultDay;
 
   // Sessions filtered to the active day (passthrough for single-day events)
   const daySessions = useMemo(() => {
@@ -119,13 +116,50 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
     return Array.from(times).sort();
   }, [daySessions]);
 
-  // Auto-select the current time slot once simulated time is loaded
+  // Default slot = current time slot — used only when URL has no slot param.
+  // The "all" sentinel in the URL means the user explicitly cleared the filter,
+  // so we don't auto-select a current slot in that case.
+  const [defaultSlot, setDefaultSlot] = useState<string | null>(null);
   useEffect(() => {
     if (timeLoading) return;
     const current = findCurrentSlot(timeSlotTimes, getNow(), eventDays, event.timezone);
-    if (current) setActiveSlot(current);
+    setDefaultSlot(current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeSlotTimes, timeLoading]);
+
+  const activeSlot =
+    slotParam === "all" ? null : (slotParam ?? defaultSlot);
+
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null) params.delete(key);
+        else params.set(key, value);
+      }
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    },
+    [searchParams, pathname, router],
+  );
+
+  // Encode "All" as the literal "all" so we can distinguish a deliberate
+  // clear from a fresh visit (no param → fall back to current-slot default).
+  const handleSelectSlot = useCallback(
+    (slot: string | null) => {
+      updateParams({ slot: slot === null ? "all" : slot });
+    },
+    [updateParams],
+  );
+
+  // Switching days clears the slot filter (matches the prior behavior where
+  // a day change reset the chip selection).
+  const handleSelectDay = useCallback(
+    (day: string) => {
+      updateParams({ day, slot: null });
+    },
+    [updateParams],
+  );
 
   // Full schedule time slots (filtered by active chip, scoped to active day)
   const fullTimeSlots = useMemo(() => {
@@ -181,14 +215,14 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
             <DaySelector
               days={eventDays}
               activeDay={activeDay}
-              onSelectDay={setActiveDay}
+              onSelectDay={handleSelectDay}
               timezone={event.timezone}
             />
           )}
           <TimeSlotChips
             times={timeSlotTimes}
             activeSlot={activeSlot}
-            onSelectSlot={setActiveSlot}
+            onSelectSlot={handleSelectSlot}
             timezone={event.timezone}
           />
         </div>
@@ -234,14 +268,14 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
             <DaySelector
               days={eventDays}
               activeDay={activeDay}
-              onSelectDay={setActiveDay}
+              onSelectDay={handleSelectDay}
               timezone={event.timezone}
             />
           )}
           <TimeSlotChips
             times={timeSlotTimes}
             activeSlot={activeSlot}
-            onSelectSlot={setActiveSlot}
+            onSelectSlot={handleSelectSlot}
             timezone={event.timezone}
           />
         </div>
@@ -266,7 +300,7 @@ export function ScheduleGrid({ sessions }: ScheduleGridProps) {
             <DaySelector
               days={eventDays}
               activeDay={activeDay}
-              onSelectDay={setActiveDay}
+              onSelectDay={handleSelectDay}
               timezone={event.timezone}
             />
           )}
