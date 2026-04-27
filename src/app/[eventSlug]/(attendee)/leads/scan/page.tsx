@@ -11,7 +11,7 @@ const QrScanner = dynamic(
 );
 import { parseVCard } from "@/lib/vcard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ListChecks, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ScanPage() {
@@ -73,16 +73,16 @@ export default function ScanPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg font-bold">Scan Badge</h1>
         <Button
           variant="outline"
           size="sm"
           onClick={() => router.push(eventPath("/leads"))}
         >
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Back
+          <ListChecks className="mr-1 h-4 w-4" />
+          View Leads
         </Button>
-        <h1 className="text-lg font-bold">Scan Badge</h1>
       </div>
 
       <QrScanner onScan={handleScan} autoStart />
