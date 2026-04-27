@@ -1,17 +1,16 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { resolveEvent } from "@/lib/events/resolve";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/schedule/bookmark-button";
 import { FeedbackButton } from "@/components/schedule/feedback-button";
 import { SpeakerCard } from "@/components/speakers/speaker-card";
 import { AddToCalendarButton } from "@/components/schedule/add-to-calendar-button";
 import { HappeningNowBadge } from "@/components/schedule/happening-now-badge";
-import { MapPin, Clock, ArrowLeft } from "lucide-react";
+import { SessionBackButton } from "@/components/schedule/session-back-button";
+import { MapPin, Clock } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import type { SessionWithDetails } from "@/lib/types";
 
@@ -78,12 +77,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Link href={`/${eventSlug}/schedule`}>
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back
-          </Button>
-        </Link>
+        <SessionBackButton fallbackHref={`/${eventSlug}/schedule`} />
         {!s.is_service_session && s.starts_at && s.ends_at && (
           <AddToCalendarButton sessions={[s]} />
         )}
