@@ -27,24 +27,7 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
 
     const search = request.nextUrl.searchParams.get("q")?.trim() ?? "";
-
-    // Get event members first, then join with profiles
-    const { data: memberships } = await admin
-      .from("event_memberships")
-      .select("user_id, role, is_sponsor, sponsor_id")
-      .eq("event_id", eventId);
-
-    if (!memberships || memberships.length === 0) {
-      return NextResponse.json({
-        users: [],
-        pagination: { page: 1, limit: 50, total: 0 },
-      });
-    }
-
-    const memberIds = memberships.map((m) => m.user_id);
-    const memberMap = new Map(
-      memberships.map((m) => [m.user_id, { role: m.role, is_sponsor: m.is_sponsor, sponsor_id: m.sponsor_id }]),
-    );
+    const { page, limit, offset } = getPagination(request);
 
     // Fetch linked speakers for this event to tag users paired as speakers
     const { data: speakers } = await admin
@@ -54,36 +37,56 @@ export async function GET(request: NextRequest) {
       .not("user_id", "is", null);
     const speakerUserIds = new Set((speakers ?? []).map((s) => s.user_id));
 
-    const { page, limit, offset } = getPagination(request);
-
+    // Single query: pull memberships with embedded profile rows. Avoids a
+    // separate `.in("id", [hundreds of IDs])` query that overflows the
+    // PostgREST request URL once an event has more than ~200 members.
     let query = admin
-      .from("profiles")
+      .from("event_memberships")
       .select(
-        "id, email, display_name, first_name, last_name, is_super_admin, created_at",
+        "user_id, role, is_sponsor, sponsor_id, profiles!inner(id, email, display_name, first_name, last_name, is_super_admin, created_at)",
         { count: "exact" },
       )
-      .in("id", memberIds)
-      .order("created_at", { ascending: false });
+      .eq("event_id", eventId)
+      .order("created_at", { foreignTable: "profiles", ascending: false });
 
     if (search) {
       query = query.or(
         `email.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%,display_name.ilike.%${search}%`,
+        { foreignTable: "profiles" },
       );
     }
 
-    const { data: profiles, error, count } = await query.range(offset, offset + limit - 1);
+    const { data: rows, error, count } = await query.range(
+      offset,
+      offset + limit - 1,
+    );
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Merge profile data with event membership + speaker data
-    const users = (profiles ?? []).map((p) => ({
-      ...p,
-      role: memberMap.get(p.id)?.role ?? "attendee",
-      is_sponsor: memberMap.get(p.id)?.is_sponsor ?? false,
-      sponsor_id: memberMap.get(p.id)?.sponsor_id ?? null,
-      is_speaker: speakerUserIds.has(p.id),
+    type Row = {
+      user_id: string;
+      role: string;
+      is_sponsor: boolean | null;
+      sponsor_id: string | null;
+      profiles: {
+        id: string;
+        email: string | null;
+        display_name: string | null;
+        first_name: string | null;
+        last_name: string | null;
+        is_super_admin: boolean | null;
+        created_at: string;
+      };
+    };
+
+    const users = ((rows ?? []) as unknown as Row[]).map((r) => ({
+      ...r.profiles,
+      role: r.role ?? "attendee",
+      is_sponsor: r.is_sponsor ?? false,
+      sponsor_id: r.sponsor_id ?? null,
+      is_speaker: speakerUserIds.has(r.user_id),
     }));
 
     return NextResponse.json({
