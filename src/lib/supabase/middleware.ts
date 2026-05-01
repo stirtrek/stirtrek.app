@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { resolveEvent, resolveEventByDomain } from "@/lib/events/resolve";
+import {
+  resolveEvent,
+  resolveEventByDomain,
+  ensureEventMembership,
+} from "@/lib/events/resolve";
 import type { Event } from "@/lib/types";
 
 // Default event slug used for backward-compat redirects on the platform domain
@@ -199,6 +203,14 @@ async function handleCustomDomain(
     return redirectWithCookies(url, supabaseResponse);
   }
 
+  // Backstop: ensure every authenticated user has an event_memberships row
+  // for this event. Catches the case where the post-auth /api/join call
+  // failed silently (cookie propagation race, network blip, etc.) and the
+  // user is logged in but never got a membership row.
+  if (user && !eventPath.startsWith("/auth/")) {
+    await ensureEventMembership(event.id, user.id);
+  }
+
   if (user && (eventPath === "/" || eventPath === "/login")) {
     const url = request.nextUrl.clone();
     url.pathname = "/schedule";
@@ -369,6 +381,14 @@ async function handlePlatformDomain(
     url.pathname = `/${eventSlug}/login`;
     url.searchParams.set("redirect", pathname);
     return redirectWithCookies(url, supabaseResponse);
+  }
+
+  // Backstop: ensure every authenticated user has an event_memberships row
+  // for this event. Catches the case where the post-auth /api/join call
+  // failed silently (cookie propagation race, network blip, etc.) and the
+  // user is logged in but never got a membership row.
+  if (user && event && !eventPath.startsWith("/auth/")) {
+    await ensureEventMembership(event.id, user.id);
   }
 
   if (user && (eventPath === "" || eventPath === "/" || eventPath === "/login")) {

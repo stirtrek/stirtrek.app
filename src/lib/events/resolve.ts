@@ -188,27 +188,39 @@ export async function getAuthenticatedUserId(): Promise<string | null> {
 /**
  * Ensure the user has an event_memberships row for the given event.
  * Creates an "attendee" membership if one doesn't already exist.
- * Called after successful auth to auto-join the user to the event.
+ * Idempotent: safe to call repeatedly; the unique (event_id, user_id)
+ * constraint plus `ignoreDuplicates` makes a no-op when the row exists.
+ *
+ * Returns { created } so callers can tell whether a new row was inserted,
+ * and surfaces any error instead of swallowing it (a silent failure here
+ * is what produced ~120 orphan profiles in production on event day —
+ * the post-auth /api/join call would 401 on a cookie-propagation race
+ * and the resulting INSERT error went nowhere).
  */
 export async function ensureEventMembership(
   eventId: string,
   userId: string,
-): Promise<void> {
+): Promise<{ created: boolean; error?: string }> {
   const admin = createAdminClient();
-  const { data: existing } = await admin
+  const { error, count } = await admin
     .from("event_memberships")
-    .select("id")
-    .eq("event_id", eventId)
-    .eq("user_id", userId)
-    .single();
+    .upsert(
+      { event_id: eventId, user_id: userId, role: "attendee" },
+      {
+        onConflict: "event_id,user_id",
+        ignoreDuplicates: true,
+        count: "exact",
+      },
+    );
 
-  if (!existing) {
-    await admin.from("event_memberships").insert({
-      event_id: eventId,
-      user_id: userId,
-      role: "attendee",
-    });
+  if (error) {
+    console.error(
+      `ensureEventMembership failed (event=${eventId}, user=${userId}): ${error.message}`,
+    );
+    return { created: false, error: error.message };
   }
+
+  return { created: (count ?? 0) > 0 };
 }
 
 /**
