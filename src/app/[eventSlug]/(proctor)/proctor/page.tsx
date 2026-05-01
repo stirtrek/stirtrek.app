@@ -404,16 +404,7 @@ export default function ProctorPage() {
 
       {/* Summary bar */}
       {summary && summary.total_rooms > 0 && (
-        <div className="sticky bottom-4 flex items-center justify-between rounded-lg border bg-background/95 px-4 py-3 shadow-sm backdrop-blur">
-          <div className="text-sm">
-            <span className="font-semibold tabular-nums">
-              {summary.counted_rooms}
-            </span>
-            <span className="text-muted-foreground">
-              {" "}
-              of {summary.total_rooms} counted
-            </span>
-          </div>
+        <div className="sticky bottom-4 flex items-center justify-end rounded-lg border bg-background/95 px-4 py-3 shadow-sm backdrop-blur">
           <div className="text-sm font-bold tabular-nums">
             {summary.total_attendance} total
           </div>
