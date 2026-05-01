@@ -302,12 +302,21 @@ export default function ProctorPage() {
       ) : (
         <div className="space-y-2">
           {[...rooms]
-            .sort((a, b) =>
-              a.room.name.localeCompare(b.room.name, undefined, {
-                numeric: true,
-                sensitivity: "base",
-              }),
-            )
+            .sort((a, b) => {
+              // Sort by the integer that follows "Theatre" / "Theater" in
+              // the room name (e.g. "Back to the Future - Theatre 3" → 3).
+              // Both spellings appear in the data; match either.
+              // Rooms without a theatre number fall to the end, sorted by name.
+              const re = /theat(?:re|er)\s+(\d+)/i;
+              const aNum = a.room.name.match(re)?.[1];
+              const bNum = b.room.name.match(re)?.[1];
+              if (aNum !== undefined && bNum !== undefined) {
+                return parseInt(aNum, 10) - parseInt(bNum, 10);
+              }
+              if (aNum !== undefined) return -1;
+              if (bNum !== undefined) return 1;
+              return a.room.name.localeCompare(b.room.name);
+            })
             .map((entry) => {
             const { room, is_simulcast, attendance } = entry;
             const inputValue = counts[room.id] ?? "";
