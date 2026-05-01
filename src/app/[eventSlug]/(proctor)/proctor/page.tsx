@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useEvent } from "@/providers/event-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, AlertCircle } from "lucide-react";
+import { Loader2, Check, AlertCircle, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { formatTime } from "@/lib/utils";
+
+const AUTOSAVE_DEBOUNCE_MS = 1500;
 
 interface TimeSlot {
   starts_at: string;
@@ -44,6 +46,14 @@ export default function ProctorPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [counts, setCounts] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState<number | null>(null);
+  const [pending, setPending] = useState<Record<number, boolean>>({});
+  const saveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  // Mirror of `counts` that's safe to read from setTimeout callbacks.
+  // Keeps debounced saves from reading a stale closure (off-by-one bug).
+  const countsRef = useRef<Record<number, string>>({});
+  useEffect(() => {
+    countsRef.current = counts;
+  }, [counts]);
 
   // Fetch time slots on mount
   useEffect(() => {
@@ -99,67 +109,145 @@ export default function ProctorPage() {
     }
   }, [selectedSlot, fetchRooms]);
 
-  async function saveCount(roomId: number) {
-    const countStr = counts[roomId];
-    if (countStr === undefined || countStr === "") return;
+  const saveCount = useCallback(
+    async (roomId: number) => {
+      // Always read the latest value via the ref, never via a stale closure.
+      const countStr = countsRef.current[roomId];
+      if (countStr === undefined || countStr === "") return;
 
-    const count = parseInt(countStr, 10);
-    if (isNaN(count) || count < 0) {
-      toast.error("Count must be a non-negative number");
-      return;
-    }
+      const count = parseInt(countStr, 10);
+      if (isNaN(count) || count < 0) {
+        toast.error("Count must be a non-negative number");
+        return;
+      }
 
-    setSaving(roomId);
-    const res = await fetch(`/${eventSlug}/api/proctor/attendance`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ room_id: roomId, time_slot: selectedSlot, count }),
-    });
+      // Snapshot what we're about to save so the post-save merge can tell
+      // whether the user has typed/tapped a newer value during the round-trip.
+      const savedValue = String(count);
 
-    if (res.ok) {
-      toast.success("Count saved");
-      // Preserve unsaved local counts while refreshing server data
-      const localCounts = { ...counts };
-      const refreshRes = await fetch(
-        `/${eventSlug}/api/proctor/attendance?time_slot=${encodeURIComponent(selectedSlot!)}`
-      );
-      if (refreshRes.ok) {
-        const d = await refreshRes.json();
-        setRooms(d.rooms);
-        setSummary(d.summary);
-        // Merge: use server values for saved rooms, keep local values for unsaved
-        const serverCounts: Record<number, string> = {};
-        for (const entry of d.rooms) {
-          if (entry.attendance) {
-            serverCounts[entry.room.id] = String(entry.attendance.count);
-          }
-        }
-        const merged: Record<number, string> = {};
-        for (const entry of d.rooms) {
-          const id = entry.room.id;
-          if (localCounts[id] !== undefined && localCounts[id] !== "" && !serverCounts[id]) {
-            // Unsaved local value — keep it
-            merged[id] = localCounts[id];
-          } else if (serverCounts[id] !== undefined) {
-            // Server has a saved value — but if user typed something different locally
-            // for a DIFFERENT room, keep the local; for THIS room we just saved, use server
-            if (id === roomId) {
-              merged[id] = serverCounts[id];
-            } else if (localCounts[id] !== undefined && localCounts[id] !== "" && localCounts[id] !== serverCounts[id]) {
-              merged[id] = localCounts[id];
-            } else {
-              merged[id] = serverCounts[id];
+      setSaving(roomId);
+      setPending((prev) => {
+        const next = { ...prev };
+        delete next[roomId];
+        return next;
+      });
+
+      const res = await fetch(`/${eventSlug}/api/proctor/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          room_id: roomId,
+          time_slot: selectedSlot,
+          count,
+        }),
+      });
+
+      if (res.ok) {
+        const refreshRes = await fetch(
+          `/${eventSlug}/api/proctor/attendance?time_slot=${encodeURIComponent(selectedSlot!)}`,
+        );
+        if (refreshRes.ok) {
+          const d = await refreshRes.json();
+          setRooms(d.rooms);
+          setSummary(d.summary);
+          const serverCounts: Record<number, string> = {};
+          for (const entry of d.rooms) {
+            if (entry.attendance) {
+              serverCounts[entry.room.id] = String(entry.attendance.count);
             }
           }
+          // Use the functional setState form so we read the latest local
+          // counts at the moment of merge — not a stale snapshot.
+          setCounts((prev) => {
+            const merged: Record<number, string> = {};
+            const allIds = new Set<number>([
+              ...Object.keys(prev).map(Number),
+              ...Object.keys(serverCounts).map(Number),
+            ]);
+            for (const id of allIds) {
+              const localValue = prev[id];
+              const serverValue = serverCounts[id];
+
+              if (id === roomId) {
+                // For the room we just saved: only adopt the server value
+                // when local still equals what we sent. If the user has
+                // tapped/typed since, keep the newer local value (a fresh
+                // debounced save is already scheduled for it).
+                if (
+                  localValue === savedValue &&
+                  serverValue !== undefined
+                ) {
+                  merged[id] = serverValue;
+                } else if (
+                  localValue !== undefined &&
+                  localValue !== ""
+                ) {
+                  merged[id] = localValue;
+                } else if (serverValue !== undefined) {
+                  merged[id] = serverValue;
+                }
+              } else {
+                // For other rooms: prefer local when the user has unsaved
+                // input that differs from server.
+                if (
+                  localValue !== undefined &&
+                  localValue !== "" &&
+                  localValue !== serverValue
+                ) {
+                  merged[id] = localValue;
+                } else if (serverValue !== undefined) {
+                  merged[id] = serverValue;
+                }
+              }
+            }
+            return merged;
+          });
         }
-        setCounts(merged);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Failed to save");
       }
-    } else {
-      const err = await res.json();
-      toast.error(err.error || "Failed to save");
-    }
-    setSaving(null);
-  }
+      setSaving(null);
+    },
+    [eventSlug, selectedSlot],
+  );
+
+  const scheduleSave = useCallback(
+    (roomId: number) => {
+      if (saveTimers.current[roomId]) {
+        clearTimeout(saveTimers.current[roomId]);
+      }
+      setPending((prev) => ({ ...prev, [roomId]: true }));
+      saveTimers.current[roomId] = setTimeout(() => {
+        delete saveTimers.current[roomId];
+        saveCount(roomId);
+      }, AUTOSAVE_DEBOUNCE_MS);
+    },
+    [saveCount],
+  );
+
+  const adjustCount = useCallback(
+    (roomId: number, delta: number) => {
+      setCounts((prev) => {
+        const current = parseInt(prev[roomId] ?? "0", 10) || 0;
+        const next = Math.max(0, current + delta);
+        return { ...prev, [roomId]: String(next) };
+      });
+      scheduleSave(roomId);
+    },
+    [scheduleSave],
+  );
+
+  // Flush pending timers when the slot changes or component unmounts.
+  useEffect(() => {
+    const timers = saveTimers.current;
+    return () => {
+      for (const id of Object.keys(timers)) {
+        clearTimeout(timers[Number(id)]);
+        delete timers[Number(id)];
+      }
+    };
+  }, [selectedSlot]);
 
   if (loading) {
     return (
@@ -256,41 +344,56 @@ export default function ProctorPage() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Input
-                        type="number"
-                        min="0"
-                        inputMode="numeric"
-                        value={inputValue}
-                        onChange={(e) =>
-                          setCounts((prev) => ({
-                            ...prev,
-                            [room.id]: e.target.value,
-                          }))
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            saveCount(room.id);
-                          }
-                        }}
-                        placeholder="0"
-                        className="h-10 w-20 text-center text-lg font-bold tabular-nums"
-                      />
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button
-                        size="sm"
-                        className="h-10"
+                        size="icon"
+                        variant="outline"
+                        className="h-10 w-10"
                         disabled={
-                          saving === room.id ||
-                          inputValue === "" ||
-                          inputValue === String(attendance?.count)
+                          (parseInt(inputValue || "0", 10) || 0) === 0
                         }
-                        onClick={() => saveCount(room.id)}
+                        onClick={() => adjustCount(room.id, -1)}
+                        aria-label={`Decrease count for ${room.name}`}
                       >
-                        {saving === room.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          "Save"
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          inputMode="numeric"
+                          value={inputValue}
+                          onChange={(e) => {
+                            setCounts((prev) => ({
+                              ...prev,
+                              [room.id]: e.target.value,
+                            }));
+                            scheduleSave(room.id);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              if (saveTimers.current[room.id]) {
+                                clearTimeout(saveTimers.current[room.id]);
+                                delete saveTimers.current[room.id];
+                              }
+                              saveCount(room.id);
+                            }
+                          }}
+                          placeholder="0"
+                          className="h-10 w-16 text-center text-lg font-bold tabular-nums"
+                        />
+                        {(saving === room.id || pending[room.id]) && (
+                          <Loader2 className="absolute -right-1 -top-1 h-3 w-3 animate-spin text-muted-foreground" />
                         )}
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-10 w-10"
+                        onClick={() => adjustCount(room.id, 1)}
+                        aria-label={`Increase count for ${room.name}`}
+                      >
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
