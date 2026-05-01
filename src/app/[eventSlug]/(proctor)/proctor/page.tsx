@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, AlertCircle, Plus, Minus } from "lucide-react";
+import { Loader2, AlertCircle, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { formatTime } from "@/lib/utils";
 
@@ -301,26 +301,24 @@ export default function ProctorPage() {
         </p>
       ) : (
         <div className="space-y-2">
-          {rooms.map((entry) => {
+          {[...rooms]
+            .sort((a, b) =>
+              a.room.name.localeCompare(b.room.name, undefined, {
+                numeric: true,
+                sensitivity: "base",
+              }),
+            )
+            .map((entry) => {
             const { room, is_simulcast, attendance } = entry;
-            const hasCount = attendance !== null;
             const inputValue = counts[room.id] ?? "";
 
             return (
-              <Card
-                key={room.id}
-                className={`gap-0 py-0 ${
-                  hasCount ? "border-green-500/30" : "border-amber-500/30"
-                }`}
-              >
+              <Card key={room.id} className="gap-0 py-0">
                 <CardContent className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-sm">{room.name}</p>
-                        {hasCount && (
-                          <Check className="h-4 w-4 text-green-500 shrink-0" />
-                        )}
                         {is_simulcast && (
                           <Badge
                             variant="secondary"
