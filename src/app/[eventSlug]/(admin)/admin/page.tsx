@@ -23,6 +23,7 @@ import {
   Circle,
   ClipboardCheck,
   Eye,
+  FileSpreadsheet,
 } from "lucide-react";
 
 interface DashboardStats {
@@ -93,6 +94,12 @@ export default function AdminDashboardPage() {
       label: "Users",
       description: "Manage user accounts",
       icon: Users,
+    },
+    {
+      href: eventPath("/admin/reports"),
+      label: "Reports",
+      description: "Email a CSV of session data",
+      icon: FileSpreadsheet,
     },
     {
       href: eventPath("/admin/time-simulator"),
