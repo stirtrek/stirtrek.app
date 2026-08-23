@@ -2,6 +2,25 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchSessionizeData } from "./client";
 import type { SessionizeResponse } from "./types";
 import { getTelemetryService } from "@/lib/telemetry/service";
+import { eventLocalToUTC } from "@/lib/utils";
+
+/**
+ * Sessionize returns naive local wall-clock times (in the event's timezone,
+ * no offset — e.g. "2026-10-07T08:00:00"). The rest of the app stores and
+ * reasons about timestamps as real UTC, so convert here before persisting.
+ * Without this, an 8am-Eastern session would be stored as 8am UTC and then
+ * render 4 hours early.
+ */
+function sessionizeLocalToUTC(
+  local: string | null | undefined,
+  timezone: string | null | undefined,
+): string | null {
+  if (!local) return null;
+  if (!timezone) return local; // no tz configured: fall back to raw value
+  // Strip any trailing offset Sessionize might include, then treat as event-local.
+  const bare = local.replace(/([Zz]|[+-]\d{2}:?\d{2})$/, "");
+  return eventLocalToUTC(bare, timezone);
+}
 
 interface SyncResult {
   rooms: number;
@@ -26,7 +45,7 @@ export async function syncSessionizeData(
     // Resolve the Sessionize API ID
     const { data: event } = await supabase
       .from("events")
-      .select("sessionize_api_id")
+      .select("sessionize_api_id, timezone")
       .eq("id", eventId)
       .single();
 
@@ -55,7 +74,7 @@ export async function syncSessionizeData(
 
     try {
       const data = await fetchSessionizeData(event.sessionize_api_id);
-      const result = await upsertData(supabase, data, eventId);
+      const result = await upsertData(supabase, data, eventId, event.timezone);
 
       // Update sync log
       if (syncId) {
@@ -113,6 +132,7 @@ async function upsertData(
   supabase: any,
   data: SessionizeResponse,
   eventId: string,
+  timezone: string | null,
 ): Promise<SyncResult> {
   // 1. Upsert rooms
   if (data.rooms.length > 0) {
@@ -216,8 +236,8 @@ async function upsertData(
       event_id: eventId,
       title: s.title,
       description: s.description,
-      starts_at: s.startsAt ?? null,
-      ends_at: s.endsAt ?? null,
+      starts_at: sessionizeLocalToUTC(s.startsAt, timezone),
+      ends_at: sessionizeLocalToUTC(s.endsAt, timezone),
       room_id: s.roomId,
       is_service_session: s.isServiceSession,
       is_plenum_session: s.isPlenumSession,

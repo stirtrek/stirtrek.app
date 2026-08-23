@@ -1,14 +1,18 @@
 import { describe, it, expect, vi } from "vitest";
 
 /**
- * Regression test: Sessionize returns UTC times. The sync must NOT
- * re-interpret them as local times. A previous bug called eventLocalToUTC()
- * on already-UTC values, shifting sessions by ~4 hours.
+ * Regression test: Sessionize returns naive local wall-clock times in the
+ * event's timezone (no offset, e.g. "2026-05-01T14:00:00"). The rest of the
+ * app stores and reasons about timestamps as real UTC, so the sync must
+ * convert Sessionize's event-local times to UTC using the event timezone.
+ * A previous bug stored the naive value verbatim, so an 8am-Eastern session
+ * landed as 8am UTC and rendered ~4 hours early.
  */
 
 // ── Mocks ──
 
 let upsertedSessions: Record<string, unknown>[] = [];
+let eventTimezone: string | null = "America/New_York";
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
@@ -19,7 +23,10 @@ vi.mock("@/lib/supabase/admin", () => ({
             eq: () => ({
               single: () =>
                 Promise.resolve({
-                  data: { sessionize_api_id: "test-api-id" },
+                  data: {
+                    sessionize_api_id: "test-api-id",
+                    timezone: eventTimezone,
+                  },
                 }),
             }),
           }),
@@ -69,8 +76,9 @@ vi.mock("@/lib/sessionize/client", () => ({
           id: "sess-1",
           title: "Test Session",
           description: "A talk",
-          startsAt: "2026-05-01T14:00:00Z",
-          endsAt: "2026-05-01T15:00:00Z",
+          // Naive local time as Sessionize returns it (2pm Eastern, EDT = UTC-4)
+          startsAt: "2026-05-01T14:00:00",
+          endsAt: "2026-05-01T15:00:00",
           roomId: null,
           speakers: [],
           categoryItems: [],
@@ -95,20 +103,25 @@ vi.mock("@/lib/telemetry/service", () => ({
 import { syncSessionizeData } from "@/lib/sessionize/sync";
 
 describe("Sessionize sync - time handling", () => {
-  it("stores Sessionize UTC times without conversion", async () => {
+  it("converts Sessionize event-local times to UTC", async () => {
+    eventTimezone = "America/New_York";
     upsertedSessions = [];
     await syncSessionizeData("test", "event-1");
 
     expect(upsertedSessions).toHaveLength(1);
-    // Times must be stored exactly as Sessionize provides them (UTC)
-    expect(upsertedSessions[0].starts_at).toBe("2026-05-01T14:00:00Z");
-    expect(upsertedSessions[0].ends_at).toBe("2026-05-01T15:00:00Z");
+    // 2pm Eastern on May 1 (EDT, UTC-4) → 6pm UTC
+    const start = new Date(upsertedSessions[0].starts_at as string);
+    const end = new Date(upsertedSessions[0].ends_at as string);
+    expect(start.getTime()).toBe(new Date("2026-05-01T18:00:00Z").getTime());
+    expect(end.getTime()).toBe(new Date("2026-05-01T19:00:00Z").getTime());
   });
 
-  it("preserves UTC times without timezone offset", async () => {
-    // Verify the stored time matches UTC exactly — no +4h or -4h shift
-    const stored = new Date(upsertedSessions[0].starts_at as string);
-    const expected = new Date("2026-05-01T14:00:00Z");
-    expect(stored.getTime()).toBe(expected.getTime());
+  it("stores the raw value when the event has no timezone configured", async () => {
+    eventTimezone = null;
+    upsertedSessions = [];
+    await syncSessionizeData("test", "event-1");
+
+    expect(upsertedSessions[0].starts_at).toBe("2026-05-01T14:00:00");
+    expect(upsertedSessions[0].ends_at).toBe("2026-05-01T15:00:00");
   });
 });
