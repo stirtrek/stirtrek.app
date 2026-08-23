@@ -15,14 +15,12 @@ export function TimeSlotChips({
   onSelectSlot,
   timezone,
 }: TimeSlotChipsProps) {
-  const cols = Math.ceil(times.length / 2);
-
   const chipClass =
     "cursor-pointer whitespace-nowrap rounded-md border px-1 py-1.5 text-center text-xs font-semibold transition-colors";
 
   return (
     <div className="flex gap-2 pb-2">
-      {/* All button — squircle spanning both rows */}
+      {/* All button — squircle spanning every row of chips */}
       <button
         onClick={() => onSelectSlot(null)}
         className={cn(
@@ -35,10 +33,11 @@ export function TimeSlotChips({
         All
       </button>
 
-      {/* Time chips in a uniform grid */}
+      {/* Time chips: fixed-width columns that wrap into as many rows as
+          needed, so the grid never overflows a narrow (mobile) screen. */}
       <div
         className="min-w-0 flex-1 grid gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(4rem, 1fr))" }}
       >
         {times.map((time) => (
           <button
