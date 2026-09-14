@@ -5,6 +5,7 @@ import { OfflineIndicator } from "@/components/layout/offline-indicator";
 import { DevTimeBanner } from "@/components/layout/dev-time-banner";
 import { SimulationBanner } from "@/components/layout/simulation-banner";
 import { PushPrompt } from "@/components/layout/push-prompt";
+import { InstallPrompt } from "@/components/layout/install-prompt";
 import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 import { PresenceTracker } from "@/components/presence-tracker";
 import { SimulatedTimeProvider } from "@/providers/simulated-time-provider";
@@ -42,6 +43,7 @@ export default async function AttendeeLayout({
               <Header />
               <DevTimeBanner />
               <PresenceTracker />
+              <InstallPrompt />
               <PushPrompt />
               <main className="mx-auto w-full max-w-md flex-1 px-4 pb-20 pt-4">
                 <BookmarkProvider>
